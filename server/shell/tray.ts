@@ -1,63 +1,41 @@
 import { Menu, Tray, app, nativeImage, type MenuItemConstructorOptions } from 'electron'
-import type { Surface } from './surfaces'
-
-export interface TrayWindow {
-  id: string
-  /** The name agents use for it. */
-  name: string
-  surface: Surface
-  /** Which of the tray's routes this window uses. */
-  route: string
-  /** The fallback window can't be closed: it is where everything else lands. */
-  closable: boolean
-  renamable: boolean
-}
+import type { ShellCommand, ShellState, ShellWindow } from '@contract'
 
 export interface TrayOptions {
   icon: string
-  themes: readonly { id: string; label: string }[]
-  /** The ways a window can be told what to take, e.g. everything / lyrics only / agent cards only. */
-  routes: readonly { id: string; label: string }[]
-  presets: readonly { id: string; label: string }[]
-  windows: () => readonly TrayWindow[]
-  /** Names a window can be given (menus can't take typing). */
-  names: readonly string[]
-  onPickName: (window: string, name: string) => void
-  onPickTheme: (window: string, theme: string) => void
-  onPickRoute: (window: string, route: string) => void
-  onAddWindow: () => void
-  onCloseWindow: (window: string) => void
-  onPreset: (preset: string) => void
+  /** The shell's state and its one way in; the tray is only a view of them. */
+  state: () => ShellState
+  subscribe: (listener: () => void) => () => void
+  dispatch: (command: ShellCommand) => unknown
 }
 
-// The menu-bar item. It reads every window's state each time it is rebuilt, and
-// the caller rebuilds it whenever any of that changes, so labels never go stale.
-export function createTray(opts: TrayOptions) {
-  const image = nativeImage.createFromPath(opts.icon)
+// The menu-bar item. It rebuilds from ShellState whenever that changes, so labels never go stale.
+export function createTray({ icon, state, subscribe, dispatch }: TrayOptions) {
+  const image = nativeImage.createFromPath(icon)
   image.setTemplateImage(true)
   const tray = new Tray(image)
-  const themeLabel = (id: string) => opts.themes.find((t) => t.id === id)?.label ?? id
 
-  function windowItems(w: TrayWindow, many: boolean, taken: Set<string>): MenuItemConstructorOptions[] {
-    const s = w.surface.state()
-    const names = opts.names.includes(w.name) ? opts.names : [w.name, ...opts.names]
+  function windowItems(s: ShellState, w: ShellWindow, many: boolean): MenuItemConstructorOptions[] {
+    const window = w.id
+    const taken = new Set(s.windows.map((x) => x.name))
+    const names = s.names.includes(w.name) ? s.names : [w.name, ...s.names]
     const fill: MenuItemConstructorOptions =
-      s.fill === 'restorable'
-        ? { label: '还原窗口大小', click: () => w.surface.toggleFill() }
-        : s.fill === 'full'
+      w.fill === 'restorable'
+        ? { label: '还原窗口大小', click: () => dispatch({ type: 'toggleFill', window }) }
+        : w.fill === 'full'
           ? { label: '铺满屏幕（已铺满）', enabled: false }
-          : { label: '铺满屏幕', click: () => w.surface.toggleFill() }
+          : { label: '铺满屏幕', click: () => dispatch({ type: 'toggleFill', window }) }
     return [
       {
         label: '主题',
-        submenu: opts.themes.map((t) => ({
+        submenu: s.themes.map((t) => ({
           label: t.label,
           type: 'radio' as const,
-          checked: t.id === s.theme,
-          click: () => opts.onPickTheme(w.id, t.id),
+          checked: t.id === w.theme,
+          click: () => dispatch({ type: 'setTheme', window, theme: t.id }),
         })),
       },
-      ...(many && w.renamable
+      ...(many && !w.main
         ? [
             {
               label: `名字：${w.name}`,
@@ -66,7 +44,7 @@ export function createTray(opts: TrayOptions) {
                 type: 'radio' as const,
                 checked: n === w.name,
                 enabled: n === w.name || !taken.has(n),
-                click: () => opts.onPickName(w.id, n),
+                click: () => dispatch({ type: 'rename', window, name: n }),
               })),
             },
           ]
@@ -75,52 +53,61 @@ export function createTray(opts: TrayOptions) {
         ? [
             {
               label: '显示什么',
-              submenu: opts.routes.map((r) => ({
+              submenu: s.routes.map((r) => ({
                 label: r.label,
                 type: 'radio' as const,
                 checked: r.id === w.route,
-                click: () => opts.onPickRoute(w.id, r.id),
+                click: () => dispatch({ type: 'setRoute', window, route: r.id }),
               })),
             },
           ]
         : []),
       { type: 'separator' },
-      { label: '鼠标穿透', type: 'checkbox', checked: s.clickThrough, click: () => w.surface.toggleClickThrough() },
+      { label: '鼠标穿透', type: 'checkbox', checked: w.clickThrough, click: () => dispatch({ type: 'toggleClickThrough', window }) },
       fill,
-      { label: '重置当前主题的窗口', click: () => w.surface.reset() },
-      { label: s.visible ? (many ? '隐藏此窗口' : '隐藏 echo') : many ? '显示此窗口' : '显示 echo', click: () => w.surface.toggleVisible() },
-      ...(many && w.closable ? [{ label: '关闭此窗口', click: () => opts.onCloseWindow(w.id) }] : []),
+      { label: '重置当前主题的窗口', click: () => dispatch({ type: 'resetWindow', window }) },
+      {
+        label: w.visible ? (many ? '隐藏此窗口' : '隐藏 echo') : many ? '显示此窗口' : '显示 echo',
+        click: () => dispatch({ type: 'toggleVisible', window }),
+      },
+      ...(many && !w.main ? [{ label: '关闭此窗口', click: () => dispatch({ type: 'closeWindow', window }) }] : []),
     ]
   }
 
   function rebuild(): void {
-    const windows = opts.windows()
-    const many = windows.length > 1
-    const routeLabel = (id: string) => opts.routes.find((r) => r.id === id)?.label ?? id
-    const taken = new Set(windows.map((w) => w.name))
+    const s = state()
+    const many = s.windows.length > 1
+    const themeLabel = (id: string) => s.themes.find((t) => t.id === id)?.label ?? id
+    const routeLabel = (id: string) => s.routes.find((r) => r.id === id)?.label ?? id
     const perWindow: MenuItemConstructorOptions[] = many
-      ? windows.map((w) => ({
-          label: `${w.name} · ${themeLabel(w.surface.state().theme)} · ${routeLabel(w.route)}${w.surface.state().visible ? '' : '（已隐藏）'}`,
-          submenu: windowItems(w, true, taken),
+      ? s.windows.map((w) => ({
+          label: `${w.name} · ${themeLabel(w.theme)} · ${routeLabel(w.route)}${w.visible ? '' : '（已隐藏）'}`,
+          submenu: windowItems(s, w, true),
         }))
-      : windows[0]
-        ? windowItems(windows[0], false, taken)
+      : s.windows[0]
+        ? windowItems(s, s.windows[0], false)
         : []
     tray.setContextMenu(
       Menu.buildFromTemplate([
         ...perWindow,
         { type: 'separator' },
-        { label: '新增窗口', click: opts.onAddWindow },
-        ...(opts.presets.length ? [{ label: '布局', submenu: opts.presets.map((p) => ({ label: p.label, click: () => opts.onPreset(p.id) })) }] : []),
+        { label: '新增窗口', click: () => dispatch({ type: 'addWindow' }) },
+        ...(s.presets.length
+          ? [{ label: '布局', submenu: s.presets.map((p) => ({ label: p.label, click: () => dispatch({ type: 'applyPreset', preset: p.id }) })) }]
+          : []),
         { type: 'separator' },
         { label: '退出 echo', click: () => app.quit() },
       ]),
     )
   }
 
+  const off = subscribe(rebuild)
   rebuild()
   return {
     rebuild,
-    destroy: () => tray.destroy(),
+    destroy: () => {
+      off()
+      tray.destroy()
+    },
   }
 }

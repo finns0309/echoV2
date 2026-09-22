@@ -17,10 +17,11 @@ import { createResponsesClient } from '@server/providers/llm/responses'
 import { createMuseClient } from '@server/providers/muse/client'
 import { createNeteaseClient } from '@server/providers/netease/client'
 import { createShellPrefs } from '@server/shell/prefs'
-import { createSurface, type Surface } from '@server/shell/surfaces'
+import { createShellControl, type Preset } from '@server/shell/control'
+import { createSurface } from '@server/shell/surfaces'
 import { createTray } from '@server/shell/tray'
 import { createContentStore } from '@server/stage/contents'
-import { admits, waitingOrder, type SurfaceConfig } from '@server/stage/scheduler'
+import { admits, waitingOrder } from '@server/stage/scheduler'
 import { createStageService } from '@server/stage/service'
 import { createStage } from '@server/stage/state'
 
@@ -53,13 +54,11 @@ const ROUTES: { id: string; label: string; accepts?: Route }[] = [
   { id: 'music', label: '只放歌词', accepts: { packs: ['music'] } },
   { id: 'card', label: '只放 agent 投递', accepts: { packs: ['card'] } },
 ]
-const routeOf = (accepts: Route | undefined) =>
-  ROUTES.find((r) => JSON.stringify(r.accepts) === JSON.stringify(accepts))?.id ?? 'all'
-// Names a user can give a window from the tray (menus can't take typing). Agents prefer windows by name.
+// Names a user can give a window (menus can't take typing). Agents prefer windows by name.
 const NAMES = ['left', 'right', 'top', 'bottom', 'side', 'stage', 'chat', 'corner']
-const PRESETS = [
-  { id: 'split', label: '歌词 + agent 双风铃' },
-  { id: 'single', label: '只留一个窗口' },
+const PRESETS: Preset[] = [
+  { id: 'split', label: '歌词 + agent 双风铃', windows: [{ theme: 'furin', route: 'music' }, { theme: 'furin', route: 'card' }] },
+  { id: 'single', label: '只留一个窗口', windows: [{ route: 'all' }] },
 ]
 
 // The LLM behind the director. Defaults match the old echo; secrets.json in userData overrides.
@@ -99,33 +98,37 @@ app.whenReady().then(async () => {
   const userData = app.getPath('userData')
   const store = createJsonStore(join(userData, 'state'))
 
-  // Shell: which surfaces exist, what they wear and take, and whether they are showing.
+  // Shell: which windows exist, what they wear and take, and whether they are showing.
+  // The control is its single writer; the stage reads surfaces() from it.
   const prefs = createShellPrefs(store, [{ id: MAIN, theme: DEFAULT_THEME }])
-  const windows = new Map<string, Surface>()
-  // Every window has a name: main is 'main'; others default to win2, win3, ... until renamed.
-  const nextName = () => {
-    const taken = new Set(prefs.get().map((p) => p.name))
-    let n = 2
-    while (taken.has(`win${n}`)) n++
-    return `win${n}`
-  }
-  for (const p of prefs.get()) if (!p.name) prefs.setName(p.id, p.id === MAIN ? MAIN : nextName())
-  const surfaces = (): SurfaceConfig[] =>
-    prefs.get().flatMap((p) => {
-      const manifest = manifests[p.theme] ?? manifests[DEFAULT_THEME]
-      if (!manifest) return []
-      return [
-        {
-          id: p.id,
-          ...(p.name ? { name: p.name } : {}),
-          theme: manifest.id,
-          profile: manifest.window,
-          ...(p.accepts ? { accepts: p.accepts } : {}),
-          ...(p.id === MAIN ? { fallback: true } : {}),
-          ...(windows.get(p.id)?.state().visible === false ? { hidden: true } : {}),
+  let onWindowsChanged = () => {}
+  const channel = createScreenChannel()
+  const shell = createShellControl({
+    prefs,
+    themes: Object.values(manifests).map((m) => ({ id: m.id, label: m.label, profile: m.window })),
+    defaultTheme: DEFAULT_THEME,
+    routes: ROUTES,
+    names: NAMES,
+    presets: PRESETS,
+    main: MAIN,
+    open: (id) => {
+      const surface = createSurface({ id, preload: PRELOAD, prefs, others: () => otherBounds(id) })
+      channel.attach(surface.win)
+      void loadScreen(surface.win, id)
+      opened.set(id, surface)
+      return {
+        ...surface,
+        destroy: () => {
+          opened.delete(id)
+          surface.destroy()
         },
-      ]
-    })
+      }
+    },
+    onWindowsChanged: () => onWindowsChanged(),
+  })
+  const opened = new Map<string, ReturnType<typeof createSurface>>()
+  const otherBounds = (id: string) => [...opened].flatMap(([other, s]) => (other === id ? [] : [s.bounds()]))
+  const surfaces = () => shell.surfaces()
 
   // Director: L0 provider (Electron's net.fetch follows the system proxy) → L2 service.
   const secrets = loadSecrets(userData)
@@ -151,7 +154,6 @@ app.whenReady().then(async () => {
   for (const [theme, grammar] of grammars) director.register(theme, grammar)
 
   // Stage: contents, scheduling, state.
-  const channel = createScreenChannel()
   const stage = createStage(Object.fromEntries(surfaces().map((s) => [s.id, { profile: s.profile, theme: s.theme, slots: {} }])))
   const contents = createContentStore(store, Date.now)
   const service = createStageService({
@@ -176,79 +178,15 @@ app.whenReady().then(async () => {
   music.start(service.packContext)
   app.on('before-quit', () => music.stop())
 
-  // Surfaces: one window each, wearing its theme (or where the user last left it for that theme).
-  // Windows follow the prefs: added, re-themed and closed as they change.
-  let tray: ReturnType<typeof createTray> | null = null
-  function reconcile(): void {
-    const wanted = surfaces()
-    for (const s of wanted) {
-      let surface = windows.get(s.id)
-      if (!surface) {
-        const others = [...windows.values()]
-        surface = createSurface({ id: s.id, preload: PRELOAD, prefs, others: () => others.map((o) => o.bounds()) })
-        windows.set(s.id, surface)
-        surface.onChange(() => {
-          tray?.rebuild()
-          service.run() // hiding or showing a window reroutes content
-        })
-        channel.attach(surface.win)
-        surface.wear(s.theme, s.profile)
-        void loadScreen(surface.win, s.id)
-      } else if (surface.state().theme !== s.theme) {
-        surface.wear(s.theme, s.profile)
-      }
-    }
-    for (const [id, surface] of windows) {
-      if (wanted.some((s) => s.id === id)) continue
-      windows.delete(id)
-      surface.destroy()
-    }
-    tray?.rebuild()
-    service.run()
-  }
-
-  function preset(id: string): void {
-    const extras = prefs.get().filter((p) => p.id !== MAIN)
-    if (id === 'single') {
-      for (const p of extras) prefs.remove(p.id)
-      prefs.setRoute(MAIN, undefined)
-      return
-    }
-    if (id === 'split') {
-      const theme = manifests.furin ? 'furin' : DEFAULT_THEME
-      prefs.setTheme(MAIN, theme)
-      prefs.setRoute(MAIN, ROUTES.find((r) => r.id === 'music')!.accepts)
-      const agent = extras[0]
-      if (agent) {
-        prefs.setTheme(agent.id, theme)
-        prefs.setRoute(agent.id, ROUTES.find((r) => r.id === 'card')!.accepts)
-      } else prefs.add({ id: `win-${Date.now().toString(36)}`, name: nextName(), theme, accepts: ROUTES.find((r) => r.id === 'card')!.accepts })
-    }
-  }
-
-  reconcile()
-  tray = createTray({
+  // Windows open now; the tray is a view of the shell.
+  onWindowsChanged = () => service.run()
+  shell.start()
+  createTray({
     icon: join(app.getAppPath(), 'assets/trayTemplate.png'),
-    themes: Object.values(manifests).map((m) => ({ id: m.id, label: m.label })),
-    routes: ROUTES,
-    presets: PRESETS,
-    windows: () =>
-      prefs.get().flatMap((p) => {
-        const surface = windows.get(p.id)
-        return surface
-          ? [{ id: p.id, name: p.name ?? p.id, surface, route: routeOf(p.accepts), closable: p.id !== MAIN, renamable: p.id !== MAIN }]
-          : []
-      }),
-    onPickTheme: (window, theme) => prefs.setTheme(window, theme),
-    onPickRoute: (window, route) => prefs.setRoute(window, ROUTES.find((r) => r.id === route)?.accepts),
-    names: NAMES,
-    onPickName: (window, name) => prefs.setName(window, name),
-    onAddWindow: () =>
-      prefs.add({ id: `win-${Date.now().toString(36)}`, name: nextName(), theme: prefs.get().at(-1)?.theme ?? DEFAULT_THEME }),
-    onCloseWindow: (window) => prefs.remove(window),
-    onPreset: preset,
+    state: shell.state,
+    subscribe: shell.subscribe,
+    dispatch: shell.dispatch,
   })
-  prefs.onChange(reconcile)
 
   // Agent API. If the port is taken, echo still runs; agents just can't reach it.
   await startAgentApi({
