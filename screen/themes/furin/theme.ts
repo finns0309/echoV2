@@ -1,6 +1,7 @@
 // 风铃 · a hanging glass wind-chime. Design notes: ./README.md.
 import type { OnAir } from '@contract'
 import { activeBlockIndex, fitText } from '@screen/primitives/blocks'
+import { watchScale } from '@screen/primitives/scale'
 import type { Theme } from '@screen/runtime/theme-api'
 import manifest from './manifest'
 import { buildChime } from './parts/chime'
@@ -15,6 +16,7 @@ export default function createFurin(): Theme {
   let chime: ReturnType<typeof buildChime> | null = null
   let physics: ChimePhysics | null = null
   let offSignal: (() => void) | null = null
+  let stopScale: (() => void) | null = null
 
   let onAir: OnAir | null = null
   let shownIndex = -2
@@ -53,6 +55,8 @@ export default function createFurin(): Theme {
   return {
     mount(el, ctx) {
       root = el
+      // Drawn for the 300×470 hanging window; a filled screen grows the whole chime.
+      stopScale = watchScale(el, '--furin-scale')
       chime = buildChime(el)
       const c = chime
       physics = createChimePhysics((e) => c.strike(e))
@@ -66,7 +70,8 @@ export default function createFurin(): Theme {
 
     unmount() {
       offSignal?.()
-      root = chime = physics = null
+      stopScale?.()
+      root = chime = physics = stopScale = null
     },
 
     show(_slot, next) {

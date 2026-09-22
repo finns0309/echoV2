@@ -16,6 +16,7 @@
   position: absolute;
   left: 50%; top: 0;
   width: 0; height: 0;
+  transform: scale(var(--furin-scale, 1)); /* written by theme.ts from the window diagonal */
   transform-origin: 0 0;
   /* One scene-wide perspective so the depth swing (rotateX) and the paper
      twist (rotateY) foreshorten believably. Short focal length on purpose —
@@ -199,8 +200,10 @@
    centroid (bright hits ring whiter). */
 .echo-theme-furin .fr-ring {
   position: absolute;
-  width: 44px; height: 44px;
-  margin: -22px 0 0 -22px;
+  /* Rings live outside the scaled anchor, so they scale themselves. */
+  --ring: calc(44px * var(--furin-scale, 1));
+  width: var(--ring); height: var(--ring);
+  margin: calc(var(--ring) / -2) 0 0 calc(var(--ring) / -2);
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--furin-accent) var(--ring-accent-mix, 40%), #ffffff);
   opacity: calc(0.15 + var(--ri, 0.6) * 0.32);
@@ -208,8 +211,7 @@
   pointer-events: none;
 }
 .echo-theme-furin .fr-ring.echo {
-  width: 30px; height: 30px;
-  margin: -15px 0 0 -15px;
+  --ring: calc(30px * var(--furin-scale, 1));
   animation-duration: 950ms;
 }
 @keyframes fr-ring {
