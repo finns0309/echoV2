@@ -14,9 +14,12 @@ export function toContent(raw: unknown, now: number, newId: () => string): Accep
       id: `card:${input.id ?? newId()}`,
       pack: 'card',
       kind: input.kind ?? (input.value ? 'status' : 'card'),
-      priority: input.priority ?? 'normal',
+      // Something kept in rotation shouldn't hold back anything new, so it waits for quiet by default.
+      priority: input.priority ?? (input.repeat ? 'ambient' : 'normal'),
       createdAt: now,
       ...(input.ttlSeconds ? { expiresAt: now + input.ttlSeconds * 1000 } : {}),
+      ...(input.repeat ? { repeat: true } : {}),
+      ...(input.group ? { group: input.group } : {}),
       presentation: present(input),
     },
   }

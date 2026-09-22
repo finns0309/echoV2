@@ -8,6 +8,9 @@ export interface ContentSummary {
   kind: string
   priority: string
   title?: string
+  /** In rotation: goes back in line after it plays. */
+  repeat?: boolean
+  group?: string
 }
 
 export interface OnAirSummary extends Partial<ContentSummary> {
@@ -58,6 +61,8 @@ export function summarizeStatus(stage: StageState, contents: readonly ContentSum
         theme: s.theme,
         id: air.contentId,
         ...(c ? { kind: c.kind, priority: c.priority } : {}),
+        ...(c?.repeat ? { repeat: true } : {}),
+        ...(c?.group ? { group: c.group } : {}),
         ...(context.title ? { title: clip(context.title) } : {}),
         ...(headline ? { headline: clip(headline) } : {}),
         onAirSeconds: Math.max(0, Math.round((now - air.since) / 1000)),

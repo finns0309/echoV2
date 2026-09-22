@@ -220,7 +220,8 @@ type FrameClock = {
 | 方法 | 路径 | 做什么 |
 |---|---|---|
 | `POST` | `/contents` | 写入或更新一条内容（由 `card` 包接收并校验）。返回 `{id, updated, state}`：`updated` 表示这个 id 原本就在，`state` 是 `on-air` 或 `queued` |
-| `DELETE` | `/contents/:id` | 撤回 |
+| `DELETE` | `/contents/:id` | 撤回一条 |
+| `DELETE` | `/contents?group=` | 撤回同一批（`group` 相同）的全部内容，返回 `{removed}` |
 | `GET` | `/contents` | 内容库里还有什么，按上台顺序排（优先级高的在前，同级先来的在前） |
 | `GET` | `/stage` | 当前舞台状态：什么在台上、在哪个槽位 |
 
@@ -236,7 +237,7 @@ MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发
 |---|---|---|
 | `show` | `POST /contents` | 投一张卡；输入 schema 直接来自 `AgentCardInput` |
 | `status` | `GET /stage` + `GET /contents` | 现在在显示什么，队列里还有什么。只返回摘要：每个槽位给 id、kind、优先级、`title`、`headline`（第一行主文字）、上台秒数，不带 blocks |
-| `clear` | `DELETE /contents/:id` | 撤回 |
+| `clear` | `DELETE /contents/:id` 或 `?group=` | 按 id 撤回一张，或按 group 撤回一整批 |
 
 ### 4.4 导演服务（主进程）
 
@@ -279,6 +280,7 @@ interface Grammar {
 7. **多窗口路由**：窗口的 `accepts` 决定它收什么，匹配内容的 `pack` 和 `kind`，不写就是全收。`fallback` 窗口还会收「没有任何可见窗口收」的内容，所以隐藏或关掉一个窗口时，它的内容会转到兜底窗口，窗口回来后再分流回去。隐藏的窗口不参与分配。规则只比较字段值，具体的取值（比如「只放歌词」= `packs: ['music']`）由托盘预设写进用户偏好。
 8. **先填空槽，再抢占**：先把排队的内容放进所有空槽；还没安置的才按第 4、5 条去抢；被抢下来的内容再补一轮空槽。所以只要别的窗口有空位，就不会把谁挤下台。
 9. **ambient 按窗口判断**：一个空槽能不能放 ambient 内容，只看同一个窗口里有没有更重要的内容在台上，以及有没有更重要、并且能进这个槽的内容在排队。单窗口时等同于第 4 条。
+10. **循环内容**：`repeat: true` 的内容播完不删除，而是回到队尾（`createdAt` 刷新为当前时刻），同一批按顺序轮流上台。agent 投的循环卡片默认是 ambient，所以只在窗口空闲时轮播，新来的卡片照常优先；被打断的循环卡片不算播完，保留原来的位置。下架靠 `ttlSeconds` 或按 group 撤回。调度器本身不知道循环：它只报告哪些内容播完了，由舞台服务决定消化还是重新排队。
 
 ## 5.1 音乐内容包的约定（M3）
 

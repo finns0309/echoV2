@@ -105,7 +105,11 @@ export function createStageService(opts: StageServiceOptions) {
     })
     consuming = true
     try {
-      for (const id of out.finished) opts.contents.remove(id)
+      // Finished runs are consumed, except content kept in rotation, which goes back in line.
+      for (const id of out.finished) {
+        if (opts.contents.get(id)?.repeat) opts.contents.requeue(id)
+        else opts.contents.remove(id)
+      }
     } finally {
       consuming = false
     }

@@ -57,6 +57,8 @@ server.registerTool(
       '(seconds after the card appears) and let echo play it; do not call show once per frame.',
       'If echo shares a window with music, normal cards wait for a break in the song; use priority urgent only when it',
       'must show now. The user decides which window shows what (see status → windows); you never pick a window.',
+      'To keep the window lively, send a batch with repeat: true and one group: they rotate whenever nothing else wants',
+      'the window, and never hold back new cards. Give the batch a ttlSeconds, or clear it by group when it goes stale.',
     ].join(' '),
     inputSchema: AgentCardInput.shape,
   },
@@ -101,11 +103,19 @@ server.registerTool(
   'clear',
   {
     title: 'Remove from echo',
-    description: 'Take a card off echo (or out of the queue) by the id `show` returned.',
-    inputSchema: { id: z.string().min(1) },
+    description: 'Take a card off echo (or out of the queue) by the id `show` returned, or a whole batch by its group.',
+    inputSchema: {
+      id: z.string().min(1).optional().describe('One card'),
+      group: z.string().min(1).optional().describe('Every card sent with this group'),
+    },
   },
-  async ({ id }) => {
+  async ({ id, group }) => {
     try {
+      if (group) {
+        const { removed } = (await call('DELETE', `/contents?group=${encodeURIComponent(group)}`)) as { removed: number }
+        return text(`Removed ${removed} card${removed === 1 ? '' : 's'} in group ${group}.`)
+      }
+      if (!id) return failure(new Error('send id or group'))
       await call('DELETE', `/contents/${encodeURIComponent(id)}`)
       return text(`Removed ${id}.`)
     } catch (err) {

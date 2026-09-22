@@ -42,6 +42,15 @@ describe('card pack', () => {
     expect(r.ok && r.content.expiresAt).toBe(61_000)
   })
 
+  it('keeps a repeating card in rotation at ambient priority unless told otherwise', () => {
+    const looped = toContent({ lines: ['hi'], repeat: true, group: 'murmur' }, 0, () => 'x')
+    expect(looped.ok && looped.content).toMatchObject({ repeat: true, group: 'murmur', priority: 'ambient' })
+    const pushed = toContent({ lines: ['hi'], repeat: true, priority: 'normal' }, 0, () => 'x')
+    expect(pushed.ok && pushed.content.priority).toBe('normal')
+    const plain = toContent({ lines: ['hi'] }, 0, () => 'x')
+    expect(plain.ok && plain.content).not.toHaveProperty('repeat')
+  })
+
   it('drops an emphasis that is not in the text instead of failing', () => {
     const r = toContent({ lines: [{ text: 'hello', emphasis: 'world' }] }, 0, id)
     expect(r.ok && r.content.presentation.blocks[0]).not.toHaveProperty('emphasis')

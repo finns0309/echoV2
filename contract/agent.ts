@@ -23,6 +23,11 @@ export const AgentCardInput = z
     kind: z.string().min(1).max(40).optional().describe('What this is, e.g. word, fact, news, message, status'),
     priority: Priority.optional().describe('ambient: only when idle; normal: default; urgent: interrupts'),
     ttlSeconds: z.number().positive().optional().describe('Remove the card after this many seconds'),
+    repeat: z
+      .boolean()
+      .optional()
+      .describe('Keep it in rotation: after it plays it goes back in line instead of disappearing. Defaults the priority to ambient, so it only plays while nothing else wants the window. Pair with ttlSeconds or clear it by group'),
+    group: z.string().min(1).max(80).optional().describe('A batch name, e.g. murmur-2026-09-22; clear can withdraw the whole batch at once'),
     title: z.string().optional(),
     byline: z.string().optional(),
     speaker: z.string().optional().describe('Who is talking, e.g. Claude'),

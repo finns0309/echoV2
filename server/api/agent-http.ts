@@ -10,6 +10,8 @@ export interface AgentApiHandlers {
     raw: unknown,
   ): { ok: true; id: string; updated: boolean; state: 'on-air' | 'queued'; surface?: string } | { ok: false; error: string }
   withdraw(id: string): boolean
+  /** Withdraw every content sent with this group; returns how many. */
+  withdrawGroup(group: string): number
   contents(): unknown
   stage(): unknown
 }
@@ -49,6 +51,12 @@ export async function startAgentApi({ port, token, handlers, host = '127.0.0.1' 
         if (!result.ok) return send(res, 400, { error: result.error })
         const { id, updated, state, surface } = result
         return send(res, 201, { id, updated, state, ...(surface ? { surface } : {}) })
+      }
+
+      if (req.method === 'DELETE' && url.pathname === '/contents') {
+        const group = url.searchParams.get('group')
+        if (!group) return send(res, 400, { error: 'DELETE /contents needs ?group=' })
+        return send(res, 200, { removed: handlers.withdrawGroup(group) })
       }
 
       const del = url.pathname.match(/^\/contents\/(.+)$/)

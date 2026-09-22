@@ -101,6 +101,10 @@ export const Content = z.object({
   priority: Priority,
   createdAt: z.number().int(),
   expiresAt: z.number().int().optional(),
+  /** When its run completes, go back to the end of the line instead of being consumed. */
+  repeat: z.boolean().optional(),
+  /** A batch this content was sent with; the whole batch can be withdrawn at once. */
+  group: z.string().min(1).optional(),
   presentation: Presentation,
 })
 export type Content = z.infer<typeof Content>

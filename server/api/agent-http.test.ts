@@ -17,6 +17,7 @@ async function start(overrides: Partial<AgentApiHandlers> = {}) {
       return { ok: true, id: 'card:x', updated: false, state: 'queued' }
     },
     withdraw: (id) => id === 'card:x',
+    withdrawGroup: (group) => (group === 'murmur' ? 3 : 0),
     contents: () => [],
     stage: () => ({ rev: 3 }),
     ...overrides,
@@ -49,6 +50,14 @@ describe('agent HTTP API', () => {
     expect(res.status).toBe(201)
     expect(await res.json()).toEqual({ id: 'card:x', updated: false, state: 'queued' })
     expect(submitted).toEqual([{ lines: ['hi'] }])
+  })
+
+  it('withdraws a whole group', async () => {
+    const { call } = await start()
+    const res = await call('/contents?group=murmur', { method: 'DELETE' })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ removed: 3 })
+    expect((await call('/contents', { method: 'DELETE' })).status).toBe(400)
   })
 
   it('refuses non-JSON bodies, which is what a cross-site form post would be', async () => {

@@ -90,3 +90,54 @@ describe('stage service directions', () => {
     expect(asks.filter((a) => a === 'queued')).toHaveLength(1)
   })
 })
+
+describe('stage service rotation', () => {
+  it('sends repeating content back in line, taking turns, behind anything new', () => {
+    let t = 0
+    const stage = createStage({ main: { profile: 'ambient', theme: 'demo', slots: {} } })
+    const contents = createContentStore(createMemoryStore(), () => t)
+    service = createStageService({
+      contents,
+      stage,
+      manifests: { demo: manifest },
+      surfaces: () => [{ id: 'main', profile: 'ambient', theme: 'demo' }],
+      emitSignal: () => {},
+      direct: async () => null,
+      now: () => t,
+      tickMs: 60_000,
+    })
+    const looped = (id: string, createdAt: number): Content => ({
+      ...card(id),
+      id,
+      priority: 'ambient',
+      repeat: true,
+      group: 'murmur',
+      createdAt,
+      presentation: { ...card(id).presentation, hints: { dwell: 10 } },
+    })
+    const onAir = () => stage.snapshot().surfaces.main!.slots.main?.contentId ?? null
+    const at = (ms: number) => {
+      t = ms
+      service!.run()
+      service!.run() // the pass after consuming fills the freed slot
+    }
+
+    service.packContext.upsert(looped('a', 0))
+    service.packContext.upsert(looped('b', 1))
+    at(0)
+    expect(onAir()).toBe('a')
+    at(10_000) // a's run is over: it goes behind b
+    expect(onAir()).toBe('b')
+    expect(contents.get('a')?.createdAt).toBe(10_000)
+    t = 12_000
+    service.packContext.upsert({ ...card('news'), id: 'news', createdAt: 12_000 })
+    expect(onAir()).toBe('news') // anything new cuts in at once
+    at(72_000) // news is done; b was interrupted, not finished, so it is still b's turn
+    expect(onAir()).toBe('b')
+    at(82_000)
+    expect(onAir()).toBe('a')
+    expect(contents.list().map((c) => c.id).sort()).toEqual(['a', 'b'])
+    expect(contents.removeGroup('murmur')).toBe(2)
+  })
+})
+

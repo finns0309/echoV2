@@ -23,6 +23,23 @@ export function createContentStore(store: JsonStore, now: () => number) {
       changed()
     },
 
+    /** Back to the end of the line: an update that, unlike upsert, gives up its place. */
+    requeue(id: string): boolean {
+      const c = items.get(id)
+      if (!c) return false
+      items.set(id, { ...c, createdAt: now() })
+      changed()
+      return true
+    },
+
+    /** Withdraw a whole batch. Returns how many went. */
+    removeGroup(group: string): number {
+      let n = 0
+      for (const [id, c] of items) if (c.group === group && items.delete(id)) n++
+      if (n) changed()
+      return n
+    },
+
     remove(id: string): boolean {
       const existed = items.delete(id)
       if (existed) changed()

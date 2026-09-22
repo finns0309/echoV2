@@ -242,9 +242,17 @@ app.whenReady().then(async () => {
           : { ok: true, id, updated: existed.has(id), state: 'queued' }
       },
       withdraw: (id) => contents.remove(id) || contents.remove(`card:${id}`),
+      withdrawGroup: (group) => contents.removeGroup(group),
       // In the order they will go on air.
       contents: () =>
-        [...contents.list()].sort(waitingOrder).map((c) => ({ id: c.id, kind: c.kind, priority: c.priority, title: c.presentation.context.title })),
+        [...contents.list()].sort(waitingOrder).map((c) => ({
+          id: c.id,
+          kind: c.kind,
+          priority: c.priority,
+          title: c.presentation.context.title,
+          ...(c.repeat ? { repeat: true } : {}),
+          ...(c.group ? { group: c.group } : {}),
+        })),
       stage: () => stage.snapshot(),
     },
   }).catch((err: unknown) => console.error(`[echo] agent API not started on ${AGENT_PORT}:`, err))
