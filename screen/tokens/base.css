@@ -22,10 +22,14 @@ body {
   inset: 0;
 }
 
-/* Each mounted theme fills the surface; the theme styles everything inside. */
+/* Each mounted theme fills the surface; the theme styles everything inside.
+   The whole surface is a handle, whatever the theme: drag it anywhere on the
+   desktop (unless click-through is on). A theme with controls marks them no-drag. */
 .echo-theme {
   position: absolute;
   inset: 0;
+  -webkit-app-region: drag;
+  user-select: none;
 }
 
 /* Shown only when no theme is mounted. Draggable so the window can be moved. */
