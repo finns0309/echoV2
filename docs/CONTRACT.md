@@ -240,11 +240,24 @@ MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发
 - **规则**：归主题所有，prompt 和解析器都放在 `screen/themes/<id>/grammar.ts`，由组合根注册到导演服务。
   内容上台后，主进程如果发现当前主题有 grammar，就请求导演，结果写进 `OnAir.directions` 推给屏幕。
 
+主题的规则写成 `Grammar`（`contract/theme.ts`），只能是纯数据加纯函数，因为主进程要加载它：
+
 ```ts
-type DirectorService = {
-  direct(grammar: string, presentation: Presentation): Promise<unknown | null>;
-};
+interface Grammar {
+  version: number;                                   // 改了 prompt 或输出格式就加一，旧缓存自动作废
+  instructions: string;
+  prepare(p: Presentation): { input: string; key: string } | null;  // key 决定缓存
+  parse(output: string, p: Presentation): unknown;   // 解析不了返回 null
+}
 ```
+
+- **调度层只拿到一个通用钩子** `direct(theme, presentation)`，由 `cmd/display` 接到导演服务上。每个（槽位、内容、主题、文字）组合只问一次；同一内容的文字变了，旧结果作废并重新问。
+- **只有文本块达到 4 个的内容才请求导演**，短卡直接用主题的启发式。
+- **缓存**：按 `主题.v版本.内容哈希` 落盘到 `userData/director-cache/`。同一内容的并发请求共用一次调用；失败不写缓存，下次自动重试。
+- **key**：放在 `~/Library/Application Support/echo-v2/secrets.json`（`openaiApiKey`、可选的 `openaiModel`、`openaiBaseUrl`）。没有 key 时导演保持静默。
+- **结果按块的位置对应**：比如新世纪的 `{ cards: [...] }`，第 i 项对应第 i 个块。
+
+已知限制：导演一次大约要 10–15 秒。一张马上上台的短卡，第一次显示时通常只能用启发式；结果进了缓存，下次同样的内容就能直接用上。歌词（M3）会提前全部知道，所以不受影响。
 
 ## 5. 调度规则 v0
 

@@ -23,3 +23,18 @@ export const ThemeManifest = z.object({
   signals: z.array(z.enum(SIGNALS)).optional(),
 })
 export type ThemeManifest = z.infer<typeof ThemeManifest>
+
+/**
+ * A theme's director grammar (screen/themes/<id>/grammar.ts): how to ask an LLM
+ * to stage a presentation for this theme, and how to read the answer back.
+ * Pure functions only: the display server loads this file.
+ */
+export interface Grammar {
+  /** Bump when the prompt or output format changes; old cache entries are then ignored. */
+  version: number
+  instructions: string
+  /** The model input for one presentation, plus a stable cache key. Null means "nothing to direct". */
+  prepare(presentation: import('./content').Presentation): { input: string; key: string } | null
+  /** Model output → directions for OnAir.directions. Null when the output is unusable. */
+  parse(output: string, presentation: import('./content').Presentation): unknown
+}

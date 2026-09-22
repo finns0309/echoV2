@@ -10,7 +10,9 @@
 
 ## 状态
 
-M1 完成：agent 投卡片 → 内容库 → 调度 → 舞台状态 → 屏幕上的主题。现在有两个主题：风铃、流体（托盘里切换）。下一步是 M2：导演服务、新世纪、夜潮。
+M2 完成：四个主题（风铃、流体、新世纪、夜潮，托盘里切换），新世纪由 LLM 导演排版。下一步是 M3：接入 muse，歌词作为普通内容包。
+
+LLM 的 key 放在 `~/Library/Application Support/echo-v2/secrets.json`（`openaiApiKey`），没有也能用，新世纪会退回启发式排版。
 
 ```bash
 pnpm install

@@ -1,0 +1,15 @@
+/* 夜潮 · everything is one WebGL canvas (./parts/engine.ts): no DOM text, no
+   overlays. Ported from echo's style.css. */
+.echo-theme-tide {
+  background: #03040c;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+.echo-theme-tide canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}

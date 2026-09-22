@@ -68,7 +68,7 @@ screen/
 ├── runtime/         舞台宿主、四种时间线的时钟、信号总线、传输客户端（IPC，以后加 WebSocket）
 ├── primitives/      没有主题语义的工具，至少两个主题在用才放进来
 │   ├── blocks/        当前该显示哪一块、toText、按容量取短版本（M1）
-│   ├── text/          分词、强调词、合成逐字时间（M2，新世纪和夜潮用）
+│   ├── text/          分词、强调词、合成逐字时间（新世纪和夜潮用）
 │   ├── color/         从封面取色
 │   └── gl/            全屏着色器的小框架（流体和夜潮共用）
 ├── tokens/          全局 token：字体栈、chrome 的颜色
@@ -111,10 +111,10 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 
 | 主题 | 旧版来源 | 新位置 |
 |---|---|---|
-| 流体 | `fx.js` 的 plasma 着色器，app.js 的 `renderStage`，style.css 的 §STAGE 和 wave 动画 | `plasma/parts/shader.ts`、`plasma/parts/cards.ts`、`plasma/theme.css` |
+| 流体 | `fx.js` 的 plasma 着色器，app.js 的 `renderStage`，style.css 的 §STAGE 和 wave 动画 | `plasma/parts/plasma.frag.glsl`、`plasma/parts/field.ts`、`plasma/parts/cards.ts`、`plasma/theme.css` |
 | 新世纪 | `eva.js` 的排版引擎；director.js 里 eva 和 keyword 两份规则 | `eva/parts/layout.ts`；两份规则合进 `eva/grammar.ts`，一次调用同时给出模板和强调词 |
 | 风铃 | `furin.js` 的三摆物理和风铃 DOM | `furin/parts/physics.ts`、`furin/parts/chime.ts` |
-| 夜潮 | `tide.js` 的着色器、浪的排程、文字栅格化 | `tide/parts/shader.ts`、`tide/parts/waves.ts`、`tide/parts/raster.ts` |
+| 夜潮 | `tide.js` 的着色器、浪的排程、文字栅格化 | `tide/parts/tide.frag.glsl`、`tide/parts/waves.ts`（排程，纯逻辑）、`tide/parts/engine.ts`（栅格化和每帧驱动） |
 
 旧版每个文件开头的长注释（设计意图）迁进各自的 `README.md`。
 
@@ -174,7 +174,7 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 | 里程碑 | 新建 | 证明什么 |
 |---|---|---|
 | M1 ✓ | contract、cmd（三个入口）、foundation、packs/card、stage、shell、api、runtime、primitives/blocks、tokens、themes/furin、themes/plasma、architecture | 核心里没有歌词，也能完整跑通：agent 投卡片 → 调度 → 风铃和流体显示 |
-| M2 | capabilities/director、providers/llm、primitives/text、themes/eva；themes/tide，同时把流体里的 gl 零件提到 primitives/gl | 导演服务和主题自带的规则能配合；两个 WebGL 主题共用底座 |
+| M2 ✓ | capabilities/director、providers/llm、primitives/text、themes/eva；themes/tide，同时把流体里的 gl 零件提到 primitives/gl | 导演服务和主题自带的规则能配合；两个 WebGL 主题共用底座 |
 | M3 | providers/muse、providers/netease、capabilities/lyrics、packs/music | 歌词只是一个普通内容包；删掉它，前两个里程碑不受影响 |
 
 ## 7. 技术栈

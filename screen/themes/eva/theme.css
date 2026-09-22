@@ -1,0 +1,88 @@
+/* 新世纪 · hard cuts only. The single allowed animation is a 2-step slam;
+   everything else either IS or ISN'T. Type = ultra-bold Mincho. No overlays,
+   no corner readouts: the void stays empty around the type.
+   Ported from echo's style.css. */
+.echo-theme-eva {
+  background: #050505;
+  overflow: hidden;
+  font-family: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "Songti SC", "STSong", serif;
+  user-select: none;
+  cursor: default;
+}
+
+/* — title card — */
+.echo-theme-eva .ev-card {
+  position: absolute; inset: 0; z-index: 3;
+  color: #f2f0e8;
+  font-weight: 800;
+  pointer-events: none;
+}
+.echo-theme-eva .ev-card.slam { animation: ev-slam 100ms steps(2, end); }
+@keyframes ev-slam { from { transform: scale(1.045); } to { transform: scale(1); } }
+.echo-theme-eva .ev-card .red { color: #e60012; }
+.echo-theme-eva .ev-card.ev-invert { background: #f2f0e8; color: #0a0a0a; }
+.echo-theme-eva .ev-card.ev-invert .red { color: #e60012; }
+
+.echo-theme-eva .ev-row { white-space: nowrap; line-height: 1.02; letter-spacing: -0.015em; }
+/* Every template wrapper is absolutely placed and max-content sized, so
+   eva.js's fit() can measure it at a probe size and scale it into its box. */
+.echo-theme-eva .ev-whisper, .echo-theme-eva .ev-vert, .echo-theme-eva .ev-corner-a, .echo-theme-eva .ev-corner-b,
+.echo-theme-eva .ev-dual-a, .echo-theme-eva .ev-dual-b, .echo-theme-eva .ev-giant, .echo-theme-eva .ev-giant-rest,
+.echo-theme-eva .ev-bleed, .echo-theme-eva .ev-repeat { position: absolute; width: max-content; height: max-content; }
+
+/* whisper — the quiet card: small, centered, airy, nothing else */
+.echo-theme-eva .ev-whisper {
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-weight: 600;
+}
+.echo-theme-eva .ev-whisper .ev-row { letter-spacing: 0.22em; }
+
+.echo-theme-eva .ev-stack {
+  position: absolute; inset: 8% 5%;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.echo-theme-eva .ev-stack .ev-r-left  { text-align: left; }
+.echo-theme-eva .ev-stack .ev-r-right { text-align: right; }
+.echo-theme-eva .ev-stack .ev-r-mid   { text-align: left; padding-left: 12%; }
+
+.echo-theme-eva .ev-vert, .echo-theme-eva .ev-corner-b {
+  writing-mode: vertical-rl; text-orientation: upright;
+}
+.echo-theme-eva .ev-vert { top: 7%; right: 9%; }
+.echo-theme-eva .ev-vert .ev-row, .echo-theme-eva .ev-corner-b .ev-row { line-height: 1.12; letter-spacing: 0.04em; }
+
+/* corner — horizontal phrase top-left, vertical phrase hanging at the right */
+.echo-theme-eva .ev-corner-a { left: 5%; top: 8%; }
+.echo-theme-eva .ev-corner-b { right: 6%; top: 8%; }
+
+.echo-theme-eva .ev-dual-a { left: 5%; top: 11%; }
+.echo-theme-eva .ev-dual-b { right: 5%; bottom: 13%; }
+
+.echo-theme-eva .ev-giant {
+  left: 3%; top: 50%;
+  transform: translateY(-56%);
+  line-height: 0.95; white-space: nowrap; letter-spacing: -0.03em;
+}
+.echo-theme-eva .ev-giant-rest { right: 6%; bottom: 9%; }
+.echo-theme-eva .ev-giant-rest .ev-row { letter-spacing: 0.1em; }
+
+/* bleed — a short line fills the frame, edges running off */
+.echo-theme-eva .ev-bleed { left: 50%; top: 50%; transform: translate(-50%, -52%); }
+.echo-theme-eva .ev-bleed .ev-row { line-height: 1; letter-spacing: -0.04em; }
+
+.echo-theme-eva .ev-repeat { left: 6%; top: 50%; transform: translateY(-50%); }
+.echo-theme-eva .ev-repeat .red-row { color: #e60012; }
+
+.echo-theme-eva .ev-tpl-idle .ev-idle-v {
+  position: absolute; right: 14%; top: 50%;
+  transform: translateY(-50%);
+  writing-mode: vertical-rl; text-orientation: upright;
+  font-size: 120px; letter-spacing: 0.3em;
+  color: rgba(242,240,232,0.22);
+}
+.echo-theme-eva .ev-tpl-idle .ev-idle-sub {
+  position: absolute; left: 8%; bottom: 10%;
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 12px; letter-spacing: 5px;
+  color: rgba(255,106,0,0.5);
+}

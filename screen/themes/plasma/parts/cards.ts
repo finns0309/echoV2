@@ -29,7 +29,7 @@ export function createCards(stage: HTMLElement) {
         wi.className = 'wi'
         wi.style.setProperty('--i', String(i))
         // A lone space must survive whitespace collapsing between inline-blocks.
-        wi.textContent = ch === ' ' ? ' ' : ch
+        wi.textContent = ch === ' ' ? '\u00a0' : ch
         w.appendChild(wi)
         card.appendChild(w)
       })
