@@ -52,11 +52,28 @@ describe('scheduler', () => {
     expect(onAir(after)).toBe('b')
   })
 
-  it('keeps the original start time when the same card is updated in place', () => {
+  it('keeps the clock running when a card on air grows or its value changes', () => {
     const first = run([card('a')], {}, 0)
-    const updated = card('a', 'normal', 0, { blocks: [{ type: 'text', role: 'primary', text: 'new text' }] })
-    const next = run([updated], first.surfaces, 5_000)
+    const grown = card('a', 'normal', 0, {
+      blocks: [
+        { type: 'text', role: 'primary', text: 'a' },
+        { type: 'text', role: 'secondary', text: 'more', at: 4 },
+      ],
+    })
+    const next = run([grown], first.surfaces, 5_000)
     expect(next.surfaces.main!.slots.main?.since).toBe(0)
+    expect(next.surfaces.main!.slots.main?.presentation.blocks[1]).toMatchObject({ text: 'more' })
+
+    const value = (v: number) => card('v', 'normal', 0, { timeline: { kind: 'none' }, blocks: [{ type: 'value', role: 'primary', value: v }] })
+    const shown = run([value(1)], {}, 0)
+    expect(run([value(2)], shown.surfaces, 5_000).surfaces.main!.slots.main?.since).toBe(0)
+  })
+
+  it('starts a card on air over when its text is rewritten', () => {
+    const first = run([card('a')], {}, 0)
+    const rewritten = card('a', 'normal', 0, { blocks: [{ type: 'text', role: 'primary', text: 'new text' }] })
+    const next = run([rewritten], first.surfaces, 5_000)
+    expect(next.surfaces.main!.slots.main?.since).toBe(5_000)
     expect(next.surfaces.main!.slots.main?.presentation.blocks[0]).toMatchObject({ text: 'new text' })
   })
 

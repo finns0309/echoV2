@@ -15,6 +15,19 @@ export interface SurfaceConfig {
   hidden?: boolean
 }
 
+const texts = (p: Presentation) => p.blocks.flatMap((b) => (b.type === 'text' ? [b.text] : []))
+
+/**
+ * Self-timed content whose text was rewritten, rather than added to, starts over:
+ * a re-sent countdown plays from its first frame. Appended lines (a growing
+ * message) and changed values (a status) keep the clock running.
+ */
+function rewritten(before: Presentation, after: Presentation): boolean {
+  if (after.timeline.kind !== 'self') return false
+  const next = texts(after)
+  return texts(before).some((t, i) => next[i] !== t)
+}
+
 /** Does `route` admit `content`? No route admits everything. */
 export function admits(route: Route | undefined, content: Content): boolean {
   if (!route) return true
@@ -114,6 +127,7 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
       const content = prev ? byId.get(prev.contentId) : undefined
       if (prev && content && takes(ref, content)) {
         if (completed(content, prev, now)) finished.push(content.id)
+        else if (rewritten(prev.presentation, content.presentation)) ref.holder = { content, since: now, directions: undefined }
         else ref.holder = { content, since: prev.since, directions: prev.directions }
       }
       slots.push(ref)

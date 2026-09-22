@@ -16,8 +16,10 @@ export function createContentStore(store: JsonStore, now: () => number) {
   }
 
   return {
+    /** An update keeps the content's place in line: createdAt stays the first one. */
     upsert(content: Content): void {
-      items.set(content.id, content)
+      const prev = items.get(content.id)
+      items.set(content.id, prev ? { ...content, createdAt: prev.createdAt } : content)
       changed()
     },
 
