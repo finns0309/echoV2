@@ -7,6 +7,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { Grammar, Presentation } from '@contract'
+import { createLegacyLookup, type LegacySource } from './legacy'
 
 /** The one thing the director needs from an LLM. Implemented by a provider, injected by cmd/display. */
 export interface LlmClient {
@@ -19,12 +20,32 @@ export interface DirectorOptions {
   /** Content with fewer text blocks than this is left to the theme's heuristic. */
   minBlocks?: number
   log?: (message: string) => void
+  /**
+   * Per theme: where an earlier director left its answers. Consulted before the
+   * LLM; what the theme's grammar adopts is written to the cache like an answer.
+   */
+  legacy?: Record<string, LegacySource[]>
 }
 
-export function createDirector({ cacheDir, llm, minBlocks = 4, log = () => {} }: DirectorOptions) {
+export function createDirector({ cacheDir, llm, minBlocks = 4, log = () => {}, legacy = {} }: DirectorOptions) {
   const grammars = new Map<string, Grammar>()
   const memory = new Map<string, unknown>()
   const inflight = new Map<string, Promise<unknown>>()
+  const legacyLookups = new Map(Object.entries(legacy).map(([theme, sources]) => [theme, createLegacyLookup(sources)]))
+
+  function save(key: string, file: string, value: unknown): void {
+    mkdirSync(join(file, '..'), { recursive: true })
+    writeFileSync(file, JSON.stringify(value))
+    memory.set(key, value)
+  }
+
+  function adopt(theme: string, grammar: Grammar, presentation: Presentation): unknown {
+    const lookup = legacyLookups.get(theme)
+    if (!lookup || !grammar.adopt) return null
+    const texts = presentation.blocks.flatMap((b) => (b.type === 'text' ? [b.text] : []))
+    const byText = lookup(texts)
+    return byText ? (grammar.adopt(byText, presentation) ?? null) : null
+  }
 
   async function ask(key: string, file: string, grammar: Grammar, presentation: Presentation, input: string): Promise<unknown> {
     if (!llm) return null
@@ -33,9 +54,7 @@ export function createDirector({ cacheDir, llm, minBlocks = 4, log = () => {} }:
       const output = await llm.complete({ instructions: grammar.instructions, input })
       const value = grammar.parse(output, presentation)
       if (value == null) throw new Error('unusable output')
-      mkdirSync(join(file, '..'), { recursive: true })
-      writeFileSync(file, JSON.stringify(value))
-      memory.set(key, value)
+      save(key, file, value)
       log(`[director] ${key} in ${Date.now() - started}ms`)
       return value
     } catch (err) {
@@ -67,6 +86,12 @@ export function createDirector({ cacheDir, llm, minBlocks = 4, log = () => {} }:
         return cached
       } catch {
         // not cached yet
+      }
+      const adopted = adopt(theme, grammar, presentation)
+      if (adopted != null) {
+        save(key, file, adopted)
+        log(`[director] ${key} adopted from an earlier director`)
+        return adopted
       }
 
       const pending = inflight.get(key)

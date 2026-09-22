@@ -37,4 +37,9 @@ export interface Grammar {
   prepare(presentation: import('./content').Presentation): { input: string; key: string } | null
   /** Model output → directions for OnAir.directions. Null when the output is unusable. */
   parse(output: string, presentation: import('./content').Presentation): unknown
+  /**
+   * Optional: directions an earlier director saved per line of text (text → fields)
+   * → this grammar's directions, so they needn't be asked for again. Null when unusable.
+   */
+  adopt?(byText: Readonly<Record<string, Readonly<Record<string, unknown>>>>, presentation: import('./content').Presentation): unknown
 }

@@ -91,7 +91,14 @@ app.whenReady().then(async () => {
       )
     : null
   if (!llm) console.log('[echo] no openaiApiKey in secrets.json: themes use their heuristics')
-  const director = createDirector({ cacheDir: join(userData, 'director-cache'), llm, log: console.log })
+  // The old echo's answers for 新世纪, found by lyrics and adopted instead of asked for again.
+  const echoV1Cache = join(app.getPath('appData'), 'echo', 'director-cache')
+  const director = createDirector({
+    cacheDir: join(userData, 'director-cache'),
+    llm,
+    log: console.log,
+    legacy: { eva: [{ dir: join(echoV1Cache, 'eva.v1') }, { dir: join(echoV1Cache, 'keyword.v1'), as: 'kw' }] },
+  })
   for (const [theme, grammar] of grammars) director.register(theme, grammar)
 
   // Stage: contents, scheduling, state.

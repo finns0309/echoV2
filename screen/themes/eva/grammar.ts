@@ -123,6 +123,35 @@ export const grammar: Grammar = {
     })
     return { cards } satisfies EvaDirections
   },
+
+  // The old echo kept {tpl, inv, brk} and the red word (kw) per line of text.
+  // Same rules as parse: breaks and the red word must come from the text, at most 3 white cards.
+  adopt(byText, p) {
+    const blocks = textBlocks(p)
+    const byTextOut = new Map<string, CardDirection | null>()
+    let inverted = 0
+    for (const { text } of blocks) {
+      if (byTextOut.has(text)) continue
+      const raw = byText[text]
+      const tpl = raw?.tpl
+      const brk = Array.isArray(raw?.brk) ? raw.brk.filter((b): b is string => typeof b === 'string' && text.indexOf(b) > 0) : []
+      const kw = typeof raw?.kw === 'string' && raw.kw && text.includes(raw.kw) ? raw.kw : undefined
+      let inv = raw?.inv === true
+      if (inv && inverted >= MAX_INVERTED) inv = false
+      if (inv) inverted++
+      const d: CardDirection = {
+        ...(typeof tpl === 'string' && (DIRECTED_TEMPLATES as readonly string[]).includes(tpl) ? { tpl: tpl as CardDirection['tpl'] } : {}),
+        ...(brk.length ? { brk } : {}),
+        ...(inv ? { inv } : {}),
+        ...(kw ? { kw } : {}),
+      }
+      byTextOut.set(text, Object.keys(d).length ? d : null)
+    }
+    if (![...byTextOut.values()].some(Boolean)) return null
+    const cards: (CardDirection | null)[] = p.blocks.map(() => null)
+    for (const b of blocks) cards[b.index] = byTextOut.get(b.text) ?? null
+    return { cards } satisfies EvaDirections
+  },
 }
 
 export default grammar

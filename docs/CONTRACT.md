@@ -248,12 +248,14 @@ interface Grammar {
   instructions: string;
   prepare(p: Presentation): { input: string; key: string } | null;  // key 决定缓存
   parse(output: string, p: Presentation): unknown;   // 解析不了返回 null
+  adopt?(byText: Record<string, Record<string, unknown>>, p: Presentation): unknown;  // 可选：收编旧导演按行文本存的结果
 }
 ```
 
 - **调度层只拿到一个通用钩子** `direct(theme, presentation)`，由 `cmd/display` 接到导演服务上。每个（槽位、内容、主题、文字）组合只问一次；同一内容的文字变了，旧结果作废并重新问。
 - **只有文本块达到 4 个的内容才请求导演**，短卡直接用主题的启发式。
 - **缓存**：按 `主题.v版本.内容哈希` 落盘到 `userData/director-cache/`。同一内容的并发请求共用一次调用；失败不写缓存，下次自动重试。
+- **旧缓存收编**：新缓存没命中时，先查 `cmd/display` 配置的旧目录（现在是旧版 echo 的 `eva.v1` 和 `keyword.v1`，后者的值并入 `kw`）。这些文件按行文本建键，文件名的哈希已经没法复算，所以按覆盖率来找：某个文件覆盖这份内容 ≥90% 的不重复行，就算同一份内容。找到后交给主题的 `adopt` 转成新格式，按和 LLM 结果一样的方式写进新缓存；找不到才问 LLM。旧目录只读，不会被改动。
 - **key**：放在 `~/Library/Application Support/echo-v2/secrets.json`（`openaiApiKey`、可选的 `openaiModel`、`openaiBaseUrl`）。没有 key 时导演保持静默。
 - **结果按块的位置对应**：比如新世纪的 `{ cards: [...] }`，第 i 项对应第 i 个块。
 

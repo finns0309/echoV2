@@ -47,4 +47,22 @@ describe('eva grammar', () => {
     expect(grammar.parse('I cannot help with that.', p)).toBeNull()
     expect(directionsOf({ nope: true })).toBeNull()
   })
+
+  it('adopts the old per-line directions, keeping only what fits the text', () => {
+    const out = directionsOf(
+      grammar.adopt!(
+        {
+          巡り合う: { tpl: 'bleed', inv: true, kw: '巡り合う' },
+          '偶然相遇 在旅途中': { tpl: 'nonsense', brk: ['在旅途中', '不在这里'], kw: '别处' },
+        },
+        p,
+      ),
+    )!
+    expect(out.cards[0]).toEqual({ tpl: 'bleed', inv: true, kw: '巡り合う' })
+    expect(out.cards[1]).toEqual({ brk: ['在旅途中'] })
+    expect(out.cards[2]).toBeNull()
+    expect(out.cards[3]).toEqual(out.cards[0])
+    expect(grammar.adopt!({}, p)).toBeNull()
+  })
 })
+
