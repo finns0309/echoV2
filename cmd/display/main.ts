@@ -264,7 +264,17 @@ app.whenReady().then(async () => {
         const all = Object.entries(stage.snapshot().surfaces)
         const at = all.find(([, s]) => Object.values(s.slots).some((slot) => slot?.contentId === id))
         const window = at ? (at[1].name ?? at[0]) : undefined
-        const note = preferenceNote(result.content, all.map(([, s]) => s))
+        const together = result.content.together
+        const arrived = together ? contents.list().filter((c) => c.together?.id === together.id).length : 0
+        const note =
+          [
+            preferenceNote(result.content, all.map(([, s]) => s)),
+            together && !at && arrived < together.of
+              ? `waiting for ${together.of - arrived} more of ensemble ${together.id} before any of it shows`
+              : null,
+          ]
+            .filter(Boolean)
+            .join('; ') || null
         return {
           ok: true,
           id,
