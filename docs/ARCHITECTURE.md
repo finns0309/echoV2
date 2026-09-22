@@ -67,7 +67,8 @@ server/packs/<id>/
 screen/
 ├── runtime/         舞台宿主、四种时间线的时钟、信号总线、传输客户端（IPC，以后加 WebSocket）
 ├── primitives/      没有主题语义的工具，至少两个主题在用才放进来
-│   ├── text/          分词、强调词、注音、toText、合成逐字时间
+│   ├── blocks/        当前该显示哪一块、toText、按容量取短版本（M1）
+│   ├── text/          分词、强调词、合成逐字时间（M2，新世纪和夜潮用）
 │   ├── color/         从封面取色
 │   └── gl/            全屏着色器的小框架（流体和夜潮共用）
 ├── tokens/          全局 token：字体栈、chrome 的颜色
@@ -127,13 +128,15 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 | `server/foundation/` | contract | server 下其他目录 |
 | `server/providers/` | foundation | packs、stage、capabilities |
 | `server/capabilities/` | foundation、contract | 直接 import providers（由组合根注入） |
-| `server/packs/<id>/` | capabilities 的公开接口、foundation、contract | 其他包、stage 内部、providers、screen |
+| `server/packs/<id>/` | capabilities 的公开接口、foundation、contract；stage 只能通过 `server/stage/pack-api.ts` | 其他包、stage 的其他文件、providers、screen |
 | `server/stage/` | foundation、contract | 出现任何包名、主题名（靠注入的注册表） |
 | `server/shell/`、`server/api/` | foundation、contract、stage 的公开接口 | 理解内容 |
 | `screen/primitives/` | contract | runtime、themes |
 | `screen/runtime/` | primitives、contract | 出现任何主题名 |
-| `screen/themes/<id>/` | primitives、tokens、contract | 其他主题、runtime 内部、server 的任何东西 |
+| `screen/themes/<id>/` | primitives、tokens、contract；runtime 只能通过 `screen/runtime/theme-api.ts` | 其他主题、runtime 的其他文件、server 的任何东西 |
 | `cmd/*` | 全部 | 写业务逻辑（只做组装） |
+
+**公开 seam**：跨层只允许通过一个明确的接口文件。内容包和 stage 之间是 `pack-api.ts`，主题和 runtime 之间是 `theme-api.ts`。这相当于 Prism 的 `seam.go`。
 
 另外三条硬规则：
 
@@ -170,8 +173,8 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 
 | 里程碑 | 新建 | 证明什么 |
 |---|---|---|
-| M1 | contract、cmd（三个入口）、foundation、packs/card、stage、shell、api、runtime、primitives/text、tokens、themes/furin、themes/plasma、architecture | 核心里没有歌词，也能完整跑通：agent 投卡片 → 调度 → 风铃和流体显示 |
-| M2 | capabilities/director、providers/llm、themes/eva；themes/tide，同时把流体里的 gl 零件提到 primitives/gl | 导演服务和主题自带的规则能配合；两个 WebGL 主题共用底座 |
+| M1 ✓ | contract、cmd（三个入口）、foundation、packs/card、stage、shell、api、runtime、primitives/blocks、tokens、themes/furin、themes/plasma、architecture | 核心里没有歌词，也能完整跑通：agent 投卡片 → 调度 → 风铃和流体显示 |
+| M2 | capabilities/director、providers/llm、primitives/text、themes/eva；themes/tide，同时把流体里的 gl 零件提到 primitives/gl | 导演服务和主题自带的规则能配合；两个 WebGL 主题共用底座 |
 | M3 | providers/muse、providers/netease、capabilities/lyrics、packs/music | 歌词只是一个普通内容包；删掉它，前两个里程碑不受影响 |
 
 ## 7. 技术栈

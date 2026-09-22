@@ -1,6 +1,6 @@
 # echoV2 契约草案 v0
 
-> 状态：草案，还没有代码。改契约先改这份文档。
+> 状态：v0，M1 已按此实现（代码在 `contract/`）。改契约先改这份文档，再改 zod schema。
 > 参考：`../echo` 是旧版，只拿来借鉴场景和经验，不做全量迁移。
 
 ## 1. 定位
@@ -18,7 +18,7 @@ echoV2 是一个桌面显示器。它回答四个问题，每个问题有且只�
 
 ## 2. 判定标准
 
-下面这些规则由 `scripts/check-architecture` 自动检查（写代码时一起落地）：
+下面这些规则由 `architecture/dependencies.test.ts` 自动检查（第 1 条要等 M3 有了 music 包才能验证）：
 
 1. 删掉 `music` 内容包，echoV2 照样能启动，并能显示 agent 投进来的卡片。
 2. 主题代码里不出现 `song`、`lyric`、`muse`、`netease`。声明了 `kinds: ['song']` 的专属主题除外。
@@ -168,12 +168,13 @@ type ContentPack = {
 };
 
 type PackContext = {
-  upsert(content: Content): void;
+  upsert(content: Content): void;              // stage 会用 zod 校验一遍
   remove(id: string): void;
-  signals: { emit(frame: SignalFrame): void };   // 只有音乐这类有能量来源的包会用
-  direct: DirectorService;                       // 可选的 LLM 增强，见 4.4
+  emitSignal(frame: SignalFrame): void;        // 只有音乐这类有能量来源的包会用
 };
 ```
+
+这两个接口定义在 `server/stage/pack-api.ts`，是内容包唯一能碰的 stage 文件。
 
 ### 4.2 主题（屏幕）
 
@@ -202,6 +203,8 @@ type FrameClock = {
 };
 ```
 
+`Theme` 接口定义在 `screen/runtime/theme-api.ts`，是主题唯一能碰的 runtime 文件。`theme.ts` 默认导出一个工厂函数，每次挂载都新建一个实例。
+
 一个主题一个目录，放逻辑、样式、局部 token 和它自己的导演规则。
 
 ### 4.3 Agent API（主进程，HTTP）
@@ -216,7 +219,17 @@ type FrameClock = {
 | `GET` | `/contents` | 内容库里还有什么 |
 | `GET` | `/stage` | 当前舞台状态：什么在台上、在哪个槽位 |
 
-MCP 是一层薄薄的 stdio 适配器，把 `show`、`status`、`clear` 转发到这组 HTTP 接口。
+`POST /contents` 的请求体是 `AgentCardInput`（`contract/agent.ts`），比完整的 Content 更友好：agent 只描述一张卡（几行文字、说话人、停留时长，或者一个状态值），card 包负责把它转换成 Presentation。需要完全控制时，可以直接传 `presentation`。
+
+token 首次启动时生成，存在 `~/Library/Application Support/echo-v2/agent-token`。
+
+MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发到这组 HTTP 接口：
+
+| 工具 | 转发到 | 用途 |
+|---|---|---|
+| `show` | `POST /contents` | 投一张卡；输入 schema 直接来自 `AgentCardInput` |
+| `status` | `GET /stage` + `GET /contents` | 现在在显示什么，队列里还有什么 |
+| `clear` | `DELETE /contents/:id` | 撤回 |
 
 ### 4.4 导演服务（主进程）
 
@@ -224,7 +237,7 @@ MCP 是一层薄薄的 stdio 适配器，把 `show`、`status`、`clear` 转发�
 
 - **LLM 接入**：只管供应商协议。
 - **导演服务**：负责缓存（按内容哈希）、超时和失败回退，永远不挡显示。
-- **规则**：归主题所有，prompt 和解析器都放在 `screen/themes/<id>/grammar.js`，由组合根注册到导演服务。
+- **规则**：归主题所有，prompt 和解析器都放在 `screen/themes/<id>/grammar.ts`，由组合根注册到导演服务。
   内容上台后，主进程如果发现当前主题有 grammar，就请求导演，结果写进 `OnAir.directions` 推给屏幕。
 
 ```ts

@@ -30,3 +30,10 @@ export function openSurface({ profile, preload }: SurfaceOptions): BrowserWindow
   win.once('ready-to-show', () => win.showInactive())
   return win
 }
+
+// Move an open surface to another profile, e.g. when its theme changes.
+export function applyProfile(win: BrowserWindow, profile: string): void {
+  const b = resolveProfile(profile, screen.getPrimaryDisplay().workArea)
+  win.setBounds({ x: b.x, y: b.y, width: b.width, height: b.height })
+  win.setIgnoreMouseEvents(b.clickThrough, { forward: true })
+}

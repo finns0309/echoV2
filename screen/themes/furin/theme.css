@@ -1,0 +1,226 @@
+/* 风铃 · materials only: cord, glass, bead, paper. All motion is inline
+   transforms written by ./parts/chime.ts. Ported from echo's style.css. */
+.echo-theme-furin {
+  /* Local tokens. The accent follows the content's palette when it has one. */
+  --furin-accent: rgb(255, 230, 210);
+  --furin-accent-glow: color-mix(in srgb, var(--furin-accent) 35%, transparent);
+  overflow: hidden;
+  /* The whole transparent strip is a handle: drag it anywhere on the desktop. */
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.echo-theme-furin > * {
+  pointer-events: none;
+}
+.echo-theme-furin .fr-anchor {
+  position: absolute;
+  left: 50%; top: 0;
+  width: 0; height: 0;
+  transform-origin: 0 0;
+  /* One scene-wide perspective so the depth swing (rotateX) and the paper
+     twist (rotateY) foreshorten believably. Short focal length on purpose —
+     face-on depth barely projects, so the camera leans close to make the
+     front-back swing scale-shift readable. Eye level sits between the mouth
+     and the paper so residual keystone stays symmetric instead of lopsided. */
+  perspective: 600px;
+  perspective-origin: 0px 300px;
+}
+.echo-theme-furin .fr-link {
+  position: absolute;
+  transform-origin: 0 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.echo-theme-furin .fr-l0 { left: 0; top: 0; }
+.echo-theme-furin .fr-bell-svg {
+  position: absolute;
+  left: -80px; top: -10px;
+  overflow: visible;
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.20));
+  transition: filter 420ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.echo-theme-furin .fr-bell-svg.striking {
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.20))
+          drop-shadow(0 0 18px var(--furin-accent-glow))
+          brightness(1.2);
+  transition: filter 60ms ease-in;
+}
+.echo-theme-furin .fr-cord {
+  stroke: rgba(86, 64, 44, 0.92);
+  stroke-width: 1.8;
+}
+.echo-theme-furin .fr-knot { fill: rgba(70, 52, 36, 0.95); }
+.echo-theme-furin .fr-glass {
+  stroke: color-mix(in srgb, var(--furin-accent) 30%, rgba(255, 255, 255, 0.8));
+  stroke-opacity: 0.5;
+  stroke-width: 0.8;
+}
+.echo-theme-furin .fr-deco path {
+  stroke: color-mix(in srgb, var(--furin-accent) 85%, #1f2630);
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.52;
+}
+.echo-theme-furin .fr-deco .fr-d1 { stroke-width: 4.5; }
+.echo-theme-furin .fr-deco .fr-d2 { stroke-width: 3.5; opacity: 0.44; }
+.echo-theme-furin .fr-deco .fr-d3 { stroke-width: 3;   opacity: 0.36; }
+.echo-theme-furin .fr-bloom { opacity: 0.45; }
+.echo-theme-furin .fr-speck { fill: rgba(255, 255, 255, 0.4); }
+.echo-theme-furin .fr-crescent {
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.echo-theme-furin .fr-bowlight {
+  stroke: rgba(255, 255, 255, 0.17);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.echo-theme-furin .fr-mouth-shadow { fill: rgba(36, 30, 52, 0.14); }
+.echo-theme-furin .fr-rim {
+  stroke: rgba(255, 255, 255, 0.30);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+/* Invisible markers at the two rim edges — strike() reads their live screen
+   position (getBoundingClientRect) to place the expanding sound-rings. */
+.echo-theme-furin .fr-mouth-mark {
+  position: absolute;
+  width: 0; height: 0;
+  top: 178px;
+}
+.echo-theme-furin .fr-mouth-l { left: -31px; }
+.echo-theme-furin .fr-mouth-r { left: 31px; }
+
+.echo-theme-furin .fr-l1 { left: 0; top: 120px; }
+.echo-theme-furin .fr-thread {
+  position: absolute;
+  left: -0.6px; top: 0;
+  width: 1.2px; height: 74px;
+  /* Upper segment sits behind the glass (attach point is inside the bell) —
+     barely-there in there, solid only after it exits the mouth. */
+  background: linear-gradient(180deg,
+    rgba(64, 48, 32, 0.14) 0px,
+    rgba(64, 48, 32, 0.16) 52px,
+    rgba(64, 48, 32, 0.78) 61px,
+    rgba(64, 48, 32, 0.78) 100%);
+}
+.echo-theme-furin .fr-bead {
+  position: absolute;
+  left: -5.5px; top: 68.5px;
+  width: 11px; height: 11px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.9) 0 8%, rgba(255, 255, 255, 0) 36%),
+    radial-gradient(circle at 35% 30%, #f7ecd9, #bb9f74 62%, #7e6443);
+  box-shadow:
+    inset -1px -1.5px 2px rgba(70, 50, 28, 0.45),
+    0 1px 3px rgba(0, 0, 0, 0.35);
+}
+.echo-theme-furin .fr-l2 { left: 0; top: 74px; }
+.echo-theme-furin .tz-thread {
+  position: absolute;
+  left: -0.6px; top: 4.5px;
+  width: 1.2px; height: 15.5px;
+  /* Starts right under the bead; lifted a hair toward the viewer so it lies
+     *on* the paper down to the hole — threaded through, not glued behind. */
+  background: linear-gradient(180deg,
+    rgba(64, 48, 32, 0.0),
+    rgba(64, 48, 32, 0.78) 1.5px);
+  transform: translateZ(1.5px);
+}
+.echo-theme-furin .fr-tz {
+  position: absolute;
+  left: -23px; top: 12px;
+  width: 46px; height: 200px;
+  transform-style: preserve-3d;
+}
+.echo-theme-furin .tz-paper {
+  position: absolute;
+  inset: 0;
+  /* Pivot at the hole: the thread passes through it, so it's the kinematic
+     constraint — every paper transform (counter-pitch, twist, flutter skew)
+     hinges there and the hole stays glued to the thread tip. The flutter
+     becomes a tail-wag, which is also how a real strip moves. */
+  transform-origin: 50% 8px;
+  border-radius: 2px 2px 3px 3px;
+  background:
+    repeating-linear-gradient(0deg, rgba(150, 118, 64, 0.03) 0 1px, transparent 1px 3px),
+    linear-gradient(175deg, #fbf7ed, #f2ebda 60%, #eae1cc);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(120, 90, 40, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 2px 6px rgba(0, 0, 0, 0.18),
+    0 12px 24px -8px rgba(0, 0, 0, 0.22);
+  will-change: transform;
+}
+.echo-theme-furin .tz-hole {
+  position: absolute;
+  top: 6px; left: 50%;
+  width: 3.5px; height: 3.5px;
+  margin-left: -1.75px;
+  border-radius: 999px;
+  background: rgba(96, 72, 44, 0.5);
+  box-shadow: inset 0 0.5px 1px rgba(0, 0, 0, 0.45);
+}
+.echo-theme-furin .tz-text {
+  position: absolute;
+  inset: 16px 3px 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+.echo-theme-furin .tz-text span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  max-height: 100%;
+  font-family: "Kaiti SC", "STKaiti", "Songti SC", "Noto Serif CJK SC", serif;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.32;
+  letter-spacing: 0.14em;
+  color: #3a2f22;
+  text-shadow: 0 0.5px 0 rgba(255, 255, 255, 0.5);
+}
+.echo-theme-furin .tz-seal {
+  position: absolute;
+  bottom: 9px; left: 50%;
+  width: 9px; height: 9px;
+  margin-left: -4.5px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--furin-accent) 30%, #c43e2c);
+  opacity: 0.85;
+}
+
+/* Sound made visible: a thin ring expands from the struck rim edge. --ri is
+   strike intensity (0..1); --ring-accent-mix biases color by spectral
+   centroid (bright hits ring whiter). */
+.echo-theme-furin .fr-ring {
+  position: absolute;
+  width: 44px; height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--furin-accent) var(--ring-accent-mix, 40%), #ffffff);
+  opacity: calc(0.15 + var(--ri, 0.6) * 0.32);
+  animation: fr-ring 750ms cubic-bezier(0.17, 0.67, 0.35, 1) forwards;
+  pointer-events: none;
+}
+.echo-theme-furin .fr-ring.echo {
+  width: 30px; height: 30px;
+  margin: -15px 0 0 -15px;
+  animation-duration: 950ms;
+}
+@keyframes fr-ring {
+  from { transform: scale(0.25); }
+  to   { transform: scale(calc(0.55 + var(--ri, 0.6) * 0.85)); opacity: 0; }
+}
+
+/* A reading sits beside the vertical text as ruby. */
+.echo-theme-furin .tz-text rt {
+  font-size: 0.5em;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: rgba(58, 47, 34, 0.7);
+}

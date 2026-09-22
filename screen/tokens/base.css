@@ -22,7 +22,16 @@ body {
   inset: 0;
 }
 
-#stage[data-state="idle"] {
+/* Each mounted theme fills the surface; the theme styles everything inside. */
+.echo-theme {
+  position: absolute;
+  inset: 0;
+}
+
+/* Shown only when no theme is mounted. Draggable so the window can be moved. */
+.echo-idle-label {
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
   color: var(--echo-chrome-fg);

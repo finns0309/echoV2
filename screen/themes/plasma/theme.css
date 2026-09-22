@@ -1,0 +1,120 @@
+/* 流体 · layers from bottom to top: flat base, fluid field, vignette + grain,
+   floating cards. Ported from echo's style.css (§BACKGROUND, §TINT, §STAGE,
+   the wave reveal) with the plasma theme's tokens resolved in place. */
+.echo-theme-plasma {
+  --plasma-scale: 1; /* written by theme.ts from the window diagonal */
+  --plasma-base: #1a0e3d; /* matches the shader's dark stop, so uncovered edges blend */
+  --plasma-glow: rgba(255, 230, 210, 0.35);
+  --plasma-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  overflow: hidden;
+  font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
+  user-select: none;
+  cursor: default;
+}
+
+.echo-theme-plasma .pl-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--plasma-base);
+}
+
+.echo-theme-plasma .pl-field {
+  position: absolute;
+  inset: 0;
+  /* Without explicit sizes a canvas takes its box from its width/height
+     attributes, and the half-res buffer would shrink itself every frame. */
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.echo-theme-plasma .pl-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 130% 100% at 50% 50%, transparent 50%, rgba(0, 0, 0, 0.45) 100%),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.015) 0 1px, transparent 1px 3px);
+}
+
+.echo-theme-plasma .pl-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.echo-theme-plasma .stage-card {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  /* Side padding grows with scale (capped) so fullscreen text breathes. */
+  padding: 0 clamp(40px, calc(40px * var(--plasma-scale)), 180px);
+  text-align: center;
+  transform: translateY(-50%);
+  font-size: calc(32px * var(--plasma-scale));
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.4px;
+  color: #ffffff;
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.55),
+    0 0 24px rgba(255, 255, 255, 0.45),
+    0 0 48px var(--plasma-glow);
+  will-change: transform, opacity, filter;
+  /* A departing card dissipates rather than sliding off as one block: it blurs
+     out early, keeps drifting up the whole time, and fades late. */
+  transition:
+    transform 2000ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter 1000ms cubic-bezier(0.33, 0, 0.2, 1),
+    opacity 1500ms cubic-bezier(0.45, 0, 0.55, 1) 450ms;
+}
+.echo-theme-plasma .stage-card.leaving {
+  transform: translateY(calc(-50% - 70px * var(--plasma-scale)));
+  filter: blur(12px);
+  opacity: 0;
+}
+
+/* Each character waves in: blur + rise + scale, staggered. */
+.echo-theme-plasma .stage-card .w {
+  display: inline-block;
+  animation: pl-wave-travel 2.4s ease-in-out infinite;
+  will-change: transform;
+}
+.echo-theme-plasma .stage-card .wi {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(18px);
+  transform: translateY(18px) scale(0.88);
+  animation: pl-reveal-wave 900ms var(--plasma-ease) forwards;
+  animation-delay: calc(var(--i) * 42ms);
+  will-change: transform, opacity, filter;
+}
+@keyframes pl-reveal-wave {
+  0% { opacity: 0; filter: blur(18px); transform: translateY(18px) scale(0.88); }
+  60% { opacity: 1; }
+  100% { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
+}
+@keyframes pl-wave-travel {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-9px); }
+}
+
+/* A reading (e.g. kana for a kanji word) floats under the card, quieter. */
+.echo-theme-plasma .stage-reading {
+  margin-top: 0.35em;
+  font-size: 0.42em;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  opacity: 0;
+  animation: pl-reading-in 900ms var(--plasma-ease) 300ms forwards;
+}
+@keyframes pl-reading-in {
+  from { opacity: 0; transform: translateY(8px); filter: blur(8px); }
+  to { opacity: 0.82; transform: translateY(0); filter: blur(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .echo-theme-plasma .stage-card .w { animation: none; }
+}

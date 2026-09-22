@@ -47,6 +47,12 @@ const ALLOWED: Record<string, readonly string[]> = {
   'screen/themes': ['screen/primitives', 'screen/tokens', 'contract'],
 }
 
+// Public seams: single files another layer may use even though the layer itself is off limits.
+const SEAMS: Record<string, readonly RegExp[]> = {
+  'server/packs': [/^server\/stage\/pack-api(\.ts)?$/],
+  'screen/themes': [/^screen\/runtime\/theme-api(\.ts)?$/],
+}
+
 // Only these zones may touch Electron.
 const ELECTRON_ZONES = ['server/shell', 'server/api', 'cmd/display']
 
@@ -90,6 +96,7 @@ export function checkImport(from: string, spec: string): string | null {
 
   if (fromZone.startsWith('cmd/')) return checkEntryImport(from, fromZone, to, toZone)
 
+  if (SEAMS[fromLayer]?.some((seam) => seam.test(to))) return null
   const allowed = ALLOWED[fromLayer]
   if (!allowed) return `${from}: no dependency rule for layer ${fromLayer}`
   if (!allowed.includes(layerOf(toZone)) && !allowed.includes(toZone)) {

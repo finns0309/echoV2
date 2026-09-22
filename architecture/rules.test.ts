@@ -27,6 +27,10 @@ describe('server layers', () => {
     bad('server/packs/music/pack.ts', '@server/stage/scheduler')
     bad('server/packs/music/pack.ts', '@screen/themes/tide/theme')
   })
+  it('lets packs reach the stage only through its pack-api seam', () => {
+    ok('server/packs/card/pack.ts', '@server/stage/pack-api')
+    bad('server/packs/card/pack.ts', '@server/stage/contents')
+  })
   it('keeps capabilities from importing providers directly', () => {
     bad('server/capabilities/director/service.ts', '@server/providers/llm/responses')
   })
@@ -45,6 +49,9 @@ describe('screen layers', () => {
     ok('screen/themes/furin/theme.ts', '@screen/primitives/text/segment')
     ok('screen/themes/furin/theme.ts', './parts/physics')
     ok('screen/themes/furin/theme.ts', '@contract')
+  })
+  it('lets themes reach the runtime only through its theme-api seam', () => {
+    ok('screen/themes/furin/theme.ts', '@screen/runtime/theme-api')
   })
   it('keeps themes apart and away from the runtime and the server', () => {
     bad('screen/themes/furin/theme.ts', '../tide/parts/shader')
