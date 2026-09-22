@@ -52,11 +52,19 @@ describe('panel commands', () => {
 
   it('finds commands by every term, in any order, across labels and ids', () => {
     const keys = (q: string) => searchItems(shell, q).filter((i) => i.kind !== 'section').map((i) => i.key)
-    expect(keys('top 风铃')).toEqual(['w2:t:furin'])
-    expect(keys('风铃 top')).toEqual(['w2:t:furin'])
-    expect(keys('main plasma')).toEqual(['main:t:plasma'])
-    expect(keys('显示 top')).toEqual(['w2:v'])
+    expect(keys('top 风铃')).toEqual(['w2:theme:furin'])
+    expect(keys('风铃 top')).toEqual(['w2:theme:furin'])
+    expect(keys('main plasma')).toEqual(['main:theme:plasma'])
+    expect(keys('显示 top')).toEqual(['w2:visible'])
     expect(keys('split')).toEqual(['p:split'])
     expect(keys('关闭')).toEqual(['w2:close'])
   })
+
+  it('offers a window\'s settings and its search commands from one definition', () => {
+    const settings = windowItems(shell, 'w2').filter((i) => i.kind === 'action').map((i) => i.key)
+    const commands = searchItems(shell, 'top').filter((i) => i.kind === 'action').map((i) => i.key.split(':')[1])
+    // every switch or action in the settings is searchable for that window (valued settings expand per value)
+    for (const key of settings.filter((k) => k !== 'theme' && k !== 'route' && k !== 'name' && k !== 'fill')) expect(commands).toContain(key)
+  })
 })
+

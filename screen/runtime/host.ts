@@ -22,6 +22,8 @@ export function createStageHost({ root, surface, themes, bridge }: StageHostOpti
   let latest: StageState | null = null
   let syncing = false
   let mounted: { id: string; theme: Theme; el: HTMLElement } | null = null
+  let wearing: string | null = null // the theme last asked for, whether or not it loaded
+  let resting = false // the theme has been told it is idle and nothing has come since
   let slots: Record<string, OnAir | null> = {} // as shown to the theme (palette filled in)
   let raw: Record<string, OnAir | null> = {} // as received from the stage
   const palettes = new Map<string, string[] | null>() // art URL → palette, once known
@@ -64,10 +66,12 @@ export function createStageHost({ root, surface, themes, bridge }: StageHostOpti
   }
 
   async function mount(id: string): Promise<void> {
+    wearing = id
     mounted?.theme.unmount()
     mounted?.el.remove()
     mounted = null
     slots = {}
+    resting = false
     const load = themes[id]
     if (!load) return showIdleLabel(id ? `echo · 没有主题「${id}」` : 'echo · 待机')
     const factory = (await load()).default
@@ -97,7 +101,10 @@ export function createStageHost({ root, surface, themes, bridge }: StageHostOpti
       }
     }
     slots = { ...next }
-    if (!Object.values(slots).some(Boolean)) theme.idle?.()
+    // Idle once, on the way into "nothing on air", not on every revision while it lasts.
+    const empty = !Object.values(slots).some(Boolean)
+    if (empty && !resting) theme.idle?.()
+    resting = empty
   }
 
   // Serialized: loading a theme is async, and newer states may arrive meanwhile.
@@ -111,7 +118,8 @@ export function createStageHost({ root, surface, themes, bridge }: StageHostOpti
         const state = latest
         seen = state.rev
         const s = state.surfaces[surface]
-        if ((mounted?.id ?? '') !== (s?.theme ?? '') || !mounted) await mount(s?.theme ?? '')
+        // Remount only when the theme changes; a theme that failed to load isn't retried every revision.
+        if (wearing !== (s?.theme ?? '')) await mount(s?.theme ?? '')
         apply(s?.slots ?? {})
       }
     } finally {

@@ -2,6 +2,13 @@
 // Friendlier than a raw Content: agents describe a card, the card pack turns it
 // into a Presentation. `presentation` is the escape hatch for full control.
 import { z } from 'zod'
+
+/** Where agents reach echo: the agent HTTP API on loopback. */
+export const AGENT_PORT = 10757
+/** echo's folder in ~/Library/Application Support; pinned, not derived from the app's name. */
+export const USER_DATA_DIR = 'echo-v2'
+/** The shared secret agents send as x-echo-token, in that folder. */
+export const TOKEN_FILE = 'agent-token'
 import { Presentation, Priority, Role } from './content'
 
 export const CardLine = z.union([

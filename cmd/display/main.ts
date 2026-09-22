@@ -26,13 +26,14 @@ import { createTray } from '@server/shell/tray'
 import { createContentStore } from '@server/stage/contents'
 import { createStageService } from '@server/stage/service'
 import { createStage } from '@server/stage/state'
+import { USER_DATA_DIR } from '@contract'
 import { AGENT_PORT, LLM_DEFAULTS, MAIN, NAMES, PRESETS, ROUTES } from './config'
 import { HOTKEY_HELPER, PRELOAD, loadPanel, loadScreen } from './pages'
 import { DEFAULT_THEME, grammars, manifests } from './themes'
 
 // Pinned, not derived from productName: the MCP script and the README look here, and
 // "Echo" would land on the old echo's folder on a case-insensitive disk.
-app.setPath('userData', join(app.getPath('appData'), 'echo-v2'))
+app.setPath('userData', join(app.getPath('appData'), USER_DATA_DIR))
 
 // One display per user: the installed app and `pnpm dev` share the agent port and the state.
 const primary = app.requestSingleInstanceLock()

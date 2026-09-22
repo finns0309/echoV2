@@ -23,7 +23,9 @@ export function Row(props: { item: Item; selected: boolean; rowRef?: Ref<HTMLLIE
   if (item.kind === 'window') {
     return (
       <li {...common}>
-        <span class={item.on ? 'glyph live' : 'glyph'} aria-hidden="true" />
+        <span class="glyph-cell" aria-hidden="true">
+          <span class={item.on ? 'glyph live' : 'glyph'} />
+        </span>
         <span class="main">
           <span class="label">{item.label}</span>
           <span class="sub">{item.sub}</span>
@@ -35,6 +37,11 @@ export function Row(props: { item: Item; selected: boolean; rowRef?: Ref<HTMLLIE
   }
   return (
     <li {...common} class={`${common.class} ${item.danger ? 'danger' : ''}`}>
+      {item.glyph && (
+        <span class="glyph-char" aria-hidden="true">
+          {item.glyph}
+        </span>
+      )}
       <span class="main">
         <span class="label">{item.label}</span>
       </span>

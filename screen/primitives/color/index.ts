@@ -4,6 +4,12 @@
 
 const cache = new Map<string, Promise<string[] | null>>()
 
+/** '#rrggbb' (as palettes are written) → [r, g, b] in 0–255, or null for anything else. */
+export function hexToRgb(color: string | undefined): [number, number, number] | null {
+  const m = color?.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
+  return m ? [parseInt(m[1]!, 16), parseInt(m[2]!, 16), parseInt(m[3]!, 16)] : null
+}
+
 const hex = (r: number, g: number, b: number) => '#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')
 
 function sample(url: string): Promise<string[] | null> {

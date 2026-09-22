@@ -1,16 +1,12 @@
 // 夜潮 · text written in light, carried away by waves. Design notes: ./README.md.
 import type { Block, OnAir, Presentation } from '@contract'
 import { toText } from '@screen/primitives/blocks'
+import { hexToRgb } from '@screen/primitives/color'
 import { timedUnits } from '@screen/primitives/text'
 import type { Theme } from '@screen/runtime/theme-api'
 import { createTideEngine } from './parts/engine'
 import type { TimedLine } from './parts/waves'
 import './theme.css'
-
-function parseHex(color: string | undefined): [number, number, number] | null {
-  const m = color?.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
-  return m ? [parseInt(m[1]!, 16), parseInt(m[2]!, 16), parseInt(m[3]!, 16)] : null
-}
 
 /** Every block becomes a timed line; non-text blocks read as text and start at 0. */
 function linesOf(p: Presentation): TimedLine[] {
@@ -38,7 +34,7 @@ export default function createTide(): Theme {
 
   function take(onAir: OnAir, fresh: boolean): void {
     if (!engine) return
-    engine.setAccent(parseHex(onAir.presentation.context.palette?.[0]))
+    engine.setAccent(hexToRgb(onAir.presentation.context.palette?.[0]))
     const sig = signature(onAir.presentation)
     if (!fresh && sig === shownSignature) return // only the clock moved
     shownSignature = sig

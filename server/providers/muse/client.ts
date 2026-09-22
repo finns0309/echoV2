@@ -1,8 +1,7 @@
 // L0 adapter for muse's local protocol (muse/NOW_PLAYING.md v1.2):
 // GET 127.0.0.1:10755/now (polled) and WS /spectrum (pushed, ~30fps).
 // Wire format only; it returns neutral shapes.
-
-export type FetchLike = (url: string, init: RequestInit) => Promise<Response>
+import type { FetchLike } from '@server/foundation/fetch'
 
 export interface NowPlaying {
   songId: number

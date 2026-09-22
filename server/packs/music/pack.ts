@@ -2,9 +2,9 @@
 // Polls now-playing, fetches lyrics once per track, and re-publishes only on a
 // timeline discontinuity (new track, play/pause, seek). Between those, screens
 // extrapolate the media clock themselves.
-import type { LyricsService } from '@server/capabilities/lyrics/service'
+import { trackKey, type LyricsService } from '@server/capabilities/lyrics/service'
 import type { ContentPack, PackContext } from '@server/stage/pack-api'
-import { MUSIC_CONTENT_ID, toContent, trackKey, type NowPlaying } from './model'
+import { MUSIC_CONTENT_ID, toContent, type NowPlaying } from './model'
 import { createOnsetDetector, type SpectrumInput } from './signals'
 
 export interface MusicSources {

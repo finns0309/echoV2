@@ -1,8 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-
-export const TOKEN_FILE = 'agent-token'
+import { TOKEN_FILE } from '@contract'
 
 // The shared secret agents present as x-echo-token. Created once, kept in
 // userData with owner-only permissions; the MCP adapter reads the same file.

@@ -3,7 +3,7 @@
 import type { Route } from '@contract'
 import type { Preset } from '@server/shell/control'
 
-export const AGENT_PORT = 10757
+export { AGENT_PORT } from '@contract'
 
 // Windows. 'main' always exists and is the fallback: whatever no visible window
 // takes lands there, so hiding or closing a window never strands its content.

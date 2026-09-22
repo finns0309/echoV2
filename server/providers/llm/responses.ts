@@ -2,6 +2,7 @@
 // nothing else: no caching, no retries, no idea what it is being asked.
 // The fetch implementation is injected (Electron's net.fetch follows the
 // system proxy), so this file never imports Electron.
+import type { FetchLike } from '@server/foundation/fetch'
 
 export interface ResponsesConfig {
   apiKey: string
@@ -10,7 +11,6 @@ export interface ResponsesConfig {
   timeoutMs?: number
 }
 
-export type FetchLike = (url: string, init: RequestInit) => Promise<Response>
 
 export function createResponsesClient(cfg: ResponsesConfig, fetchImpl: FetchLike) {
   const base = cfg.baseUrl.replace(/\/+$/, '')

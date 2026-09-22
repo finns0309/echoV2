@@ -1,7 +1,6 @@
 import type { AgentCardInput, Block, Presentation, Role } from '@contract'
 
 const STEP_S = 4 // lines appear one after another, this far apart
-const TAIL_S = 6 // and the card lingers this long after the last one
 
 const ROLE_BY_POSITION: Role[] = ['primary', 'secondary']
 
@@ -36,12 +35,11 @@ export function present(input: AgentCardInput): Presentation {
       ...(l.short ? { short: l.short } : {}),
     }
   })
-  const last = Math.max(0, ...blocks.map((b) => (b.type === 'text' ? (b.at ?? 0) : 0)))
-
   return {
     context,
     timeline: { kind: 'self' },
     blocks,
-    hints: { dwell: input.dwellSeconds ?? last + TAIL_S },
+    // Without a dwell, the stage's own rule applies: the last line plus a moment to read it.
+    ...(input.dwellSeconds ? { hints: { dwell: input.dwellSeconds } } : {}),
   }
 }

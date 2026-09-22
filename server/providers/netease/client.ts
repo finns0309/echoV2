@@ -1,8 +1,7 @@
 // L0 adapter for NetEase Cloud Music's public lyric and search endpoints.
 // Only the wire format: headers, URLs, timeouts, one retry. Ported from echo's
 // netease.js and phone-server.js. Fetch is injected (net.fetch in Electron).
-
-export type FetchLike = (url: string, init: RequestInit) => Promise<Response>
+import type { FetchLike } from '@server/foundation/fetch'
 
 const HEADERS = {
   'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36',

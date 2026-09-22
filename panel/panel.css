@@ -249,6 +249,19 @@ input {
   color: var(--danger);
 }
 
+/* The glyph column: a window's dot, or an action's mark, in the same width so labels line up. */
+.glyph-cell,
+.glyph-char {
+  flex: none;
+  width: 12px;
+  display: inline-flex;
+  justify-content: center;
+}
+.glyph-char {
+  color: var(--fg-muted);
+  font-size: 13px;
+  line-height: 1;
+}
 /* The window glyph: lit while the window is showing. */
 .glyph {
   flex: none;

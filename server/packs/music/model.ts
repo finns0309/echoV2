@@ -19,7 +19,6 @@ export interface NowPlaying {
 }
 
 /** Same track = same songId, or the same title and artist when there is no id. */
-export const trackKey = (n: NowPlaying) => (n.songId ? `id:${n.songId}` : `q:${n.title}|${n.artist}`)
 
 export function toContent(now: NowPlaying, lines: readonly LyricLine[], cover: string | null, createdAt: number): Content {
   return {

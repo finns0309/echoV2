@@ -1,16 +1,12 @@
 // 流体 · text floating over a domain-warped fluid. Design notes: ./README.md.
 import type { OnAir } from '@contract'
 import { activeBlockIndex, toText } from '@screen/primitives/blocks'
+import { hexToRgb } from '@screen/primitives/color'
 import { watchScale } from '@screen/primitives/scale'
 import type { Theme } from '@screen/runtime/theme-api'
 import { createCards } from './parts/cards'
 import { createField } from './parts/field'
 import './theme.css'
-
-function parseHex(color: string | undefined): [number, number, number] | null {
-  const m = color?.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)
-  return m ? [parseInt(m[1]!, 16), parseInt(m[2]!, 16), parseInt(m[3]!, 16)] : null
-}
 
 export default function createPlasma(): Theme {
   let field: ReturnType<typeof createField> | null = null
@@ -22,7 +18,7 @@ export default function createPlasma(): Theme {
   function take(next: OnAir): void {
     onAir = next
     shownIndex = -2
-    field?.setAccent(parseHex(next.presentation.context.palette?.[0]))
+    field?.setAccent(hexToRgb(next.presentation.context.palette?.[0]))
   }
 
   return {

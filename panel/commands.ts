@@ -28,6 +28,8 @@ export type Item =
       danger?: boolean
       /** Extra words search should match (ids, pinyin, synonyms). */
       words?: string
+      /** A one-character mark in the glyph column, where windows show their dot. */
+      glyph?: string
     }
 
 export type Selectable = Exclude<Item, { kind: 'section' }>
@@ -66,23 +68,22 @@ export function homeItems(shell: ShellState, showing: (window: string) => string
       }),
     ),
     { kind: 'section', key: 's:layout', label: '布局' },
-    { kind: 'action', key: 'add', label: '新增窗口', run: { type: 'addWindow' }, words: 'new add xinzeng' },
-    ...shell.presets.map(
-      (p): Item => ({ kind: 'action', key: `p:${p.id}`, label: p.label, run: { type: 'applyPreset', preset: p.id }, words: p.id }),
-    ),
+    ...layoutActions(shell),
   ]
 }
 
-/** A window's settings, one row each. */
-export function windowItems(shell: ShellState, id: string): Item[] {
-  const w = shell.windows.find((x) => x.id === id)
-  if (!w) return []
+type Action = Extract<Item, { kind: 'action' }>
+
+/**
+ * What can be done to one window, once: the settings view shows these as rows;
+ * search turns each into commands prefixed with the window's name.
+ */
+function windowActions(shell: ShellState, w: ShellWindow): Action[] {
   const window = w.id
   const many = shell.windows.length > 1
-  const taken = new Set(shell.windows.filter((x) => x.id !== id).map((x) => x.name))
+  const taken = new Set(shell.windows.filter((x) => x.id !== w.id).map((x) => x.name))
   const names = [...new Set([w.name, ...shell.names])].filter((n) => !taken.has(n)).map((n) => ({ id: n }))
-  return [
-    { kind: 'section', key: 's:settings', label: w.name },
+  const actions: Action[] = [
     {
       kind: 'action',
       key: 'theme',
@@ -90,62 +91,69 @@ export function windowItems(shell: ShellState, id: string): Item[] {
       value: label(shell.themes, w.theme),
       step: stepper(shell.themes, w.theme, (t) => ({ type: 'setTheme', window, theme: t.id })),
     },
-    ...(many
-      ? [
-          {
-            kind: 'action' as const,
-            key: 'route',
-            label: '内容',
-            value: label(shell.routes, w.route),
-            step: stepper(shell.routes, w.route, (r) => ({ type: 'setRoute', window, route: r.id })),
-          },
-        ]
-      : []),
-    ...(!w.main
-      ? [
-          {
-            kind: 'action' as const,
-            key: 'name',
-            label: '名字',
-            value: w.name,
-            step: stepper(names, w.name, (n) => ({ type: 'rename', window, name: n.id })),
-          },
-        ]
-      : []),
-    { kind: 'action', key: 'visible', label: '显示', on: w.visible, run: { type: 'toggleVisible', window } },
-    { kind: 'action', key: 'click', label: '鼠标穿透', on: w.clickThrough, run: { type: 'toggleClickThrough', window } },
+  ]
+  if (many) {
+    actions.push({
+      kind: 'action',
+      key: 'route',
+      label: '内容',
+      value: label(shell.routes, w.route),
+      step: stepper(shell.routes, w.route, (r) => ({ type: 'setRoute', window, route: r.id })),
+    })
+  }
+  if (!w.main) {
+    actions.push({ kind: 'action', key: 'name', label: '名字', value: w.name, step: stepper(names, w.name, (n) => ({ type: 'rename', window, name: n.id })) })
+  }
+  actions.push(
+    { kind: 'action', key: 'visible', label: '显示', on: w.visible, run: { type: 'toggleVisible', window }, words: 'show hide xianshi yincang 隐藏' },
+    { kind: 'action', key: 'click', label: '鼠标穿透', on: w.clickThrough, run: { type: 'toggleClickThrough', window }, words: 'click through chuantou' },
     w.fill === 'full'
       ? { kind: 'action', key: 'fill', label: '铺满屏幕', value: '主题本身就是全屏' }
-      : { kind: 'action', key: 'fill', label: '铺满屏幕', on: w.fill === 'restorable', run: { type: 'toggleFill', window } },
-    { kind: 'action', key: 'reset', label: '重置位置和大小', run: { type: 'resetWindow', window } },
-    ...(!w.main ? [{ kind: 'action' as const, key: 'close', label: '关闭窗口', run: { type: 'closeWindow', window } as ShellCommand, danger: true }] : []),
+      : { kind: 'action', key: 'fill', label: '铺满屏幕', on: w.fill === 'restorable', run: { type: 'toggleFill', window }, words: 'fill pumang' },
+    { kind: 'action', key: 'reset', label: '重置位置和大小', run: { type: 'resetWindow', window }, words: 'reset chongzhi' },
+  )
+  if (!w.main) actions.push({ kind: 'action', key: 'close', label: '关闭窗口', run: { type: 'closeWindow', window }, danger: true, words: 'close guanbi' })
+  return actions
+}
+
+/** Adding a window and the layout presets: on home, and in search. */
+function layoutActions(shell: ShellState): Action[] {
+  return [
+    { kind: 'action', key: 'add', label: '新增窗口', glyph: '+', run: { type: 'addWindow' }, words: 'new add xinzeng' },
+    ...shell.presets.map((p): Action => ({ kind: 'action', key: `p:${p.id}`, label: p.label, glyph: '◫', run: { type: 'applyPreset', preset: p.id }, words: `${p.id} 布局 layout` })),
   ]
 }
 
-/** Everything that can be done, flat, for search: "top 流体", "隐藏 left", "双风铃". */
+/** A window's settings, one row each. */
+export function windowItems(shell: ShellState, id: string): Item[] {
+  const w = shell.windows.find((x) => x.id === id)
+  return w ? [{ kind: 'section', key: 's:settings', label: '设置' }, ...windowActions(shell, w)] : []
+}
+
+/**
+ * Everything that can be done, flat, for search: "top 流体", "隐藏 left", "双风铃".
+ * A setting with values becomes one command per other value; a switch or action, one command.
+ */
 export function allActions(shell: ShellState): Selectable[] {
   const out: Selectable[] = []
-  const many = shell.windows.length > 1
   for (const w of shell.windows) {
-    const window = w.id
-    const who = w.name
-    for (const t of shell.themes) {
-      if (t.id !== w.theme) out.push({ kind: 'action', key: `${window}:t:${t.id}`, label: `${who} · 换成${t.label}`, run: { type: 'setTheme', window, theme: t.id }, words: `theme ${t.id}` })
-    }
-    if (many) {
-      for (const r of shell.routes) {
-        if (r.id !== w.route) out.push({ kind: 'action', key: `${window}:r:${r.id}`, label: `${who} · ${r.label}`, run: { type: 'setRoute', window, route: r.id }, words: `route ${r.id}` })
+    for (const a of windowActions(shell, w)) {
+      const key = `${w.id}:${a.key}`
+      if (a.key === 'theme') {
+        for (const t of shell.themes) {
+          if (t.id !== w.theme) out.push({ kind: 'action', key: `${key}:${t.id}`, label: `${w.name} · 换成${t.label}`, run: { type: 'setTheme', window: w.id, theme: t.id }, words: `theme ${t.id}` })
+        }
+      } else if (a.key === 'route') {
+        for (const r of shell.routes) {
+          if (r.id !== w.route) out.push({ kind: 'action', key: `${key}:${r.id}`, label: `${w.name} · ${r.label}`, run: { type: 'setRoute', window: w.id, route: r.id }, words: `route ${r.id}` })
+        }
+      } else if (a.run) {
+        const label = a.key === 'visible' ? `${w.visible ? '隐藏' : '显示'} ${w.name}` : `${w.name} · ${a.label}`
+        out.push({ ...a, key, label, words: `${w.name} ${a.words ?? ''}` })
       }
     }
-    out.push({ kind: 'action', key: `${window}:v`, label: `${w.visible ? '隐藏' : '显示'} ${who}`, run: { type: 'toggleVisible', window }, words: w.visible ? 'hide yincang' : 'show xianshi' })
-    out.push({ kind: 'action', key: `${window}:c`, label: `${who} · 鼠标穿透`, on: w.clickThrough, run: { type: 'toggleClickThrough', window }, words: 'click through chuantou' })
-    if (w.fill !== 'full') out.push({ kind: 'action', key: `${window}:f`, label: `${who} · 铺满屏幕`, on: w.fill === 'restorable', run: { type: 'toggleFill', window }, words: 'fill pumang' })
-    out.push({ kind: 'action', key: `${window}:reset`, label: `${who} · 重置位置`, run: { type: 'resetWindow', window }, words: 'reset chongzhi' })
-    if (!w.main) out.push({ kind: 'action', key: `${window}:close`, label: `关闭 ${who}`, run: { type: 'closeWindow', window }, danger: true, words: 'close guanbi' })
   }
-  out.push({ kind: 'action', key: 'add', label: '新增窗口', run: { type: 'addWindow' }, words: 'new add xinzeng' })
-  for (const p of shell.presets) out.push({ kind: 'action', key: `p:${p.id}`, label: `布局 · ${p.label}`, run: { type: 'applyPreset', preset: p.id }, words: p.id })
-  return out
+  return [...out, ...layoutActions(shell)]
 }
 
 /** Every space-separated term must appear, in any order, case-insensitively. */

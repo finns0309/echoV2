@@ -54,7 +54,9 @@ export function createShellControl(o: ShellControlOptions) {
   const { prefs } = o
   const windows = new Map<string, ShellSurface>()
   const listeners = new Set<(state: ShellState) => void>()
-  const newId = o.newId ?? (() => `win-${Date.now().toString(36)}`)
+  // Time plus a counter: a preset can add several windows within one millisecond.
+  let seq = 0
+  const newId = o.newId ?? (() => `win-${Date.now().toString(36)}${(seq++).toString(36)}`)
 
   const theme = (id: string) => o.themes.find((t) => t.id === id) ?? o.themes.find((t) => t.id === o.defaultTheme)
   const routeOf = (accepts: Route | undefined) =>

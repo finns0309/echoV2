@@ -26,7 +26,7 @@ describe('card pack', () => {
       ['secondary', 4],
       ['annotation', 8],
     ])
-    expect(p.hints?.dwell).toBe(14)
+    expect(p.hints).toBeUndefined() // the stage's default dwell applies
     expect(p.context.speaker).toEqual({ name: 'Claude' })
   })
 

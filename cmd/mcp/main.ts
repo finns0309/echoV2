@@ -6,12 +6,12 @@ import { join } from 'node:path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { AgentCardInput, type StageState } from '@contract'
+import { AGENT_PORT, AgentCardInput, TOKEN_FILE, USER_DATA_DIR, type StageState } from '@contract'
 import { summarizeStatus, type ContentSummary } from './status'
 
-const API = process.env.ECHO_API ?? 'http://127.0.0.1:10757'
-// The display server writes this file on first launch (Electron userData for "echo-v2").
-const TOKEN_PATH = join(homedir(), 'Library/Application Support/echo-v2/agent-token')
+const API = process.env.ECHO_API ?? `http://127.0.0.1:${AGENT_PORT}`
+// The display server writes this file on first launch, in its userData folder.
+const TOKEN_PATH = join(homedir(), 'Library/Application Support', USER_DATA_DIR, TOKEN_FILE)
 
 function token(): string {
   if (process.env.ECHO_TOKEN) return process.env.ECHO_TOKEN

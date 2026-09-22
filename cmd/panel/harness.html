@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <title>echo panel · harness</title>
+    <style>
+      /* Frame the panel at its window size, like the real one. */
+      html { background: #777; }
+      body { display: grid; place-items: center; min-height: 100vh; }
+      body > #panel { width: 640px; height: 460px; border-radius: 12px; overflow: hidden; box-shadow: 0 24px 80px -12px rgb(0 0 0 / 0.5); }
+    </style>
+  </head>
+  <body>
+    <div id="panel"></div>
+    <script type="module" src="./harness.tsx"></script>
+  </body>
+</html>

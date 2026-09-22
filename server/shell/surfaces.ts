@@ -1,14 +1,13 @@
 import { BrowserWindow, screen, type Rectangle } from 'electron'
+import type { ShellWindow } from '@contract'
 import type { Bounds, ShellPrefs } from './prefs'
 import { resolveProfile } from './profiles'
-
-export type FillState = 'normal' | 'restorable' | 'full'
 
 export interface SurfaceState {
   theme: string
   clickThrough: boolean
   visible: boolean
-  fill: FillState
+  fill: ShellWindow['fill']
 }
 
 export interface SurfaceOptions {
@@ -105,23 +104,26 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   win.on('show', changed)
   win.on('hide', changed)
 
+  /** Put on a theme: its profile, unless the user left this window somewhere else for it. */
+  function wear(nextTheme: string, nextProfile: string): void {
+    theme = nextTheme
+    profile = nextProfile
+    beforeFill = null
+    // The profile is laid out on the display the window is on (the primary one, for a new window),
+    // so re-theming or resetting a window on a second monitor keeps it there.
+    const area = workAreaHere()
+    const base = resolveProfile(profile, area)
+    const saved = prefs.override(id, theme)
+    // A saved position on a display that is no longer there falls back to the profile.
+    const onScreen = saved.bounds && screen.getAllDisplays().some((d) => intersects(d.workArea, saved.bounds!))
+    place(onScreen ? saved.bounds! : clear(base, others(), area))
+    setClickThrough(saved.clickThrough ?? base.clickThrough)
+    changed()
+  }
+
   return {
     win,
-
-    /** Put on a theme: its profile, unless the user left this window somewhere else for it. */
-    wear(nextTheme: string, nextProfile: string): void {
-      theme = nextTheme
-      profile = nextProfile
-      beforeFill = null
-      const area = screen.getPrimaryDisplay().workArea
-      const base = resolveProfile(profile, area)
-      const saved = prefs.override(id, theme)
-      // A saved position on a display that is no longer there falls back to the profile.
-      const onScreen = saved.bounds && screen.getAllDisplays().some((d) => intersects(d.workArea, saved.bounds!))
-      place(onScreen ? saved.bounds! : clear(base, others(), area))
-      setClickThrough(saved.clickThrough ?? base.clickThrough)
-      changed()
-    },
+    wear,
 
     toggleClickThrough(): void {
       setClickThrough(!clickThrough)
@@ -144,7 +146,7 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     /** Forget what the user changed for the current theme and go back to its profile. */
     reset(): void {
       prefs.clearOverride(id, theme)
-      this.wear(theme, profile)
+      wear(theme, profile)
     },
 
     toggleVisible(): void {
