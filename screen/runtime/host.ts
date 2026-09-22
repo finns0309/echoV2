@@ -1,4 +1,5 @@
 import type { OnAir, ScreenBridge, StageState } from '@contract'
+import { paletteFromImage } from '@screen/primitives/color'
 import { localTime } from './clock'
 import type { FrameClock, ScreenContext, Theme, ThemeFactory } from './theme-api'
 
@@ -21,7 +22,26 @@ export function createStageHost({ root, surface, themes, bridge }: StageHostOpti
   let latest: StageState | null = null
   let syncing = false
   let mounted: { id: string; theme: Theme; el: HTMLElement } | null = null
-  let slots: Record<string, OnAir | null> = {}
+  let slots: Record<string, OnAir | null> = {} // as shown to the theme (palette filled in)
+  let raw: Record<string, OnAir | null> = {} // as received from the stage
+  const palettes = new Map<string, string[] | null>() // art URL → palette, once known
+
+  // Content with a picture but no palette gets one taken from the picture, so
+  // themes only ever read context.palette. It arrives a moment later as an update.
+  function withPalette(onAir: OnAir | null): OnAir | null {
+    const ctx = onAir?.presentation.context
+    if (!onAir || !ctx?.art || ctx.palette?.length) return onAir
+    const art = ctx.art
+    if (!palettes.has(art)) {
+      palettes.set(art, null)
+      void paletteFromImage(art).then((p) => {
+        palettes.set(art, p)
+        if (p) apply(raw)
+      })
+    }
+    const palette = palettes.get(art)
+    return palette ? { ...onAir, presentation: { ...onAir.presentation, context: { ...ctx, palette } } } : onAir
+  }
 
   const ctx: ScreenContext = { surface, onSignal: (listener) => bridge.on('signal', listener) }
 
@@ -55,9 +75,11 @@ export function createStageHost({ root, surface, themes, bridge }: StageHostOpti
     showIdleLabel(null)
   }
 
-  function apply(next: Record<string, OnAir | null>): void {
+  function apply(incoming: Record<string, OnAir | null>): void {
+    raw = incoming
     if (!mounted) return
     const { theme } = mounted
+    const next = Object.fromEntries(Object.entries(incoming).map(([k, v]) => [k, withPalette(v)]))
     for (const key of new Set([...Object.keys(slots), ...Object.keys(next)])) {
       const prev = slots[key] ?? null
       const cur = next[key] ?? null

@@ -69,7 +69,7 @@ screen/
 ├── primitives/      没有主题语义的工具，至少两个主题在用才放进来
 │   ├── blocks/        当前该显示哪一块、toText、按容量取短版本（M1）
 │   ├── text/          分词、强调词、合成逐字时间（新世纪和夜潮用）
-│   ├── color/         从封面取色
+│   ├── color/         从封面取色；由舞台宿主统一填进 context.palette，主题只读 palette
 │   └── gl/            全屏着色器的小框架（流体和夜潮共用）
 ├── tokens/          全局 token：字体栈、chrome 的颜色
 └── themes/          主题：决定"长什么样"；目录本身就是清单
@@ -175,7 +175,7 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 |---|---|---|
 | M1 ✓ | contract、cmd（三个入口）、foundation、packs/card、stage、shell、api、runtime、primitives/blocks、tokens、themes/furin、themes/plasma、architecture | 核心里没有歌词，也能完整跑通：agent 投卡片 → 调度 → 风铃和流体显示 |
 | M2 ✓ | capabilities/director、providers/llm、primitives/text、themes/eva；themes/tide，同时把流体里的 gl 零件提到 primitives/gl | 导演服务和主题自带的规则能配合；两个 WebGL 主题共用底座 |
-| M3 | providers/muse、providers/netease、capabilities/lyrics、packs/music | 歌词只是一个普通内容包；删掉它，前两个里程碑不受影响 |
+| M3 ✓ | providers/muse、providers/netease、capabilities/lyrics、packs/music、primitives/color | 歌词只是一个普通内容包；删掉它，前两个里程碑不受影响 |
 
 ## 7. 技术栈
 
