@@ -11,11 +11,22 @@ export function App({ state }: { state: PanelState }) {
   const current = state.current.value
   const opened = state.opened.value
   const input = useRef<HTMLInputElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLUListElement>(null)
   const selectedRow = useRef<HTMLLIElement>(null)
   const [cursorBox, setCursorBox] = useState<{ y: number; h: number } | null>(null)
 
   // The input always has focus: typing is how you search.
   useEffect(() => input.current?.focus(), [state.summoned.value, opened])
+
+  // The window is as tall as what it shows: everything but the list, plus the list's full height.
+  useLayoutEffect(() => {
+    const root = panel.current
+    const rows = list.current
+    if (!root || !rows) return
+    const chrome = [...root.children].reduce((h, el) => h + (el.classList.contains('list-wrap') ? 0 : (el as HTMLElement).offsetHeight), 0)
+    state.fit(chrome + rows.scrollHeight)
+  }, [items, shell])
 
   // The cursor glides to the selected row.
   useLayoutEffect(() => {
@@ -44,7 +55,7 @@ export function App({ state }: { state: PanelState }) {
   const live = shell?.windows.filter((w) => w.visible).length ?? 0
 
   return (
-    <div class="panel" key={state.summoned.value}>
+    <div class="panel" ref={panel} key={state.summoned.value}>
       <header class="strip">
         <Mark />
         <div class="strip-meta">
@@ -74,7 +85,7 @@ export function App({ state }: { state: PanelState }) {
       </div>
 
       <div class="list-wrap">
-        <ul class="list" role="listbox">
+        <ul class="list" ref={list} role="listbox">
           {cursorBox && (
             <li
               class={state.committed.value && state.committed.value === current?.key ? 'cursor commit' : 'cursor'}

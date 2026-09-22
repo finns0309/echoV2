@@ -42,10 +42,12 @@ export interface PanelToServer {
   command: ShellCommand
   /** Put the panel away (Esc). */
   hide: null
+  /** The height its content wants, in px; the window follows, top edge fixed. */
+  resize: number
 }
 
 export const SERVER_TO_PANEL = ['shell', 'stage', 'shown'] as const satisfies readonly (keyof ServerToPanel)[]
-export const PANEL_TO_SERVER = ['ready', 'command', 'hide'] as const satisfies readonly (keyof PanelToServer)[]
+export const PANEL_TO_SERVER = ['ready', 'command', 'hide', 'resize'] as const satisfies readonly (keyof PanelToServer)[]
 
 export function panelChannelName(channel: keyof ServerToPanel | keyof PanelToServer): string {
   return `echo-panel:${channel}`

@@ -125,6 +125,7 @@ app.whenReady().then(async () => {
       if (!result.ok) console.warn('[panel]', result.error)
     },
     hide: () => panel.hide(),
+    resize: (height) => panel.resize(height),
     ready: () => {
       panelChannel.publish('shell', shell.state())
       panelChannel.publish('stage', stage.snapshot())

@@ -91,6 +91,8 @@ export function createPanelState(bridge: PanelBridge) {
     items,
     selectable,
     current,
+    /** Ask for the window to be as tall as the content. */
+    fit: (height: number) => bridge.send('resize', height),
     move: (by: number) => {
       const n = selectable.value.length
       if (n) cursor.value = (cursor.value + by + n) % n

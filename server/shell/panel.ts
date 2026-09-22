@@ -8,7 +8,9 @@ export interface PanelWindowOptions {
 }
 
 const WIDTH = 640
-const HEIGHT = 460
+const HEIGHT = 460 // until the page says how tall its content is
+const MIN_HEIGHT = 260
+const MAX_HEIGHT = 640
 // Must match --bg in panel/panel.css, or the window shows a flash of the wrong color as it appears.
 const background = () => (nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#f5f5f7')
 
@@ -48,13 +50,15 @@ export function createPanelWindow({ preload, load, onShow }: PanelWindowOptions)
   })
   void load(win)
 
+  let height = HEIGHT
+
   function show(): void {
     const { workArea } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
     win.setBounds({
       x: Math.round(workArea.x + (workArea.width - WIDTH) / 2),
       y: Math.round(workArea.y + workArea.height * 0.16),
       width: WIDTH,
-      height: HEIGHT,
+      height,
     })
     win.show()
     win.focus()
@@ -65,6 +69,12 @@ export function createPanelWindow({ preload, load, onShow }: PanelWindowOptions)
     win,
     show,
     hide: () => win.hide(),
+    /** Fit the content: grow or shrink downwards, the top edge where it was. */
+    resize(wanted: number): void {
+      height = Math.round(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, wanted)))
+      const b = win.getBounds()
+      if (b.height !== height) win.setBounds({ ...b, height })
+    },
     // Not isFocused(): a panel that never activates echo can hold the keyboard without reporting focus.
     toggle: () => (win.isVisible() ? win.hide() : show()),
   }

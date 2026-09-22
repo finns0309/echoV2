@@ -8,6 +8,7 @@ export function createPanelChannel(handlers: {
   command: (command: ShellCommand) => void
   hide: () => void
   ready: () => void
+  resize: (height: number) => void
 }) {
   let win: BrowserWindow | null = null
   const fromPanel = (sender: Electron.WebContents) => !!win && !win.isDestroyed() && sender === win.webContents
@@ -20,6 +21,9 @@ export function createPanelChannel(handlers: {
   })
   ipcMain.on(panelChannelName('hide'), (event) => fromPanel(event.sender) && handlers.hide())
   ipcMain.on(panelChannelName('ready'), (event) => fromPanel(event.sender) && handlers.ready())
+  ipcMain.on(panelChannelName('resize'), (event, height: unknown) => {
+    if (fromPanel(event.sender) && typeof height === 'number' && Number.isFinite(height)) handlers.resize(height)
+  })
 
   return {
     attach(next: BrowserWindow): void {

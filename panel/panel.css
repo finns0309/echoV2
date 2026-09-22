@@ -175,7 +175,8 @@ input {
 .list {
   position: relative;
   list-style: none;
-  height: 100%;
+  /* Its natural height (the window fits it), scrolling only past the window's cap. */
+  max-height: 100%;
   padding: 4px 8px 8px;
   overflow-y: auto;
   animation: list-in 200ms var(--ease-out) both;

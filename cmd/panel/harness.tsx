@@ -59,6 +59,8 @@ function apply(c: ShellCommand): void {
   console.log('[harness] command', c)
 }
 
+const root = document.getElementById('panel')!
+
 const listeners: { [K in keyof ServerToPanel]?: ((payload: ServerToPanel[K]) => void)[] } = {}
 const emit = <K extends keyof ServerToPanel>(channel: K, payload: ServerToPanel[K]) =>
   (listeners[channel] as ((p: ServerToPanel[K]) => void)[] | undefined)?.forEach((l) => l(payload))
@@ -75,10 +77,11 @@ const bridge: PanelBridge = {
     } else if (channel === 'command') {
       apply(payload as ShellCommand)
       emit('shell', structuredClone(shell))
+    } else if (channel === 'resize') {
+      root.style.height = `${Math.min(640, Math.max(260, payload as number))}px` // as the real window does
     } else console.log('[harness]', channel)
   },
 }
 
-const root = document.getElementById('panel')!
 render(<App state={createPanelState(bridge)} />, root)
 bridge.send('ready', null)
