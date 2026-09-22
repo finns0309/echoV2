@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { AgentCardInput } from '@contract'
+import { AgentCardInput, type StageState } from '@contract'
 
 const API = process.env.ECHO_API ?? 'http://127.0.0.1:10757'
 // The display server writes this file on first launch (Electron userData for "echo-v2").
@@ -74,7 +74,15 @@ server.registerTool(
   },
   async () => {
     try {
-      const [stage, queued] = await Promise.all([call('GET', '/stage'), call('GET', '/contents')])
+      const [stage, contents] = (await Promise.all([call('GET', '/stage'), call('GET', '/contents')])) as [
+        StageState,
+        { id: string }[],
+      ]
+      // The content store also holds what is on air until its run finishes; only the rest is waiting.
+      const onAir = new Set(
+        Object.values(stage.surfaces).flatMap((s) => Object.values(s.slots).flatMap((slot) => (slot ? [slot.contentId] : []))),
+      )
+      const queued = contents.filter((c) => !onAir.has(c.id))
       return text(JSON.stringify({ stage, queued }, null, 2))
     } catch (err) {
       return failure(err)
