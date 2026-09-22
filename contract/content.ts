@@ -107,8 +107,11 @@ export const Content = z.object({
   group: z.string().min(1).optional(),
   /** Preferred window, by name. Honoured only if that window is visible and its route admits this content. */
   window: z.string().min(1).optional(),
-  /** Contents sharing this id go on air together, in the same pass with the same start, or not at all. */
-  together: z.string().min(1).optional(),
+  /**
+   * An ensemble: the `of` contents sharing this id go on air together, in the same
+   * pass with the same start, or not at all. `of` lets it wait for members still on their way.
+   */
+  together: z.object({ id: z.string().min(1), of: z.number().int().min(1).max(8) }).optional(),
   presentation: Presentation,
 })
 export type Content = z.infer<typeof Content>

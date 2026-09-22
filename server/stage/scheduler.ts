@@ -197,10 +197,11 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
   // 3a. Ensembles go on air together, sharing one start, or not at all. While one
   //     waits for its partners' slots, it keeps the free ones from later content.
   const ensembles = new Map<string, Content[]>()
-  for (const c of waiting) if (c.together) ensembles.set(c.together, [...(ensembles.get(c.together) ?? []), c])
-  const onAir = new Set(slots.flatMap((s) => (s.holder?.content.together ? [s.holder.content.together] : [])))
+  for (const c of waiting) if (c.together) ensembles.set(c.together.id, [...(ensembles.get(c.together.id) ?? []), c])
+  const onAir = new Set(slots.flatMap((s) => (s.holder?.content.together ? [s.holder.content.together.id] : [])))
   for (const [id, members] of ensembles) {
     if (onAir.has(id)) continue // part of it is still on; the rest waits to go on with it next time
+    if (members.length < members[0]!.together!.of) continue // members still on their way
     const placed = assign(members, true)
     if (placed) {
       placed.forEach((s, i) => {

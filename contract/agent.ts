@@ -35,11 +35,12 @@ export const AgentCardInput = z
       .optional()
       .describe("Prefer the window with this name (see status → windows). If it is hidden, missing, or its route doesn't take this card, the card goes where it normally would; the user's routes always win"),
     together: z
-      .string()
-      .min(1)
-      .max(80)
+      .object({
+        id: z.string().min(1).max(80),
+        of: z.number().int().min(1).max(8).describe('How many cards are in the ensemble; none shows until all have been sent'),
+      })
       .optional()
-      .describe('Cards sharing this id go on air at the same moment, usually each with its own window; their `at` times line up. They wait until all of them can show'),
+      .describe('Cards sharing this id go on air at the same moment, usually each in its own window, so their `at` times line up. Send every member with the same {id, of}; they wait until all have arrived and can show'),
     title: z.string().optional(),
     byline: z.string().optional(),
     speaker: z.string().optional().describe('Who is talking, e.g. Claude'),

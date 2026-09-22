@@ -210,7 +210,11 @@ describe('scheduler', () => {
     ]
     const step = (s: SurfaceConfig[], contents: Content[], current: Record<string, Surface> = {}, now = 1000) =>
       schedule({ surfaces: s, manifests, contents, current, now })
-    const to = (c: Content, window: string, together?: string): Content => ({ ...c, window, ...(together ? { together } : {}) })
+    const to = (c: Content, window: string, together?: string, of = 2): Content => ({
+      ...c,
+      window,
+      ...(together ? { together: { id: together, of } } : {}),
+    })
 
     it('puts content in the window it prefers, even with another one free', () => {
       const out = step(lr(), [to(card('a'), 'right')])
@@ -266,6 +270,13 @@ describe('scheduler', () => {
       const held = step(lr(), [card('n'), ...quietDuo], busy.surfaces)
       expect(on(held, 'l')?.contentId).toBe('n')
       expect(on(held, 'r')).toBeNull()
+    })
+
+    it('waits for members still on their way', () => {
+      const out = step(lr(), [to(card('says'), 'left', 'duo')])
+      expect(on(out, 'l')).toBeNull()
+      expect(on(out, 'r')).toBeNull()
+      expect(on(step(lr(), [to(card('solo'), 'left', 'one', 1)]), 'l')?.contentId).toBe('solo')
     })
 
     it('does not restart part of an ensemble while the rest is still on air', () => {
