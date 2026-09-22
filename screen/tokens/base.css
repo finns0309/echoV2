@@ -1,0 +1,34 @@
+/* Global tokens: the few values every screen shares. Themes keep their own
+   tokens inside their own theme.css. */
+:root {
+  --echo-font-sans: "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
+  --echo-font-serif: "Hiragino Mincho ProN", "Songti SC", serif;
+  --echo-chrome-fg: rgb(255 255 255 / 0.72);
+  --echo-chrome-shadow: 0 1px 6px rgb(0 0 0 / 0.45);
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: var(--echo-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+#stage[data-state="idle"] {
+  display: grid;
+  place-items: center;
+  color: var(--echo-chrome-fg);
+  text-shadow: var(--echo-chrome-shadow);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  -webkit-app-region: drag;
+  user-select: none;
+}

@@ -1,0 +1,11 @@
+{
+  // Screen side: the renderer. No Node types here, so screen code that
+  // reaches for fs / process / electron fails to compile.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.web.tsbuildinfo"
+  },
+  "include": ["contract", "screen", "cmd/screen"]
+}

@@ -1,0 +1,36 @@
+{
+  "name": "echo-v2",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A desktop display that agents and sources feed; lyrics are just one content pack.",
+  "type": "module",
+  "main": "out/main/main.js",
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build && tsup",
+    "preview": "electron-vite preview",
+    "build:mcp": "tsup",
+    "typecheck": "tsc -b",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check": "pnpm typecheck && pnpm lint && pnpm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10",
+    "@types/node": "^24",
+    "electron": "^44",
+    "electron-vite": "^5",
+    "eslint": "^10",
+    "globals": "^17.12.0",
+    "tsup": "^8.5",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70",
+    "vite": "^7",
+    "vitest": "^5"
+  }
+}
