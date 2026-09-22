@@ -192,7 +192,7 @@ type PackContext = {
 type ThemeManifest = {
   id: string;
   label: string;
-  window: string;                          // 默认窗口配置
+  profile: string;                         // 穿哪种窗口配置：ambient（铺满）| hanging（右上角挂着）
   slots: Record<string, SlotSpec>;
   signals?: ('energy' | 'onset' | 'daylight' | 'palette')[];
 };

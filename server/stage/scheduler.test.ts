@@ -6,7 +6,7 @@ import { dwellSeconds, schedule } from './scheduler'
 const manifest = (id: string, extra: Partial<ThemeManifest['slots'][string]> = {}): ThemeManifest => ({
   id,
   label: id,
-  window: 'hanging',
+  profile: 'hanging',
   slots: { main: { accepts: ['text'], timelines: ['self', 'media', 'none', 'wall'], role: 'main', ...extra } },
 })
 

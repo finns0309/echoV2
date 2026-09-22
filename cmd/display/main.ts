@@ -53,7 +53,7 @@ app.whenReady().then(async () => {
   const channel = createScreenChannel()
   const shell = createShellControl({
     prefs,
-    themes: Object.values(manifests).map((m) => ({ id: m.id, label: m.label, profile: m.window })),
+    themes: Object.values(manifests).map((m) => ({ id: m.id, label: m.label, profile: m.profile })),
     defaultTheme: DEFAULT_THEME,
     routes: ROUTES,
     names: NAMES,

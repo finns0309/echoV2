@@ -3,7 +3,7 @@ import type { ThemeManifest } from '@contract'
 export default {
   id: 'tide',
   label: '夜潮',
-  window: 'ambient',
+  profile: 'ambient',
   slots: {
     main: { accepts: ['text'], timelines: ['self', 'media', 'wall', 'none'], role: 'main' },
   },

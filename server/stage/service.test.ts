@@ -8,7 +8,7 @@ import { createStage } from './state'
 const manifest: ThemeManifest = {
   id: 'demo',
   label: 'demo',
-  window: 'ambient',
+  profile: 'ambient',
   slots: { main: { accepts: ['text'], timelines: ['self'], role: 'main' } },
 }
 

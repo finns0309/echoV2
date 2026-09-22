@@ -18,7 +18,8 @@ export const SIGNALS = ['energy', 'onset', 'daylight', 'palette'] as const
 export const ThemeManifest = z.object({
   id: z.string().regex(/^[a-z][a-z0-9-]*$/),
   label: z.string().min(1),
-  window: z.string().min(1),
+  /** The window profile it wears (ambient, hanging); the shell turns it into real bounds. */
+  profile: z.string().min(1),
   slots: z.record(z.string(), SlotSpec),
   signals: z.array(z.enum(SIGNALS)).optional(),
 })
