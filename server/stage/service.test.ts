@@ -73,4 +73,20 @@ describe('stage service directions', () => {
     await tick()
     expect(stage.snapshot().surfaces.main!.slots.main?.directions).toEqual({ n: 2 })
   })
+
+  it('asks ahead of time about content waiting in line, once', async () => {
+    const asks: string[] = []
+    const { stage, ctx, run } = setup(async (_theme, p) => {
+      asks.push(p.blocks.map((b) => (b.type === 'text' ? b.text : '')).join())
+      return null
+    })
+    ctx.upsert(card('on air'))
+    ctx.upsert({ ...card('queued'), id: 'card:b', createdAt: 1 })
+    await tick()
+    run()
+    run()
+    await tick()
+    expect(stage.snapshot().surfaces.main!.slots.main?.contentId).toBe('card:a')
+    expect(asks.filter((a) => a === 'queued')).toHaveLength(1)
+  })
 })

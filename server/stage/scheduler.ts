@@ -50,7 +50,8 @@ function mediaInBreak(content: Content, now: number): boolean {
   return breaks.some((b) => position >= b.at && position < b.until)
 }
 
-function fits(content: Content, spec: SlotSpec): boolean {
+/** Whether a slot can hold this content (timeline kind and, for dedicated slots, kind). */
+export function fits(content: Content, spec: SlotSpec): boolean {
   if (!spec.timelines.includes(content.presentation.timeline.kind)) return false
   return !spec.kinds || spec.kinds.includes(content.kind)
 }

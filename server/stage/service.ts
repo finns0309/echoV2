@@ -1,7 +1,7 @@
 import { Content, type Presentation, type SignalFrame, type Surface, type ThemeManifest } from '@contract'
 import type { ContentStore } from './contents'
 import type { PackContext } from './pack-api'
-import { schedule, type SurfaceConfig } from './scheduler'
+import { fits, schedule, type SurfaceConfig } from './scheduler'
 import type { Stage } from './state'
 
 export interface StageServiceOptions {
@@ -22,11 +22,14 @@ export interface StageServiceOptions {
 // Runs the scheduler whenever contents or surfaces change, and on a slow tick so
 // dwell endings and expiries take effect. Only writes the stage when it changed.
 // After each pass, asks `direct` once per (slot, content, theme, text) and
-// folds a late answer into OnAir.directions.
+// folds a late answer into OnAir.directions. Content still waiting in line is
+// asked about ahead of time (once per theme and text), so a director with a
+// cache can answer instantly when it finally goes on air.
 export function createStageService(opts: StageServiceOptions) {
   const now = opts.now ?? Date.now
   let consuming = false
   const asked = new Map<string, string>() // "surface/slot" → signature last asked about
+  const prefetched = new Set<string>() // "theme\ncontent\ntext" already asked about while queued
 
   // What the text of a presentation is; timeline-only changes (a media clock) don't count.
   const textSignature = (p: Presentation) => p.blocks.map((b) => (b.type === 'text' ? b.text : JSON.stringify(b))).join('\n')
@@ -69,6 +72,28 @@ export function createStageService(opts: StageServiceOptions) {
     }
   }
 
+  function prefetchQueued(): void {
+    const direct = opts.direct
+    if (!direct) return
+    const onAir = new Set(
+      Object.values(opts.stage.snapshot().surfaces).flatMap((s) => Object.values(s.slots).flatMap((slot) => (slot ? [slot.contentId] : []))),
+    )
+    const live = new Set<string>()
+    for (const content of opts.contents.list()) {
+      if (onAir.has(content.id)) continue
+      for (const surface of opts.surfaces()) {
+        const manifest = opts.manifests[surface.theme]
+        if (!manifest || !Object.values(manifest.slots).some((spec) => fits(content, spec))) continue
+        const key = `${surface.theme}\n${content.id}\n${textSignature(content.presentation)}`
+        live.add(key)
+        if (prefetched.has(key)) continue
+        prefetched.add(key)
+        direct(surface.theme, content.presentation).catch(() => {})
+      }
+    }
+    for (const key of prefetched) if (!live.has(key)) prefetched.delete(key) // forget what left the queue
+  }
+
   function run(): void {
     if (consuming) return
     const out = schedule({
@@ -86,6 +111,7 @@ export function createStageService(opts: StageServiceOptions) {
     }
     if (JSON.stringify(out.surfaces) !== JSON.stringify(opts.stage.snapshot().surfaces)) opts.stage.update(out.surfaces)
     directOnAir()
+    prefetchQueued()
   }
 
   const offChange = opts.contents.onChange(run)
