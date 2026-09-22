@@ -22,7 +22,11 @@ const stage: StageState = {
         },
         side: {
           contentId: 'card:w',
-          presentation: { context: {}, timeline: { kind: 'self' }, blocks: [{ type: 'text', role: 'primary', text: '木漏れ日' }] },
+          presentation: {
+            context: { title: '今日の単語' },
+            timeline: { kind: 'self' },
+            blocks: [{ type: 'text', role: 'primary', text: '木漏れ日' }],
+          },
           since: 5_000,
         },
         ambient: null,
@@ -41,8 +45,8 @@ describe('summarizeStatus', () => {
   it('lists what is on air without its blocks', () => {
     const { onAir } = summarizeStatus(stage, contents, 11_000)
     expect(onAir).toEqual([
-      { surface: 'main', slot: 'main', theme: 'furin', id: 'music:now', kind: 'song', priority: 'normal', headline: 'Earth', onAirSeconds: 10 },
-      { surface: 'main', slot: 'side', theme: 'furin', id: 'card:w', kind: 'word', priority: 'normal', headline: '木漏れ日', onAirSeconds: 6 },
+      { surface: 'main', slot: 'main', theme: 'furin', id: 'music:now', kind: 'song', priority: 'normal', title: 'Earth', onAirSeconds: 10 },
+      { surface: 'main', slot: 'side', theme: 'furin', id: 'card:w', kind: 'word', priority: 'normal', title: '今日の単語', headline: '木漏れ日', onAirSeconds: 6 },
     ])
     expect(JSON.stringify(onAir)).not.toContain('line 1')
   })
@@ -51,9 +55,13 @@ describe('summarizeStatus', () => {
     expect(summarizeStatus(stage, contents, 11_000).queued.map((c) => c.id)).toEqual(['card:next'])
   })
 
-  it('truncates long headlines', () => {
+  it('truncates long titles and headlines', () => {
     const long: StageState = structuredClone(stage)
     long.surfaces.main!.slots.main!.presentation.context.title = 'x'.repeat(200)
-    expect(summarizeStatus(long, contents, 11_000).onAir[0]!.headline).toHaveLength(60)
+    const side = long.surfaces.main!.slots.side!.presentation.blocks[0]!
+    if (side.type === 'text') side.text = 'y'.repeat(200)
+    const [song, word] = summarizeStatus(long, contents, 11_000).onAir
+    expect(song!.title).toHaveLength(60)
+    expect(word!.headline).toHaveLength(60)
   })
 })

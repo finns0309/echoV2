@@ -15,12 +15,14 @@ export interface OnAirSummary extends Partial<ContentSummary> {
   surface: string
   slot: string
   theme: string
-  /** The title, or the first primary line when there is none. */
+  title?: string
+  /** The first primary line: the word on a word card, the message on a message card. */
   headline?: string
   onAirSeconds: number
 }
 
 const HEADLINE_MAX = 60
+const clip = (t: string) => (t.length > HEADLINE_MAX ? t.slice(0, HEADLINE_MAX - 1) + '…' : t)
 
 export function summarizeStatus(stage: StageState, contents: readonly ContentSummary[], now: number) {
   const byId = new Map(contents.map((c) => [c.id, c]))
@@ -29,15 +31,18 @@ export function summarizeStatus(stage: StageState, contents: readonly ContentSum
     for (const [slot, air] of Object.entries(s.slots)) {
       if (!air) continue
       const c = byId.get(air.contentId)
-      const first = air.presentation.blocks.find((b) => b.type === 'text' && b.role === 'primary')
-      const headline = air.presentation.context.title ?? (first?.type === 'text' ? first.text : undefined)
+      const { context, timeline, blocks } = air.presentation
+      // Media content is a script played along with the audio; its first line says nothing about it.
+      const first = timeline.kind === 'media' ? undefined : blocks.find((b) => b.type === 'text' && b.role === 'primary')
+      const headline = first?.type === 'text' ? first.text : undefined
       onAir.push({
         surface,
         slot,
         theme: s.theme,
         id: air.contentId,
         ...(c ? { kind: c.kind, priority: c.priority } : {}),
-        ...(headline ? { headline: headline.length > HEADLINE_MAX ? headline.slice(0, HEADLINE_MAX - 1) + '…' : headline } : {}),
+        ...(context.title ? { title: clip(context.title) } : {}),
+        ...(headline ? { headline: clip(headline) } : {}),
         onAirSeconds: Math.max(0, Math.round((now - air.since) / 1000)),
       })
     }

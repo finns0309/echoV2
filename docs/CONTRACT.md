@@ -214,12 +214,14 @@ type FrameClock = {
 
 | 方法 | 路径 | 做什么 |
 |---|---|---|
-| `POST` | `/contents` | 写入或更新一条内容（由 `card` 包接收并校验） |
+| `POST` | `/contents` | 写入或更新一条内容（由 `card` 包接收并校验）。返回 `{id, updated, state}`：`updated` 表示这个 id 原本就在，`state` 是 `on-air` 或 `queued` |
 | `DELETE` | `/contents/:id` | 撤回 |
-| `GET` | `/contents` | 内容库里还有什么 |
+| `GET` | `/contents` | 内容库里还有什么，按上台顺序排（优先级高的在前，同级先来的在前） |
 | `GET` | `/stage` | 当前舞台状态：什么在台上、在哪个槽位 |
 
 `POST /contents` 的请求体是 `AgentCardInput`（`contract/agent.ts`），比完整的 Content 更友好：agent 只描述一张卡（几行文字、说话人、停留时长，或者一个状态值），card 包负责把它转换成 Presentation。需要完全控制时，可以直接传 `presentation`。
+
+有时间节奏的内容（倒计时、分步提示）一次发完：每一帧写成一行，用 `at` 标出它在卡片上台后第几秒出现，echo 自己按时间播。不要每一帧调用一次，那样节奏会被调用延迟拉乱。
 
 token 首次启动时生成，存在 `~/Library/Application Support/echo-v2/agent-token`。
 
@@ -228,7 +230,7 @@ MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发
 | 工具 | 转发到 | 用途 |
 |---|---|---|
 | `show` | `POST /contents` | 投一张卡；输入 schema 直接来自 `AgentCardInput` |
-| `status` | `GET /stage` + `GET /contents` | 现在在显示什么，队列里还有什么 |
+| `status` | `GET /stage` + `GET /contents` | 现在在显示什么，队列里还有什么。只返回摘要：每个槽位给 id、kind、优先级、`title`、`headline`（第一行主文字）、上台秒数，不带 blocks |
 | `clear` | `DELETE /contents/:id` | 撤回 |
 
 ### 4.4 导演服务（主进程）

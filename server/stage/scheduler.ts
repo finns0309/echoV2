@@ -24,6 +24,9 @@ export interface ScheduleOutput {
 }
 
 const RANK: Record<Priority, number> = { ambient: 0, normal: 1, urgent: 2 }
+
+/** The order waiting content goes on air in: highest priority first, then oldest first. */
+export const waitingOrder = (a: Content, b: Content): number => RANK[b.priority] - RANK[a.priority] || a.createdAt - b.createdAt
 const ROLE_ORDER: Record<SlotSpec['role'], number> = { main: 0, side: 1, ambient: 2 }
 const MIN_DWELL_S = 6
 const TAIL_S = 6
@@ -97,7 +100,7 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
   const held = new Set(slots.flatMap((s) => (s.holder ? [s.holder.content.id] : [])))
   const waiting = contents
     .filter((c) => !held.has(c.id) && !finished.includes(c.id))
-    .sort((a, b) => RANK[b.priority] - RANK[a.priority] || a.createdAt - b.createdAt)
+    .sort(waitingOrder)
 
   // Ambient content only appears while nothing more important is on air or waiting.
   const important = (c: Content) => c.priority !== 'ambient'

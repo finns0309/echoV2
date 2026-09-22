@@ -53,13 +53,21 @@ server.registerTool(
       'Use it for things worth a glance: a word or fact to remember, a short message, a status that changed.',
       'Keep cards short (a few lines). Lines appear one after another. Do not send many cards in a row;',
       'echo queues them and shows one at a time. Reuse the same id to update a card instead of adding a new one.',
+      'For anything timed (a countdown, steps, a sequence), send every frame at once as lines with `at`',
+      '(seconds after the card appears) and let echo play it; do not call show once per frame.',
+      'While music plays, normal cards wait for a break in the song; use priority urgent only when it must show now.',
     ].join(' '),
     inputSchema: AgentCardInput.shape,
   },
   async (input) => {
     try {
-      const { id } = (await call('POST', '/contents', input)) as { id: string }
-      return text(`Queued on echo as ${id}.`)
+      const { id, updated, state } = (await call('POST', '/contents', input)) as {
+        id: string
+        updated: boolean
+        state: 'on-air' | 'queued'
+      }
+      if (state === 'on-air') return text(updated ? `Updated ${id} in place; it is on screen now.` : `${id} is on screen now.`)
+      return text(updated ? `Updated ${id}; it is still waiting in line.` : `Queued ${id}; it will show when echo is free (see status).`)
     } catch (err) {
       return failure(err)
     }

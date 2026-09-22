@@ -20,7 +20,7 @@ import { createShellPrefs } from '@server/shell/prefs'
 import { createSurface, type Surface } from '@server/shell/surfaces'
 import { createTray } from '@server/shell/tray'
 import { createContentStore } from '@server/stage/contents'
-import type { SurfaceConfig } from '@server/stage/scheduler'
+import { waitingOrder, type SurfaceConfig } from '@server/stage/scheduler'
 import { createStageService } from '@server/stage/service'
 import { createStage } from '@server/stage/state'
 
@@ -159,13 +159,19 @@ app.whenReady().then(async () => {
     port: AGENT_PORT,
     token: loadOrCreateToken(userData),
     handlers: {
+      // Accepting runs the scheduler synchronously, so the stage already tells where the card went.
       submit: (raw) => {
+        const existed = new Set(contents.list().map((c) => c.id))
         const result = card.accept(raw)
-        return result.ok ? { ok: true, id: result.content.id } : result
+        if (!result.ok) return result
+        const id = result.content.id
+        const onAir = Object.values(stage.snapshot().surfaces).some((s) => Object.values(s.slots).some((slot) => slot?.contentId === id))
+        return { ok: true, id, updated: existed.has(id), state: onAir ? 'on-air' : 'queued' }
       },
       withdraw: (id) => contents.remove(id) || contents.remove(`card:${id}`),
+      // In the order they will go on air.
       contents: () =>
-        contents.list().map((c) => ({ id: c.id, kind: c.kind, priority: c.priority, title: c.presentation.context.title })),
+        [...contents.list()].sort(waitingOrder).map((c) => ({ id: c.id, kind: c.kind, priority: c.priority, title: c.presentation.context.title })),
       stage: () => stage.snapshot(),
     },
   }).catch((err: unknown) => console.error(`[echo] agent API not started on ${AGENT_PORT}:`, err))
