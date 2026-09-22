@@ -10,10 +10,12 @@ const alias = [
 ]
 
 export default defineConfig({
-  // Display server (Electron main process).
+  // Display server (Electron main process). Dependencies are bundled in, so the
+  // packaged app carries no node_modules.
   main: {
     resolve: { alias },
     build: {
+      externalizeDeps: false,
       outDir: resolve('out/main'),
       rollupOptions: { input: { main: resolve('cmd/display/main.ts') } },
     },

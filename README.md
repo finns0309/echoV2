@@ -34,3 +34,18 @@ curl -X POST http://127.0.0.1:10757/contents \
 ```bash
 claude mcp add echo -s user -- node ~/Code/sideProject/echoV2/out/mcp/mcp.js
 ```
+
+## 打包和安装
+
+```bash
+pnpm package    # → dist/Echo-<version>-arm64.dmg，拖进 Applications 即可
+pnpm icon       # 改了 scripts/make-icon.swift 里的几何参数后，重新生成图标
+```
+
+- 常驻菜单栏，没有 Dock 图标（`LSUIElement`）。同一时间只跑一个：装好的 app 开着时，`pnpm dev` 会直接退出，因为两者共用 agent 端口和状态目录。
+- 状态目录固定为 `~/Library/Application Support/echo-v2/`，不跟着 productName 走。
+- 打包产物不带 node_modules：main 和 mcp 都把依赖打进单文件，所以 `package.json` 里只有 devDependencies。
+- app 自带一份 MCP 脚本，不依赖仓库：`node /Applications/Echo.app/Contents/Resources/mcp.js`。
+- 只做了 ad-hoc 签名，没有公证。在别的机器上首次打开需要右键 → 打开，或者跑一次 `xattr -cr /Applications/Echo.app`。
+
+图标和 muse、Caller 是一套：同样的渐变底、70px 圆头描边、`#6eb5ff` 的点。蓝点是声源，右边两道弧是它的回声，外圈更淡。

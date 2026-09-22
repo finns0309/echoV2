@@ -1,8 +1,10 @@
 {
   "name": "echo-v2",
+  "productName": "Echo",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A desktop display that agents and sources feed; lyrics are just one content pack.",
+  "author": "Finn",
   "type": "module",
   "main": "out/main/main.js",
   "packageManager": "pnpm@9.15.9",
@@ -14,16 +16,16 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test": "vitest run",
-    "check": "pnpm typecheck && pnpm lint && pnpm test"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.30",
-    "zod": "^4"
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "icon": "swift scripts/make-icon.swift",
+    "package": "pnpm build && electron-builder --mac"
   },
   "devDependencies": {
     "@eslint/js": "^10",
+    "@modelcontextprotocol/sdk": "^1.30",
     "@types/node": "^24",
     "electron": "^44",
+    "electron-builder": "^26",
     "electron-vite": "^5",
     "eslint": "^10",
     "globals": "^17.12.0",
@@ -31,6 +33,47 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.70",
     "vite": "^7",
-    "vitest": "^5"
+    "vitest": "^5",
+    "zod": "^4"
+  },
+  "build": {
+    "appId": "com.finn.echo",
+    "productName": "Echo",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/main/**",
+      "out/preload/**",
+      "out/renderer/**",
+      "assets/trayTemplate*.png",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "out/mcp/mcp.js",
+        "to": "mcp.js"
+      }
+    ],
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.utilities",
+      "icon": "assets/icon.icns",
+      "extendInfo": {
+        "LSUIElement": true
+      },
+      "identity": "-",
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "title": "Echo"
+    }
   }
 }

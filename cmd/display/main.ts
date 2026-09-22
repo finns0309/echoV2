@@ -47,6 +47,17 @@ const grammars: [string, Grammar][] = Object.entries(
 // The LLM behind the director. Defaults match the old echo; secrets.json in userData overrides.
 const LLM_DEFAULTS = { model: 'gpt-5.6-luna', baseUrl: 'https://sub2api.pexoai.cn' }
 
+// Pinned, not derived from productName: the MCP script and the README look here, and
+// "Echo" would land on the old echo's folder on a case-insensitive disk.
+app.setPath('userData', join(app.getPath('appData'), 'echo-v2'))
+
+// One display per user: the installed app and `pnpm dev` share the agent port and the state.
+const primary = app.requestSingleInstanceLock()
+if (!primary) {
+  console.log('[echo] already running; quitting this instance')
+  app.quit()
+}
+
 function loadScreen(win: BrowserWindow, surface: string): Promise<void> {
   const devUrl = process.env.ELECTRON_RENDERER_URL
   return devUrl
@@ -55,6 +66,7 @@ function loadScreen(win: BrowserWindow, surface: string): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  if (!primary) return
   const userData = app.getPath('userData')
   const store = createJsonStore(join(userData, 'state'))
 

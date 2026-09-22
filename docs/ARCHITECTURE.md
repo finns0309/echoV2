@@ -12,7 +12,8 @@ echoV2/
 ├── server/          显示服务器：主进程，Node（对应 Prism 的 internal/）
 ├── screen/          屏幕：渲染层，浏览器（对应 Prism 的 apps/console/src/）
 ├── architecture/    可执行的依赖规则（对应 Prism 的 architecture/）
-├── scripts/         开发脚本
+├── scripts/         开发脚本（make-icon.swift 生成图标）
+├── assets/          图标和托盘图（由 scripts/make-icon.swift 生成）
 └── docs/            契约、目录地图
 ```
 
@@ -186,6 +187,7 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 | zod | `contract/` 的唯一写法 | 一份定义同时得到 TS 类型、HTTP 入口的运行时校验、MCP 工具的输入 schema，以及给其他 agent 用的 JSON Schema |
 | @modelcontextprotocol/sdk | `cmd/mcp` | 官方 TS SDK，工具的输入 schema 直接用 zod |
 | tsup | 构建 `cmd/mcp`（以后还有 `cmd/cli`） | 这些入口不跑在 Electron 里，打成单文件的 Node 脚本就行 |
+| electron-builder | `pnpm package` 出 dmg | 和 muse 一致。main 和 mcp 都把依赖打进单文件，打包产物里没有 node_modules |
 | Vitest | 单元测试和 `architecture/dependencies.test.ts` | 和 Prism 一致；测试文件放在被测文件旁边 |
 | ESLint + typescript-eslint | 代码规范 | 和 Prism 一致 |
 | pnpm | 包管理 | 和 Prism 一致 |
