@@ -75,7 +75,8 @@ server.registerTool(
       }
       const where = (surface ? ` (window ${surface})` : '') + (note ? `. Note: ${note}` : '')
       if (state === 'on-air') return text(updated ? `Updated ${id} in place; it is on screen now${where}.` : `${id} is on screen now${where}.`)
-      return text(updated ? `Updated ${id}; it is still waiting in line.` : `Queued ${id}; it will show when echo is free (see status).`)
+      const why = note ? ` Note: ${note}.` : ''
+      return text((updated ? `Updated ${id}; it is still waiting in line.` : `Queued ${id}; it will show when echo is free (see status).`) + why)
     } catch (err) {
       return failure(err)
     }
