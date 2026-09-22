@@ -135,6 +135,9 @@ type StageState = {
   surfaces: Record<string, {                 // 窗口 id → 窗口
     profile: string;                         // 窗口配置：headline | subtitle-strip | card | ambient | overlay | ...
     theme: string;
+    accepts?: { packs?: string[]; kinds?: string[] };  // 这个窗口收什么；不写就是全收（§5）
+    fallback?: boolean;                      // 兜底窗口：也收「没有任何可见窗口收」的内容
+    hidden?: boolean;                        // 被用户隐藏：不分配任何内容
     slots: Record<string, OnAir | null>;
   }>;
 };
@@ -150,10 +153,10 @@ type OnAir = {
 高频信号（音频能量、onset，约 30fps）不进舞台状态，走单独的信号通道：
 
 ```ts
-type SignalFrame = { t: number; energy?: number; onset?: number; centroid?: number; bands?: number[] };
+type SignalFrame = { t: number; source?: string; energy?: number; onset?: number; centroid?: number; bands?: number[] };
 ```
 
-onset 检测在产生信号的内容包里做（比如 music 包），屏幕只接收结果。
+onset 检测在产生信号的内容包里做（比如 music 包），屏幕只接收结果。`source` 是信号所属内容的 id：屏幕只把它交给正在放这条内容的主题，所以多窗口时只有放歌词的那个窗口随音乐动。不写 `source` 的信号发给所有屏幕。
 
 ## 4. 接口
 
@@ -271,6 +274,9 @@ interface Grammar {
 4. `urgent` 可以打断 `main` 槽位；`normal` 等槽位空出来，或者等当前 `self` 内容的 `dwell` 到期；`ambient` 只在所有槽位都空时上台。
 5. `media` 内容（歌词）在台上时，只有一个槽位的主题不接 `normal` 内容，除非当前时间落在 `hints.breaks` 标出的空档里（前奏、间奏）。
 6. 频率上限、免打扰时段作为全局设置，由主进程持有。
+7. **多窗口路由**：窗口的 `accepts` 决定它收什么，匹配内容的 `pack` 和 `kind`，不写就是全收。`fallback` 窗口还会收「没有任何可见窗口收」的内容，所以隐藏或关掉一个窗口时，它的内容会转到兜底窗口，窗口回来后再分流回去。隐藏的窗口不参与分配。规则只比较字段值，具体的取值（比如「只放歌词」= `packs: ['music']`）由托盘预设写进用户偏好。
+8. **先填空槽，再抢占**：先把排队的内容放进所有空槽；还没安置的才按第 4、5 条去抢；被抢下来的内容再补一轮空槽。所以只要别的窗口有空位，就不会把谁挤下台。
+9. **ambient 按窗口判断**：一个空槽能不能放 ambient 内容，只看同一个窗口里有没有更重要的内容在台上，以及有没有更重要、并且能进这个槽的内容在排队。单窗口时等同于第 4 条。
 
 ## 5.1 音乐内容包的约定（M3）
 

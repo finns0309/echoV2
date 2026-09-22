@@ -55,18 +55,21 @@ server.registerTool(
       'echo queues them and shows one at a time. Reuse the same id to update a card instead of adding a new one.',
       'For anything timed (a countdown, steps, a sequence), send every frame at once as lines with `at`',
       '(seconds after the card appears) and let echo play it; do not call show once per frame.',
-      'While music plays, normal cards wait for a break in the song; use priority urgent only when it must show now.',
+      'If echo shares a window with music, normal cards wait for a break in the song; use priority urgent only when it',
+      'must show now. The user decides which window shows what (see status → windows); you never pick a window.',
     ].join(' '),
     inputSchema: AgentCardInput.shape,
   },
   async (input) => {
     try {
-      const { id, updated, state } = (await call('POST', '/contents', input)) as {
+      const { id, updated, state, surface } = (await call('POST', '/contents', input)) as {
         id: string
         updated: boolean
         state: 'on-air' | 'queued'
+        surface?: string
       }
-      if (state === 'on-air') return text(updated ? `Updated ${id} in place; it is on screen now.` : `${id} is on screen now.`)
+      const where = surface ? ` (window ${surface})` : ''
+      if (state === 'on-air') return text(updated ? `Updated ${id} in place; it is on screen now${where}.` : `${id} is on screen now${where}.`)
       return text(updated ? `Updated ${id}; it is still waiting in line.` : `Queued ${id}; it will show when echo is free (see status).`)
     } catch (err) {
       return failure(err)

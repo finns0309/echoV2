@@ -51,6 +51,15 @@ describe('summarizeStatus', () => {
     expect(JSON.stringify(onAir)).not.toContain('line 1')
   })
 
+  it('lists the windows and what each takes', () => {
+    const routed: StageState = structuredClone(stage)
+    routed.surfaces.main!.accepts = { packs: ['music'] }
+    routed.surfaces.main!.fallback = true
+    expect(summarizeStatus(routed, contents, 11_000).windows).toEqual([
+      { surface: 'main', theme: 'furin', accepts: { packs: ['music'] }, fallback: true },
+    ])
+  })
+
   it('queues only what is not on air', () => {
     expect(summarizeStatus(stage, contents, 11_000).queued.map((c) => c.id)).toEqual(['card:next'])
   })

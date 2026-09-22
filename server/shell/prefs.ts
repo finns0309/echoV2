@@ -1,8 +1,11 @@
+import type { Route } from '@contract'
 import type { JsonStore } from '@server/foundation/store'
 
 export interface SurfacePref {
   id: string
   theme: string
+  /** What this window takes; absent means everything. */
+  accepts?: Route
 }
 
 export interface Bounds {
@@ -20,8 +23,9 @@ export interface WindowOverride {
 
 type Overrides = Record<string, Record<string, WindowOverride>> // surface → theme → override
 
-// Display preferences: which surfaces exist, which theme each wears, and what
-// the user changed about each window per theme. The shell is their only writer.
+// Display preferences: which surfaces exist, which theme each wears, what each
+// takes, and what the user changed about each window per theme. The shell is
+// their only writer.
 export function createShellPrefs(store: JsonStore, defaults: SurfacePref[]) {
   const SURFACES = 'surfaces'
   const OVERRIDES = 'window-overrides'
@@ -30,15 +34,37 @@ export function createShellPrefs(store: JsonStore, defaults: SurfacePref[]) {
   const listeners = new Set<() => void>()
 
   const saveOverrides = () => store.set(OVERRIDES, overrides)
+  const save = (next: SurfacePref[]) => {
+    prefs = next
+    store.set(SURFACES, prefs)
+    for (const listener of listeners) listener()
+  }
 
   return {
     get(): readonly SurfacePref[] {
       return prefs
     },
     setTheme(surface: string, theme: string): void {
-      prefs = prefs.map((p) => (p.id === surface ? { ...p, theme } : p))
-      store.set(SURFACES, prefs)
-      for (const listener of listeners) listener()
+      save(prefs.map((p) => (p.id === surface ? { ...p, theme } : p)))
+    },
+    /** Undefined: the window takes everything. */
+    setRoute(surface: string, accepts: Route | undefined): void {
+      save(prefs.map((p) => (p.id !== surface ? p : accepts ? { ...p, accepts } : { id: p.id, theme: p.theme })))
+    },
+    add(pref: SurfacePref): void {
+      if (prefs.some((p) => p.id === pref.id)) return
+      save([...prefs, pref])
+    },
+    /** Also forgets where that window was left. */
+    remove(surface: string): void {
+      if (!prefs.some((p) => p.id === surface)) return
+      if (overrides[surface]) {
+        const rest = { ...overrides }
+        delete rest[surface]
+        overrides = rest
+        saveOverrides()
+      }
+      save(prefs.filter((p) => p.id !== surface))
     },
     onChange(listener: () => void): () => void {
       listeners.add(listener)

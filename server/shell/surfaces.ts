@@ -15,6 +15,8 @@ export interface SurfaceOptions {
   id: string
   preload: string
   prefs: ShellPrefs
+  /** Where the other windows are, so a window without a saved place doesn't land on top of one. */
+  others?: () => Bounds[]
 }
 
 // Programmatic setBounds fires moved/resized too; ignore those for this long
@@ -23,6 +25,20 @@ const QUIET_MS = 400
 
 const intersects = (a: Rectangle, b: Bounds) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+const inside = (b: Bounds, area: Rectangle) =>
+  b.x >= area.x && b.y >= area.y && b.x + b.width <= area.x + area.width && b.y + b.height <= area.y + area.height
+const GAP = 20
+
+/** Slide `b` left, a window's width at a time, until it clears `taken` or runs out of room. */
+function clear(b: Bounds, taken: Bounds[], area: Rectangle): Bounds {
+  let at = b
+  while (taken.some((t) => intersects(at, t))) {
+    const next = { ...at, x: at.x - at.width - GAP }
+    if (!inside(next, area)) return b
+    at = next
+  }
+  return at
+}
 
 /**
  * One transparent, frameless, always-on-top window hosting a screen, plus
@@ -30,7 +46,7 @@ const intersects = (a: Rectangle, b: Bounds) =>
  * user last left it for that theme), click-through, fill the screen, reset,
  * hide. Per-theme choices are persisted through ShellPrefs.
  */
-export function createSurface({ id, preload, prefs }: SurfaceOptions) {
+export function createSurface({ id, preload, prefs, others = () => [] }: SurfaceOptions) {
   const win = new BrowserWindow({
     width: 300,
     height: 300,
@@ -46,7 +62,11 @@ export function createSurface({ id, preload, prefs }: SurfaceOptions) {
   // 'floating' rather than 'screen-saver' so menu-bar popovers still draw above us.
   win.setAlwaysOnTop(true, 'floating')
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
-  win.once('ready-to-show', () => win.showInactive())
+  // What the user wants, which is not the same as isVisible() while the page is still loading.
+  let shown = true
+  win.once('ready-to-show', () => {
+    if (shown) win.showInactive()
+  })
 
   let theme = ''
   let profile = ''
@@ -93,11 +113,12 @@ export function createSurface({ id, preload, prefs }: SurfaceOptions) {
       theme = nextTheme
       profile = nextProfile
       beforeFill = null
-      const base = resolveProfile(profile, screen.getPrimaryDisplay().workArea)
+      const area = screen.getPrimaryDisplay().workArea
+      const base = resolveProfile(profile, area)
       const saved = prefs.override(id, theme)
       // A saved position on a display that is no longer there falls back to the profile.
       const onScreen = saved.bounds && screen.getAllDisplays().some((d) => intersects(d.workArea, saved.bounds!))
-      place(onScreen ? saved.bounds! : base)
+      place(onScreen ? saved.bounds! : clear(base, others(), area))
       setClickThrough(saved.clickThrough ?? base.clickThrough)
       changed()
     },
@@ -127,12 +148,22 @@ export function createSurface({ id, preload, prefs }: SurfaceOptions) {
     },
 
     toggleVisible(): void {
-      if (win.isVisible()) win.hide()
-      else win.showInactive()
+      shown = !shown
+      if (shown) win.showInactive()
+      else win.hide()
+    },
+
+    bounds(): Bounds {
+      return win.getBounds()
     },
 
     state(): SurfaceState {
-      return { theme, clickThrough, visible: win.isVisible(), fill: beforeFill ? 'restorable' : isFull() ? 'full' : 'normal' }
+      return { theme, clickThrough, visible: shown, fill: beforeFill ? 'restorable' : isFull() ? 'full' : 'normal' }
+    },
+
+    destroy(): void {
+      listeners.clear()
+      if (!win.isDestroyed()) win.destroy()
     },
 
     onChange(listener: () => void): () => void {

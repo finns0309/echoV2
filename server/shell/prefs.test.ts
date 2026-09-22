@@ -22,4 +22,25 @@ describe('shell prefs', () => {
     expect(prefs.override('main', 'furin')).toEqual({})
     expect(prefs.override('main', 'eva')).toEqual({ clickThrough: false })
   })
+
+  it('adds, routes and removes surfaces, forgetting a removed window', () => {
+    const store = createMemoryStore()
+    const prefs = createShellPrefs(store, [{ id: 'main', theme: 'furin' }])
+    let changes = 0
+    prefs.onChange(() => changes++)
+    prefs.add({ id: 'w2', theme: 'furin', accepts: { packs: ['card'] } })
+    prefs.add({ id: 'w2', theme: 'plasma' }) // an existing id is left alone
+    prefs.setRoute('main', { packs: ['music'] })
+    prefs.setOverride('w2', 'furin', { clickThrough: true })
+    expect(createShellPrefs(store, []).get()).toEqual([
+      { id: 'main', theme: 'furin', accepts: { packs: ['music'] } },
+      { id: 'w2', theme: 'furin', accepts: { packs: ['card'] } },
+    ])
+    prefs.setRoute('main', undefined)
+    prefs.remove('w2')
+    expect(prefs.get()).toEqual([{ id: 'main', theme: 'furin' }])
+    expect(prefs.override('w2', 'furin')).toEqual({})
+    expect(changes).toBe(4)
+  })
 })
+

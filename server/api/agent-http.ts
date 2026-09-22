@@ -6,7 +6,9 @@ import type { AddressInfo } from 'node:net'
 // handlers and never interprets content itself. Spec: docs/CONTRACT.md §4.3.
 
 export interface AgentApiHandlers {
-  submit(raw: unknown): { ok: true; id: string; updated: boolean; state: 'on-air' | 'queued' } | { ok: false; error: string }
+  submit(
+    raw: unknown,
+  ): { ok: true; id: string; updated: boolean; state: 'on-air' | 'queued'; surface?: string } | { ok: false; error: string }
   withdraw(id: string): boolean
   contents(): unknown
   stage(): unknown
@@ -45,7 +47,8 @@ export async function startAgentApi({ port, token, handlers, host = '127.0.0.1' 
         if (body === undefined) return send(res, 400, { error: 'body is not valid JSON (max 64 KB)' })
         const result = handlers.submit(body)
         if (!result.ok) return send(res, 400, { error: result.error })
-        return send(res, 201, { id: result.id, updated: result.updated, state: result.state })
+        const { id, updated, state, surface } = result
+        return send(res, 201, { id, updated, state, ...(surface ? { surface } : {}) })
       }
 
       const del = url.pathname.match(/^\/contents\/(.+)$/)

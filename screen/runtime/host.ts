@@ -43,7 +43,12 @@ export function createStageHost({ root, surface, themes, bridge }: StageHostOpti
     return palette ? { ...onAir, presentation: { ...onAir.presentation, context: { ...ctx, palette } } } : onAir
   }
 
-  const ctx: ScreenContext = { surface, onSignal: (listener) => bridge.on('signal', listener) }
+  // Signals that belong to a content reach only the screen showing it.
+  const showing = (id: string) => Object.values(slots).some((onAir) => onAir?.contentId === id)
+  const ctx: ScreenContext = {
+    surface,
+    onSignal: (listener) => bridge.on('signal', (frame) => (!frame.source || showing(frame.source) ? listener(frame) : undefined)),
+  }
 
   function showIdleLabel(text: string | null): void {
     root.dataset.state = text ? 'idle' : 'on-air'

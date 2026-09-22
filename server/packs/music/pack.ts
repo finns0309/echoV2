@@ -69,7 +69,8 @@ export function createMusicPack({ sources, lyrics, pollMs = 800, goneAfter = 5, 
       ctx = context
       ctx.remove(MUSIC_CONTENT_ID) // whatever a previous run left behind is stale
       const detect = createOnsetDetector()
-      offSpectrum = sources.spectrum((frame) => ctx?.emitSignal(detect(frame)))
+      // Tagged with the song, so only the window showing it moves to it.
+      offSpectrum = sources.spectrum((frame) => ctx?.emitSignal({ ...detect(frame), source: MUSIC_CONTENT_ID }))
       timer = setInterval(() => void poll(), pollMs)
       void poll()
     },
