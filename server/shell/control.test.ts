@@ -15,6 +15,7 @@ function fakeSurface(log: string[], id: string): ShellSurface {
       log.push(`wear ${id} ${theme}`)
     },
     state: () => ({ ...s }),
+    bounds: () => ({ x: 0, y: 0, width: 300, height: 470 }),
     onChange: (l) => (listeners.add(l), () => listeners.delete(l)),
     toggleClickThrough: () => ((s.clickThrough = !s.clickThrough), changed()),
     toggleFill: () => {},
@@ -27,7 +28,6 @@ function fakeSurface(log: string[], id: string): ShellSurface {
 function setup(initial = [{ id: 'main', theme: 'furin' }]) {
   const log: string[] = []
   let n = 0
-  let windowsChanged = 0
   const prefs = createShellPrefs(createMemoryStore(), initial)
   const shell = createShellControl({
     prefs,
@@ -51,11 +51,12 @@ function setup(initial = [{ id: 'main', theme: 'furin' }]) {
       log.push(`open ${id}`)
       return fakeSurface(log, id)
     },
-    onWindowsChanged: () => windowsChanged++,
     newId: () => `w${++n}`,
   })
+  let changes = 0
+  shell.subscribe(() => changes++)
   shell.start()
-  return { shell, log, prefs, changes: () => windowsChanged }
+  return { shell, log, prefs, changes: () => changes }
 }
 
 describe('shell control', () => {

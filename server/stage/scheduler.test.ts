@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Content, Presentation, Priority, Surface, ThemeManifest } from '@contract'
-import { dwellSeconds, schedule, type SurfaceConfig } from './scheduler'
+import type { SurfaceConfig } from './routing'
+import { dwellSeconds, schedule } from './scheduler'
 
 const manifest = (id: string, extra: Partial<ThemeManifest['slots'][string]> = {}): ThemeManifest => ({
   id,

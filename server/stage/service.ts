@@ -1,7 +1,8 @@
 import { Content, type Presentation, type SignalFrame, type Surface, type ThemeManifest } from '@contract'
 import type { ContentStore } from './contents'
 import type { PackContext } from './pack-api'
-import { fits, schedule, type SurfaceConfig } from './scheduler'
+import type { SurfaceConfig } from './routing'
+import { fits, schedule } from './scheduler'
 import type { Stage } from './state'
 
 export interface StageServiceOptions {

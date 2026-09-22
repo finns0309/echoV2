@@ -1,12 +1,13 @@
 import type { Route, ShellCommand, ShellState, ShellWindow } from '@contract'
-import type { SurfaceConfig } from '@server/stage/scheduler'
-import type { ShellPrefs } from './prefs'
+import type { SurfaceConfig } from '@server/stage/routing'
+import type { Bounds, ShellPrefs } from './prefs'
 import type { SurfaceState } from './surfaces'
 
 /** What the control needs from a window; the Electron-backed one is createSurface. */
 export interface ShellSurface {
   wear(theme: string, profile: string): void
   state(): SurfaceState
+  bounds(): Bounds
   onChange(listener: () => void): () => void
   toggleClickThrough(): void
   toggleFill(): void
@@ -34,10 +35,11 @@ export interface ShellControlOptions {
   presets: readonly Preset[]
   /** The fallback window's id; it always exists. */
   main: string
-  /** Open a window for a surface id. The control wears it and destroys it. */
-  open: (id: string) => ShellSurface
-  /** Something about the windows changed that the stage should know (a window hid, appeared, closed). */
-  onWindowsChanged: () => void
+  /**
+   * Open a window for a surface id; `others` says where the other windows are, so a
+   * new one can keep clear of them. The control wears it and destroys it.
+   */
+  open: (id: string, others: () => Bounds[]) => ShellSurface
   newId?: () => string
 }
 
@@ -45,7 +47,8 @@ export type CommandResult = { ok: true } | { ok: false; error: string }
 
 /**
  * The shell's single writer: owns the windows, keeps them in step with the prefs,
- * and carries out every ShellCommand. The tray and the panel are views of it.
+ * and carries out every ShellCommand. The tray and the panel are views of it, and
+ * the stage subscribes too: a window hiding, appearing or closing reroutes content.
  */
 export function createShellControl(o: ShellControlOptions) {
   const { prefs } = o
@@ -123,12 +126,10 @@ export function createShellControl(o: ShellControlOptions) {
     for (const s of wanted) {
       let w = windows.get(s.id)
       if (!w) {
-        w = o.open(s.id)
-        windows.set(s.id, w)
-        w.onChange(() => {
-          changed()
-          o.onWindowsChanged() // hiding or showing a window reroutes content
-        })
+        const id = s.id
+        w = o.open(id, () => [...windows].flatMap(([other, x]) => (other === id ? [] : [x.bounds()])))
+        windows.set(id, w)
+        w.onChange(changed)
         w.wear(s.theme, s.profile)
       } else if (w.state().theme !== s.theme) {
         w.wear(s.theme, s.profile)
@@ -140,7 +141,6 @@ export function createShellControl(o: ShellControlOptions) {
       w.destroy()
     }
     changed()
-    o.onWindowsChanged()
   }
 
   function applyPreset(preset: Preset): void {
