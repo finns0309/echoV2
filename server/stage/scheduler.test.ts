@@ -121,4 +121,68 @@ describe('scheduler', () => {
     }
     expect(dwellSeconds(p)).toBe(14)
   })
+
+  describe('several surfaces', () => {
+    // An ambient song and an agent card, the shapes the music and card packs send.
+    const song: Content = { ...card('song', 'ambient'), pack: 'music', kind: 'song' }
+    const note = card('note', 'normal', 1)
+    const on = (out: ReturnType<typeof schedule>, surface: string) => out.surfaces[surface]!.slots.main?.contentId ?? null
+    const two = (a: Partial<SurfaceConfig> = {}, b: Partial<SurfaceConfig> = {}): SurfaceConfig[] => [
+      { id: 'main', profile: 'hanging', theme: 'demo', ...a },
+      { id: 'agent', profile: 'hanging', theme: 'demo', ...b },
+    ]
+    const step = (s: SurfaceConfig[], contents: Content[], current: Record<string, Surface> = {}, now = 1000) =>
+      schedule({ surfaces: s, manifests, contents, current, now })
+    const split = two({ accepts: { packs: ['music'] }, fallback: true }, { accepts: { packs: ['card'] } })
+
+    it('uses a free slot before pushing anything aside', () => {
+      const playing = step(two(), [song], {}, 0)
+      expect(on(playing, 'main')).toBe('song')
+      const out = step(two(), [song, note], playing.surfaces)
+      expect(on(out, 'main')).toBe('song')
+      expect(on(out, 'agent')).toBe('note')
+    })
+
+    it('keeps ambient content up on one surface while another shows something important', () => {
+      const out = step(two(), [note, song])
+      expect(on(out, 'main')).toBe('note')
+      expect(on(out, 'agent')).toBe('song')
+    })
+
+    it('routes each content only to surfaces that take it', () => {
+      const busy = step(split, [song, note, card('next', 'normal', 2)], {}, 0)
+      expect(on(busy, 'main')).toBe('song')
+      expect(on(busy, 'agent')).toBe('note')
+      // the next card waits for the agent surface instead of taking the song's
+      expect(on(step(split, [song, note, card('next', 'normal', 2)], busy.surfaces), 'main')).toBe('song')
+      // even urgent content stays on its own surface
+      expect(on(step(split, [song, note, card('u', 'urgent', 3)], busy.surfaces), 'main')).toBe('song')
+    })
+
+    it('sends what a hidden surface would take to the fallback, and back when it returns', () => {
+      const playing = step(split, [song], {}, 0)
+      const hidden = two({ accepts: { packs: ['music'] }, fallback: true }, { accepts: { packs: ['card'] }, hidden: true })
+      const away = step(hidden, [song, note], playing.surfaces)
+      expect(on(away, 'main')).toBe('note') // as with one window: normal takes ambient's place
+      expect(on(away, 'agent')).toBeNull()
+      expect(away.surfaces.agent!.hidden).toBe(true)
+      const back = step(split, [song, note], away.surfaces, 2000)
+      expect(on(back, 'agent')).toBe('note')
+      expect(on(back, 'main')).toBe('song')
+    })
+
+    it('leaves content no visible surface takes, and with no fallback, waiting', () => {
+      const out = step(two({ accepts: { packs: ['music'] } }, { accepts: { packs: ['card'] }, hidden: true }), [note])
+      expect(on(out, 'main')).toBeNull()
+    })
+
+    it('matches routes on kind as well as pack', () => {
+      const words = two({ accepts: { kinds: ['song'] } }, { accepts: { packs: ['card'], kinds: ['word'] } })
+      const fact: Content = { ...card('fact'), kind: 'fact' }
+      const out = step(words, [note, fact])
+      expect(on(out, 'agent')).toBe('note')
+      expect(on(out, 'main')).toBeNull()
+    })
+  })
 })
+

@@ -11,9 +11,24 @@ export const OnAir = z.object({
 })
 export type OnAir = z.infer<typeof OnAir>
 
+/**
+ * What a surface takes. Absent lists mean "any"; both present means both must match.
+ * A surface with no route takes everything.
+ */
+export const Route = z.object({
+  packs: z.array(z.string().min(1)).optional(),
+  kinds: z.array(z.string().min(1)).optional(),
+})
+export type Route = z.infer<typeof Route>
+
 export const Surface = z.object({
   profile: z.string().min(1),
   theme: z.string(),
+  accepts: Route.optional(),
+  /** Also takes whatever no visible surface's route admits. */
+  fallback: z.boolean().optional(),
+  /** Hidden by the user: gets nothing, and what it held goes elsewhere. */
+  hidden: z.boolean().optional(),
   slots: z.record(z.string(), OnAir.nullable()),
 })
 export type Surface = z.infer<typeof Surface>
@@ -27,6 +42,8 @@ export type StageState = z.infer<typeof StageState>
 // High-frequency (~30fps). Never folded into StageState.
 export const SignalFrame = z.object({
   t: z.number(),
+  /** The content these signals belong to; screens not showing it ignore them. Absent: everyone. */
+  source: z.string().optional(),
   energy: z.number().optional(),
   onset: z.number().optional(),
   centroid: z.number().optional(),
