@@ -340,6 +340,13 @@ input {
     height 200ms var(--ease-out);
 }
 
+/* Enter: the row is acknowledged before anything else moves. */
+.cursor.commit {
+  background: color-mix(in srgb, var(--accent), transparent 78%);
+  box-shadow: 0 0 0 1px var(--accent);
+  transition: none;
+}
+
 .empty {
   padding: 18px 12px;
   text-align: center;

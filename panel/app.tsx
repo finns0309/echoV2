@@ -76,7 +76,11 @@ export function App({ state }: { state: PanelState }) {
       <div class="list-wrap">
         <ul class="list" role="listbox">
           {cursorBox && (
-            <li class="cursor" aria-hidden="true" style={{ transform: `translateY(${cursorBox.y}px)`, height: `${cursorBox.h}px` }} />
+            <li
+              class={state.committed.value && state.committed.value === current?.key ? 'cursor commit' : 'cursor'}
+              aria-hidden="true"
+              style={{ transform: `translateY(${cursorBox.y}px)`, height: `${cursorBox.h}px` }}
+            />
           )}
           {items.map((item) => {
             const selected = item.kind !== 'section' && item.key === current?.key

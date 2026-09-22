@@ -15,6 +15,8 @@ export function createPanelState(bridge: PanelBridge) {
   const opened = signal<string | null>(null)
   const cursor = signal(0)
   const toast = signal<string | null>(null)
+  /** The row whose command just ran, for a moment: the cursor flashes to acknowledge it. */
+  const committed = signal<string | null>(null)
   /** Bumps each time the panel is summoned, to replay the entrance. */
   const summoned = signal(0)
 
@@ -69,9 +71,13 @@ export function createPanelState(bridge: PanelBridge) {
     toastTimer = setTimeout(() => (toast.value = null), TOAST_MS)
   }
 
+  let commitTimer: ReturnType<typeof setTimeout> | undefined
   function send(command: ShellCommand, note?: string): void {
     bridge.send('command', command)
     if (note) say(note)
+    committed.value = current.value?.key ?? null
+    clearTimeout(commitTimer)
+    commitTimer = setTimeout(() => (committed.value = null), 180)
   }
 
   return {
@@ -80,6 +86,7 @@ export function createPanelState(bridge: PanelBridge) {
     opened,
     cursor,
     toast,
+    committed,
     summoned,
     items,
     selectable,
@@ -97,7 +104,10 @@ export function createPanelState(bridge: PanelBridge) {
         return
       }
       const command = item.run ?? item.step?.(1)
-      if (command) send(command, item.run ? `${item.label}${item.on === undefined ? '' : item.on ? ' · 关' : ' · 开'}` : undefined)
+      if (!command) return
+      send(command, item.run ? `${item.label}${item.on === undefined ? '' : item.on ? ' · 关' : ' · 开'}` : undefined)
+      // A search is for one command: once it has run, the list goes back to where it was.
+      if (query.value) query.value = ''
     },
     /** ←/→ on a setting. */
     step(dir: 1 | -1): boolean {

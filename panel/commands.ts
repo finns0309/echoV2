@@ -148,8 +148,10 @@ export function allActions(shell: ShellState): Selectable[] {
           if (r.id !== w.route) out.push({ kind: 'action', key: `${key}:${r.id}`, label: `${w.name} · ${r.label}`, run: { type: 'setRoute', window: w.id, route: r.id }, words: `route ${r.id}` })
         }
       } else if (a.run) {
-        const label = a.key === 'visible' ? `${w.visible ? '隐藏' : '显示'} ${w.name}` : `${w.name} · ${a.label}`
-        out.push({ ...a, key, label, words: `${w.name} ${a.words ?? ''}` })
+        // Show/hide reads as a verb ("隐藏 left"), so it needs no on/off switch beside it.
+        const verb = a.key === 'visible'
+        const label = verb ? `${w.visible ? '隐藏' : '显示'} ${w.name}` : `${w.name} · ${a.label}`
+        out.push({ ...a, key, label, words: `${w.name} ${a.words ?? ''}`, ...(verb ? { on: undefined } : {}) })
       }
     }
   }
