@@ -8,7 +8,7 @@ import { ThemeManifest } from '@contract'
 import { SCREEN_NETWORK, THEME_FORBIDDEN_WORDS, checkImport, importsOf } from './rules'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const SOURCE_ROOTS = ['contract', 'server', 'screen', 'cmd']
+const SOURCE_ROOTS = ['contract', 'server', 'screen', 'panel', 'cmd']
 
 function walk(dir: string): string[] {
   if (!existsSync(dir)) return []
@@ -21,7 +21,7 @@ function walk(dir: string): string[] {
 const rel = (full: string) => relative(ROOT, full).split('\\').join('/')
 const sources = SOURCE_ROOTS.flatMap((r) => walk(join(ROOT, r)))
   .map(rel)
-  .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !f.endsWith('.d.ts'))
+  .filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.endsWith('.d.ts'))
 const read = (file: string) => readFileSync(join(ROOT, file), 'utf8')
 const unitIds = (dir: string) =>
   existsSync(join(ROOT, dir))
@@ -87,7 +87,7 @@ describe('the core stays generic', () => {
 
   it('screen code makes no network requests (the transport is the only door)', () => {
     const offenders = sources
-      .filter((f) => f.startsWith('screen/') || f.startsWith('cmd/screen/'))
+      .filter((f) => f.startsWith('screen/') || f.startsWith('cmd/screen/') || f.startsWith('panel/') || f.startsWith('cmd/panel/'))
       .filter((f) => !/^screen\/runtime\/transport[^/]*\.ts$/.test(f))
       .filter((f) => SCREEN_NETWORK.test(read(f)))
     expect(offenders).toEqual([])

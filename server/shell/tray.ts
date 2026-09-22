@@ -7,10 +7,11 @@ export interface TrayOptions {
   state: () => ShellState
   subscribe: (listener: () => void) => () => void
   dispatch: (command: ShellCommand) => unknown
+  openPanel: () => void
 }
 
 // The menu-bar item. It rebuilds from ShellState whenever that changes, so labels never go stale.
-export function createTray({ icon, state, subscribe, dispatch }: TrayOptions) {
+export function createTray({ icon, state, subscribe, dispatch, openPanel }: TrayOptions) {
   const image = nativeImage.createFromPath(icon)
   image.setTemplateImage(true)
   const tray = new Tray(image)
@@ -89,6 +90,9 @@ export function createTray({ icon, state, subscribe, dispatch }: TrayOptions) {
         : []
     tray.setContextMenu(
       Menu.buildFromTemplate([
+        // Wait for the menu to close: while it tracks it holds the keyboard, and the panel would open unfocused.
+        { label: '打开面板（⌥ + 右 ⌘）', click: () => setTimeout(openPanel, 120) },
+        { type: 'separator' },
         ...perWindow,
         { type: 'separator' },
         { label: '新增窗口', click: () => dispatch({ type: 'addWindow' }) },

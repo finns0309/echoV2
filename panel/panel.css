@@ -1,0 +1,367 @@
+/* The panel: a muse-style command surface. Same tokens, type scale and motion as
+   muse, so the two feel like one family. Solid background; the window's native
+   background matches it (see server/shell/panel.ts), so appearing never flashes. */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Type scale, five stops: 11 labels · 12 secondary · 13 body · 16 input · 15 title */
+:root {
+  --bg: #1c1c1e;
+  --bg-raised: rgb(255 255 255 / 0.06);
+  --fg: rgb(255 255 255 / 0.92);
+  --fg-muted: rgb(255 255 255 / 0.55);
+  --fg-dim: rgb(255 255 255 / 0.3);
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.14);
+  --accent: #6eb5ff;
+  --danger: #f06a5a;
+  --hover-bg-strong: rgb(255 255 255 / 0.1);
+  --radius-sm: 8px;
+  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "PingFang SC", system-ui, sans-serif;
+  --font-body: "SF Pro Text", -apple-system, BlinkMacSystemFont, "PingFang SC", system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, monospace;
+  --ease-out: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --cursor-ring:
+    0 0 0 1px color-mix(in srgb, var(--accent), transparent 55%),
+    inset 0 0 24px -6px color-mix(in srgb, var(--accent), transparent 40%);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f5f5f7;
+    --bg-raised: rgb(0 0 0 / 0.04);
+    --fg: rgb(0 0 0 / 0.88);
+    --fg-muted: rgb(0 0 0 / 0.55);
+    --fg-dim: rgb(0 0 0 / 0.3);
+    --line: rgb(0 0 0 / 0.06);
+    --line-strong: rgb(0 0 0 / 0.12);
+    --accent: #007aff;
+    --danger: #d8412f;
+    --hover-bg-strong: rgb(0 0 0 / 0.06);
+  }
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.4 var(--font-body);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  overflow: hidden;
+}
+#panel {
+  height: 100%;
+}
+button,
+input {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  animation: panel-appear 160ms ease-out both;
+}
+@keyframes panel-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ---- Strip: the mark, what echo is doing, and the toast. Drag handle. ---- */
+.strip {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--line);
+  -webkit-app-region: drag;
+}
+.mark {
+  width: 30px;
+  height: 30px;
+  color: var(--fg);
+}
+.strip-title {
+  font: 600 15px/1.2 var(--font-display);
+  letter-spacing: -0.2px;
+}
+.strip-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.toast {
+  max-width: 260px;
+  font-size: 11px;
+  color: var(--accent);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+.toast.show {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---- Input ---- */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.chevron {
+  font: 500 17px/1 var(--font-mono);
+  color: var(--accent);
+  animation: breathe 3s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+.crumb {
+  flex: none;
+  font: 11px/1 var(--font-mono);
+  letter-spacing: 0.03em;
+  color: var(--fg-muted);
+  background: var(--bg-raised);
+  border-radius: 5px;
+  padding: 4px 7px;
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+  line-height: 24px;
+  caret-color: var(--accent);
+}
+.input::placeholder {
+  color: var(--fg-dim);
+}
+
+/* ---- List ---- */
+.list-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.list {
+  position: relative;
+  list-style: none;
+  height: 100%;
+  padding: 4px 8px 8px;
+  overflow-y: auto;
+  animation: list-in 200ms var(--ease-out) both;
+}
+@keyframes list-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.list::-webkit-scrollbar {
+  width: 5px;
+}
+.list::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+.list:hover::-webkit-scrollbar-thumb {
+  background: var(--fg-dim);
+}
+
+.sec {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 12px 12px 5px;
+  font: 11px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+.row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+.row .main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.row .label {
+  white-space: nowrap;
+}
+.row .sub,
+.row .hint {
+  font-size: 12px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.row .hint {
+  flex: 0 1 auto;
+  max-width: 45%;
+}
+.row .chev {
+  color: var(--fg-dim);
+  font-size: 15px;
+}
+.row.danger .label {
+  color: var(--danger);
+}
+
+/* The window glyph: lit while the window is showing. */
+.glyph {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--fg-dim);
+}
+.glyph.live {
+  background: var(--accent);
+  box-shadow: 0 0 8px -1px var(--accent);
+}
+
+/* A setting's value; steppers show which way ←→ go. */
+.value {
+  flex: none;
+  font-size: 12px;
+  color: var(--fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.value.dim {
+  color: var(--fg-muted);
+}
+.value .arrow {
+  color: var(--fg-dim);
+  transition: color 150ms ease;
+}
+.row.sel .value .arrow {
+  color: var(--accent);
+}
+
+/* A switch, drawn small: the track, and the knob that slides. */
+.switch {
+  flex: none;
+  position: relative;
+  width: 26px;
+  height: 15px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background 180ms ease;
+}
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--fg);
+  transition: transform 180ms var(--ease-out);
+}
+.switch.on {
+  background: var(--accent);
+}
+.switch.on::after {
+  background: #fff;
+  transform: translateX(11px);
+}
+
+/* The gliding cursor: selection is one ring that travels, not a row background. */
+.cursor {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  z-index: 0;
+  border-radius: var(--radius-sm);
+  background: var(--hover-bg-strong);
+  box-shadow: var(--cursor-ring);
+  pointer-events: none;
+  transition:
+    transform 200ms var(--ease-out),
+    height 200ms var(--ease-out);
+}
+
+.empty {
+  padding: 18px 12px;
+  text-align: center;
+  color: var(--fg-dim);
+}
+
+/* ---- Footer: the keys, quietly. ---- */
+.keys {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 20px 11px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+.keys-right {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  letter-spacing: 0.03em;
+}
+kbd {
+  font: 10.5px/1 var(--font-mono);
+  color: var(--fg-muted);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin-right: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

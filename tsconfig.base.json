@@ -14,7 +14,8 @@
       "@contract": ["./contract/index.ts"],
       "@contract/*": ["./contract/*"],
       "@server/*": ["./server/*"],
-      "@screen/*": ["./screen/*"]
+      "@screen/*": ["./screen/*"],
+      "@panel/*": ["./panel/*"]
     }
   }
 }

@@ -6,7 +6,7 @@ import { posix } from 'node:path'
 /** The ownership zone of a file: a layer, plus the unit id for sliced layers. */
 export function zoneOf(file: string): string | null {
   const [root, second, third] = file.split('/')
-  if (root === 'contract' || root === 'architecture') return root
+  if (root === 'contract' || root === 'architecture' || root === 'panel') return root
   if (root === 'cmd') return second ? `cmd/${second}` : null
   if (root === 'server') {
     if (!second) return null
@@ -45,6 +45,8 @@ const ALLOWED: Record<string, readonly string[]> = {
   'screen/runtime': ['screen/primitives', 'screen/tokens', 'contract'],
   'screen/tokens': [],
   'screen/themes': ['screen/primitives', 'screen/tokens', 'contract'],
+  // The panel is a view of the shell: it knows the contract and nothing else.
+  panel: ['contract'],
 }
 
 // Public seams: single files another layer may use even though the layer itself is off limits.
@@ -53,8 +55,9 @@ const SEAMS: Record<string, readonly RegExp[]> = {
   'screen/themes': [/^screen\/runtime\/theme-api(\.ts)?$/],
 }
 
-// Only these zones may touch Electron.
+// Only these zones may touch Electron (plus the panel's preload, below).
 const ELECTRON_ZONES = ['server/shell', 'server/api', 'cmd/display']
+const PRELOADS = ['cmd/display/preload.ts']
 
 export type Target = { kind: 'local'; path: string } | { kind: 'package'; name: string; builtin: boolean }
 
@@ -62,7 +65,7 @@ export type Target = { kind: 'local'; path: string } | { kind: 'package'; name: 
 export function resolveImport(from: string, spec: string): Target {
   if (spec.startsWith('.')) return { kind: 'local', path: posix.normalize(posix.join(posix.dirname(from), spec)) }
   if (spec === '@contract') return { kind: 'local', path: 'contract/index.ts' }
-  for (const alias of ['contract', 'server', 'screen']) {
+  for (const alias of ['contract', 'server', 'screen', 'panel']) {
     if (spec.startsWith(`@${alias}/`)) return { kind: 'local', path: `${alias}/${spec.slice(alias.length + 2)}` }
   }
   const name = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0]!
@@ -78,13 +81,21 @@ export function checkImport(from: string, spec: string): string | null {
   const target = resolveImport(from, spec)
 
   if (target.kind === 'package') {
-    if (target.name === 'electron' && !ELECTRON_ZONES.includes(fromZone)) {
-      return `${from}: only ${ELECTRON_ZONES.join(', ')} may import electron`
+    if (target.name === 'electron' && !ELECTRON_ZONES.includes(fromZone) && !PRELOADS.includes(from)) {
+      return `${from}: only ${ELECTRON_ZONES.join(', ')} and the preloads may import electron`
     }
-    const browserSide = fromZone === 'contract' || fromLayer.startsWith('screen/') || fromZone === 'cmd/screen'
+    const browserSide =
+      fromZone === 'contract' ||
+      fromLayer.startsWith('screen/') ||
+      fromZone === 'cmd/screen' ||
+      fromZone === 'panel' ||
+      fromZone === 'cmd/panel'
     if (target.builtin && browserSide) return `${from}: ${fromZone} must not import Node built-in "${target.name}"`
-    if (from === 'cmd/display/preload.ts' && target.name !== 'electron') {
+    if (PRELOADS.includes(from) && target.name !== 'electron') {
       return `${from}: the sandboxed preload may only import electron and contract/channels`
+    }
+    if (fromZone === 'panel' && target.name !== 'preact' && target.name !== '@preact/signals') {
+      return `${from}: the panel may only use preact and @preact/signals, not ${target.name}`
     }
     return null
   }
@@ -109,10 +120,14 @@ export function checkImport(from: string, spec: string): string | null {
 function checkEntryImport(from: string, fromZone: string, to: string, toZone: string): string | null {
   const toLayer = layerOf(toZone)
   if (fromZone === 'cmd/mcp' && toZone !== 'contract') return `${from}: the MCP adapter may only import contract`
-  if (from === 'cmd/display/preload.ts' && !to.startsWith('contract/channels')) {
+  if (PRELOADS.includes(from) && !to.startsWith('contract/channels')) {
     return `${from}: the sandboxed preload may only import electron and contract/channels`
   }
   if (fromZone === 'cmd/screen' && to.startsWith('server/')) return `${from}: a screen must not import the server`
+  if (fromZone === 'cmd/panel' && toZone !== 'panel' && toZone !== 'contract') {
+    return `${from}: the panel entry may only import the panel and the contract`
+  }
+  if (fromZone === 'cmd/display' && toZone === 'panel') return `${from}: the display server must not import the panel`
   if (fromZone === 'cmd/display' && to.startsWith('screen/')) {
     if (!/^screen\/themes\/[^/]+\/(manifest|grammar)(\.ts)?$/.test(to)) {
       return `${from}: the display server may only load theme manifests and grammars, not ${to}`

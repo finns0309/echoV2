@@ -17,7 +17,10 @@ import { createResponsesClient } from '@server/providers/llm/responses'
 import { createMuseClient } from '@server/providers/muse/client'
 import { createNeteaseClient } from '@server/providers/netease/client'
 import { createShellPrefs } from '@server/shell/prefs'
+import { createPanelChannel } from '@server/api/panel-channel'
 import { createShellControl, type Preset } from '@server/shell/control'
+import { startHotkey } from '@server/shell/hotkey'
+import { createPanelWindow } from '@server/shell/panel'
 import { createSurface } from '@server/shell/surfaces'
 import { createTray } from '@server/shell/tray'
 import { createContentStore } from '@server/stage/contents'
@@ -27,7 +30,12 @@ import { createStage } from '@server/stage/state'
 
 const AGENT_PORT = 10757
 const PRELOAD = fileURLToPath(new URL('../preload/preload.cjs', import.meta.url))
-const SCREEN_HTML = fileURLToPath(new URL('../renderer/index.html', import.meta.url))
+const SCREEN_HTML = fileURLToPath(new URL('../renderer/screen/index.html', import.meta.url))
+const PANEL_HTML = fileURLToPath(new URL('../renderer/panel/index.html', import.meta.url))
+// The ⌥ + right ⌘ helper: in the app's Resources when packaged, in out/native in development.
+const HOTKEY = app.isPackaged
+  ? join(process.resourcesPath, 'echo-hotkey')
+  : fileURLToPath(new URL('../native/echo-hotkey', import.meta.url))
 
 // Themes are discovered by folder. The display server only ever loads manifests.
 const manifests: Record<string, ThemeManifest> = {}
@@ -89,8 +97,13 @@ function preferenceNote(content: Content, windows: StageSurface[]): string | nul
 function loadScreen(win: BrowserWindow, surface: string): Promise<void> {
   const devUrl = process.env.ELECTRON_RENDERER_URL
   return devUrl
-    ? win.loadURL(`${devUrl}?surface=${encodeURIComponent(surface)}`)
+    ? win.loadURL(`${devUrl}/screen/index.html?surface=${encodeURIComponent(surface)}`)
     : win.loadFile(SCREEN_HTML, { query: { surface } })
+}
+
+function loadPanel(win: BrowserWindow): Promise<void> {
+  const devUrl = process.env.ELECTRON_RENDERER_URL
+  return devUrl ? win.loadURL(`${devUrl}/panel/index.html`) : win.loadFile(PANEL_HTML)
 }
 
 app.whenReady().then(async () => {
@@ -178,14 +191,41 @@ app.whenReady().then(async () => {
   music.start(service.packContext)
   app.on('before-quit', () => music.stop())
 
-  // Windows open now; the tray is a view of the shell.
+  // Windows open now. The tray and the panel are both views of the shell.
   onWindowsChanged = () => service.run()
   shell.start()
+
+  const panelChannel = createPanelChannel({
+    command: (command) => {
+      const result = shell.dispatch(command)
+      if (!result.ok) console.warn('[panel]', result.error)
+    },
+    hide: () => panel.hide(),
+    ready: () => {
+      panelChannel.publish('shell', shell.state())
+      panelChannel.publish('stage', stage.snapshot())
+    },
+  })
+  const panel = createPanelWindow({ preload: PRELOAD, load: loadPanel, onShow: () => panelChannel.publish('shown', null) })
+  panelChannel.attach(panel.win)
+  shell.subscribe((state) => panelChannel.publish('shell', state))
+  stage.subscribe((state) => panelChannel.publish('stage', state))
+  // The hotkey needs Input Monitoring, granted per app: only the packaged Echo asks for it
+  // (ECHO_HOTKEY=1 opts a dev run in; it would ask on behalf of "Electron").
+  if (app.isPackaged || process.env.ECHO_HOTKEY) {
+    const hotkey = startHotkey(HOTKEY, {
+      toggle: () => panel.toggle(),
+      status: (status) => console.log(`[echo] panel hotkey ⌥ + right ⌘: ${status}`),
+    })
+    app.on('before-quit', () => hotkey.stop())
+  }
+
   createTray({
     icon: join(app.getAppPath(), 'assets/trayTemplate.png'),
     state: shell.state,
     subscribe: shell.subscribe,
     dispatch: shell.dispatch,
+    openPanel: () => panel.show(),
   })
 
   // Agent API. If the port is taken, echo still runs; agents just can't reach it.

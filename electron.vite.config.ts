@@ -7,6 +7,7 @@ const alias = [
   { find: /^@contract\//, replacement: resolve('contract') + '/' },
   { find: /^@server\//, replacement: resolve('server') + '/' },
   { find: /^@screen\//, replacement: resolve('screen') + '/' },
+  { find: /^@panel\//, replacement: resolve('panel') + '/' },
 ]
 
 export default defineConfig({
@@ -20,7 +21,8 @@ export default defineConfig({
       rollupOptions: { input: { main: resolve('cmd/display/main.ts') } },
     },
   },
-  // Sandboxed preloads can't be ES modules, so this one is emitted as CommonJS.
+  // Sandboxed preloads can't be ES modules or load sibling chunks, so there is one
+  // preload, emitted as a single CommonJS file; it serves both screens and the panel.
   preload: {
     resolve: { alias },
     build: {
@@ -31,13 +33,15 @@ export default defineConfig({
       },
     },
   },
-  // Screen (renderer).
+  // Renderer pages: the screen (every display window) and the panel.
   renderer: {
-    root: resolve('cmd/screen'),
+    root: resolve('cmd'),
     resolve: { alias },
+    // The panel is Preact; esbuild compiles its JSX.
+    esbuild: { jsx: 'automatic', jsxImportSource: 'preact' },
     build: {
       outDir: resolve('out/renderer'),
-      rollupOptions: { input: resolve('cmd/screen/index.html') },
+      rollupOptions: { input: { screen: resolve('cmd/screen/index.html'), panel: resolve('cmd/panel/index.html') } },
     },
   },
 })

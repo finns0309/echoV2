@@ -1,0 +1,123 @@
+import { computed, effect, signal } from '@preact/signals'
+import type { OnAir, ShellCommand, ShellState, StageState } from '@contract'
+import type { PanelBridge } from '@contract/channels'
+import { homeItems, searchItems, windowItems, type Item, type Selectable } from './commands'
+
+const TOAST_MS = 1600
+
+// What the panel knows and where the user is in it. The shell and stage are as
+// the server last sent them; the panel changes nothing itself, it sends commands.
+export function createPanelState(bridge: PanelBridge) {
+  const shell = signal<ShellState | null>(null)
+  const stage = signal<StageState | null>(null)
+  const query = signal('')
+  /** The window whose settings are open, or null for home. */
+  const opened = signal<string | null>(null)
+  const cursor = signal(0)
+  const toast = signal<string | null>(null)
+  /** Bumps each time the panel is summoned, to replay the entrance. */
+  const summoned = signal(0)
+
+  bridge.on('shell', (s) => {
+    shell.value = s
+    if (opened.value && !s.windows.some((w) => w.id === opened.value)) opened.value = null
+  })
+  bridge.on('stage', (s) => (stage.value = s))
+  bridge.on('shown', () => {
+    query.value = ''
+    opened.value = null
+    cursor.value = 0
+    summoned.value++
+  })
+
+  /** What a window is showing right now, in a line. */
+  function showing(window: string): string | null {
+    const slots = stage.value?.surfaces[window]?.slots ?? {}
+    const onAir = Object.values(slots).find((s): s is OnAir => !!s)
+    if (!onAir) return null
+    const { context, blocks } = onAir.presentation
+    const first = blocks.find((b) => b.type === 'text')
+    return context.title ?? (first?.type === 'text' ? first.text : onAir.contentId)
+  }
+
+  const items = computed<Item[]>(() => {
+    const s = shell.value
+    if (!s) return []
+    if (query.value.trim()) return searchItems(s, query.value)
+    if (opened.value) return windowItems(s, opened.value)
+    return homeItems(s, showing)
+  })
+  const selectable = computed(() => items.value.filter((i): i is Selectable => i.kind !== 'section'))
+  const current = computed(() => selectable.value[cursor.value])
+
+  // Keep the cursor on something that exists as the list changes under it.
+  effect(() => {
+    const n = selectable.value.length
+    if (cursor.value > n - 1) cursor.value = Math.max(0, n - 1)
+  })
+  // A new query or view starts at the top.
+  effect(() => {
+    void query.value
+    void opened.value
+    cursor.value = 0
+  })
+
+  let toastTimer: ReturnType<typeof setTimeout> | undefined
+  function say(text: string): void {
+    toast.value = text
+    clearTimeout(toastTimer)
+    toastTimer = setTimeout(() => (toast.value = null), TOAST_MS)
+  }
+
+  function send(command: ShellCommand, note?: string): void {
+    bridge.send('command', command)
+    if (note) say(note)
+  }
+
+  return {
+    shell,
+    query,
+    opened,
+    cursor,
+    toast,
+    summoned,
+    items,
+    selectable,
+    current,
+    move: (by: number) => {
+      const n = selectable.value.length
+      if (n) cursor.value = (cursor.value + by + n) % n
+    },
+    /** Enter: open a window, run an action, or step a setting forwards. */
+    activate(item: Selectable | undefined = current.value): void {
+      if (!item) return
+      if (item.kind === 'window') {
+        opened.value = item.window
+        query.value = ''
+        return
+      }
+      const command = item.run ?? item.step?.(1)
+      if (command) send(command, item.run ? `${item.label}${item.on === undefined ? '' : item.on ? ' · 关' : ' · 开'}` : undefined)
+    },
+    /** ←/→ on a setting. */
+    step(dir: 1 | -1): boolean {
+      const item = current.value
+      if (item?.kind !== 'action' || !item.step) return false
+      const command = item.step(dir)
+      if (command) send(command)
+      return true
+    },
+    /** Esc: clear the query, then leave the window, then put the panel away. */
+    back(): void {
+      if (query.value) query.value = ''
+      else if (opened.value) {
+        const was = opened.value
+        opened.value = null
+        // Land back on the window we came from.
+        cursor.value = Math.max(0, selectable.value.findIndex((i) => i.kind === 'window' && i.window === was))
+      } else bridge.send('hide', null)
+    },
+  }
+}
+
+export type PanelState = ReturnType<typeof createPanelState>

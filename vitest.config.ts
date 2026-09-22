@@ -9,6 +9,7 @@ export default defineConfig({
       { find: /^@contract\//, replacement: resolve('contract') + '/' },
       { find: /^@server\//, replacement: resolve('server') + '/' },
       { find: /^@screen\//, replacement: resolve('screen') + '/' },
+      { find: /^@panel\//, replacement: resolve('panel') + '/' },
     ],
   },
   test: {

@@ -99,3 +99,19 @@ describe('import extraction', () => {
     expect(importsOf(src)).toEqual(['./a', '@contract', './c', './d', '../../screen/themes/*/theme.ts'])
   })
 })
+
+describe('panel rules', () => {
+  it('keeps the panel a view: contract and preact only, reached through its own entry', () => {
+    expect(checkImport('panel/app.tsx', '@contract')).toBeNull()
+    expect(checkImport('panel/app.tsx', 'preact/hooks')).toBeNull()
+    expect(checkImport('panel/app.tsx', '@server/shell/control')).toMatch(/must not import/)
+    expect(checkImport('panel/app.tsx', '@screen/runtime/host')).toMatch(/must not import/)
+    expect(checkImport('panel/app.tsx', 'node:fs')).toMatch(/Node built-in/)
+    expect(checkImport('panel/app.tsx', 'electron')).toMatch(/may import electron/)
+    expect(checkImport('cmd/panel/boot.tsx', '@panel/app')).toBeNull()
+    expect(checkImport('cmd/panel/boot.tsx', '@server/shell/control')).toMatch(/panel entry/)
+    expect(checkImport('cmd/panel/boot.tsx', 'electron')).toMatch(/may import electron/)
+    expect(checkImport('cmd/display/main.ts', '@panel/app')).toMatch(/must not import the panel/)
+  })
+})
+
