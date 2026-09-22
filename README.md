@@ -10,15 +10,22 @@
 
 ## 状态
 
-M3 完成：四个主题（风铃、流体、新世纪、夜潮，托盘里切换）；muse 在放歌时显示同步歌词，频谱驱动风铃的风和夜潮的浪；agent 的卡片在前奏、间奏或暂停时插播；新世纪由 LLM 导演排版。
+M4 完成：四个主题（风铃、流体、新世纪、夜潮）；muse 在放歌时显示同步歌词，频谱驱动风铃的风和夜潮的浪；agent 的卡片在前奏、间奏或暂停时插播；新世纪由 LLM 导演排版。
 
-可以开多个窗口：托盘「布局 → 歌词 + agent 双风铃」会挂出两个风铃，一个只放歌词，一个只放 agent 投递，互不打断；隐藏 agent 那个窗口时，卡片回到主窗口插播。每个窗口的主题和「显示什么」都在托盘里各自设置，「布局 → 只留一个窗口」恢复原样。
+可以开多个窗口，每个窗口有名字、主题和「显示什么」。agent 可以点名窗口，也可以让几张卡在不同窗口同时上台（对话、接力倒数）；卡片可以循环轮播。
+
+**面板**：按 **⌥ + 右⌘** 呼出（托盘里也有入口），和 muse 同一套设计。
+- 直接打字搜命令：`top 流体`、`隐藏 left`、`双风铃`，⏎ 执行。
+- ↑↓ 选窗口，⏎ 进入这个窗口的设置：←→ 换主题、换内容、改名字，⏎ 开关显示、穿透、铺满。
+- esc 逐级返回，最后收起面板。
+
+托盘只留打开面板和逐个窗口显示或隐藏。
 
 LLM 的 key 放在 `~/Library/Application Support/echo-v2/secrets.json`（`openaiApiKey`），没有也能用，新世纪会退回启发式排版。
 
 ```bash
 pnpm install
-pnpm dev      # 右上角挂出风铃；托盘 ♪ 里可以切到流体
+pnpm dev      # 右上角挂出风铃；托盘里打开面板（dev 版不启用 ⌥ + 右⌘，见下）
 pnpm check    # 类型检查 + lint + 测试（含架构测试）
 ```
 
@@ -44,7 +51,8 @@ pnpm package    # → dist/Echo-<version>-arm64.dmg，拖进 Applications 即可
 pnpm icon       # 改了 scripts/make-icon.swift 里的几何参数后，重新生成图标
 ```
 
-- 常驻菜单栏，没有 Dock 图标（`LSUIElement`）。同一时间只跑一个：装好的 app 开着时，`pnpm dev` 会直接退出，因为两者共用 agent 端口和状态目录。
+- 常驻菜单栏，没有 Dock 图标（`LSUIElement`）。
+- ⌥ + 右⌘ 靠 app 里的一个小程序（`native/hotkey`）监听修饰键，需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 Echo。只有打包版会申请这个权限；dev 版要试的话用 `ECHO_HOTKEY=1 pnpm dev`，会以「Electron」的名义申请。ad-hoc 签名每次打包都会变，重新打包后可能需要重新勾一次。同一时间只跑一个：装好的 app 开着时，`pnpm dev` 会直接退出，因为两者共用 agent 端口和状态目录。
 - 状态目录固定为 `~/Library/Application Support/echo-v2/`，不跟着 productName 走。
 - 打包产物不带 node_modules：main 和 mcp 都把依赖打进单文件，所以 `package.json` 里只有 devDependencies。
 - app 自带一份 MCP 脚本，不依赖仓库：`node /Applications/Echo.app/Contents/Resources/mcp.js`。

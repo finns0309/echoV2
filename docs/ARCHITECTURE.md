@@ -11,18 +11,21 @@ echoV2/
 ├── cmd/             进程入口 = 组合根，只做组装（对应 Prism 的 cmd/）
 ├── server/          显示服务器：主进程，Node（对应 Prism 的 internal/）
 ├── screen/          屏幕：渲染层，浏览器（对应 Prism 的 apps/console/src/）
+├── panel/           面板：⌥ + 右⌘ 呼出的控制台，外壳状态的一个视图（Preact）
+├── native/          原生小工具：hotkey/ 监听 ⌥ + 右⌘（Swift，打包进 Resources）
 ├── architecture/    可执行的依赖规则（对应 Prism 的 architecture/）
 ├── scripts/         开发脚本（make-icon.swift 生成图标）
 ├── assets/          图标和托盘图（由 scripts/make-icon.swift 生成）
 └── docs/            契约、目录地图
 ```
 
-三个进程，各有一个入口：
+四个入口：
 
 | 入口 | 进程 | 组装什么 |
 |---|---|---|
-| `cmd/display/` | Electron 主进程 | server 的全部，加上主题的 manifest 和 grammar |
-| `cmd/screen/` | 渲染层（桌面窗口加载它） | screen 的 runtime，加上主题注册表 |
+| `cmd/display/` | Electron 主进程 | server 的全部，加上主题的 manifest 和 grammar。`main.ts` 只做组装；`config.ts` 是可调的选项（路由、窗口名、布局预设、LLM 默认值），`themes.ts` 发现主题，`pages.ts` 管页面路径；`preload.ts` 是所有窗口共用的沙箱 preload |
+| `cmd/screen/` | 渲染层（每个显示窗口加载它） | screen 的 runtime，加上主题注册表 |
+| `cmd/panel/` | 渲染层（面板窗口加载它） | panel 的状态和视图 |
 | `cmd/mcp/` | stdio MCP 适配器（Claude Code 拉起） | 只把工具调用转发到 agent HTTP 接口 |
 
 以后的手机中继也是 `cmd/` 下的一个新入口，现在不建。
@@ -44,10 +47,18 @@ server/
 │   └── music/         muse + 歌词 → 歌
 ├── stage/           L4 编排：决定"什么时候、放哪"
 │   ├── contents.ts    内容库（内容的唯一写入方）
-│   ├── scheduler.ts   调度规则
+│   ├── routing.ts     内容能去哪些窗口：隐藏、点名、路由、兜底
+│   ├── scheduler.ts   调度规则（纯函数）
+│   ├── service.ts     把内容库、调度、舞台状态、导演串起来
 │   └── state.ts       舞台状态：rev，窗口 → 槽位
-├── shell/           Electron 壳：窗口、窗口配置、托盘、显示偏好
-└── api/             对外入口，只做传输：agent HTTP（10757）、给屏幕的通道
+├── shell/           Electron 壳：窗口、面板、托盘、快捷键、显示偏好
+│   ├── control.ts     外壳的唯一写入方：让窗口跟着偏好走，执行 ShellCommand；托盘、面板、舞台都订阅它
+│   ├── prefs.ts       偏好：有哪些窗口、名字、主题、路由，每个窗口每个主题的位置和穿透
+│   ├── surfaces.ts    一个显示窗口能做的事：换主题、穿透、铺满、重置、隐藏
+│   ├── panel.ts       面板窗口：不激活 echo 就能接管键盘的 NSPanel
+│   ├── hotkey.ts      运行 native/hotkey，把它的输出变成调用
+│   └── tray.ts        菜单栏：打开面板，逐个窗口显示或隐藏
+└── api/             对外入口：agent HTTP（10757）及其处理逻辑、给屏幕和面板的 IPC 通道
 ```
 
 ### 内容包的统一形状
@@ -119,6 +130,20 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 
 旧版每个文件开头的长注释（设计意图）迁进各自的 `README.md`。
 
+## 3.5 panel/：面板
+
+```text
+panel/
+├── commands.ts      列表内容是数据：窗口、每个窗口的设置、所有可执行的命令，以及搜索；纯函数，有测试
+├── state.ts         面板知道什么：外壳和舞台（服务器推来的）、查询、打开的窗口、光标、toast
+├── bridge.ts        唯一的出口：preload 暴露的 window.echoPanel
+├── app.tsx          布局和键盘：↑↓ 选，⏎ 打开或执行，←→ 调设置，esc 逐级返回
+├── views/           行、echo 的标记
+└── panel.css        和 muse 同一套 token、字号、光标和动效
+```
+
+面板只是外壳的一个视图：读 `ShellState`，发 `ShellCommand`，自己不改任何东西。它和托盘、以后可能的 MCP 窗口工具，走的是同一个入口（`server/shell/control.ts`）。
+
 ## 4. 依赖规则
 
 箭头表示"可以 import"。除了 `cmd/`，谁都不能跨出下面的范围。
@@ -135,6 +160,7 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 | `screen/primitives/` | contract | runtime、themes |
 | `screen/runtime/` | primitives、contract | 出现任何主题名 |
 | `screen/themes/<id>/` | primitives、tokens、contract；runtime 只能通过 `screen/runtime/theme-api.ts` | 其他主题、runtime 的其他文件、server 的任何东西 |
+| `panel/` | contract；npm 包只有 preact 和 @preact/signals | server、screen、Node 内置模块、electron |
 | `cmd/*` | 全部 | 写业务逻辑（只做组装） |
 
 **公开 seam**：跨层只允许通过一个明确的接口文件。内容包和 stage 之间是 `pack-api.ts`，主题和 runtime 之间是 `theme-api.ts`。这相当于 Prism 的 `seam.go`。
@@ -145,14 +171,14 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 2. screen 不发外部网络请求（`<img>` 加载图片除外）。
 3. 持久状态只在 server 写，并且每类状态只有一个写入方：
    - 内容、调度设置 → `stage`
-   - 窗口位置、每个窗口用哪个主题、鼠标穿透 → `shell`
+   - 有哪些窗口、名字、主题、路由、位置、鼠标穿透 → `shell`（`control.ts` 经由 `prefs.ts`）
    - 导演缓存 → `director`
 
 这些规则全部由 `architecture/dependencies.test.ts` 检查：扫描所有 import（包括动态 import 和 `import.meta.glob`），检查禁用词、屏幕端的网络请求、主题和内容包目录的形状。规则引擎在 `architecture/rules.ts`，`architecture/rules.test.ts` 用故意违规的例子证明它真的能拦住。
 
 另外两道运行时 / 编译期的防线：
-- 屏幕页面的 CSP 只允许 `connect-src 'self'`，外部请求在运行时就会被浏览器拒绝。
-- preload 只允许 import `electron` 和 `contract/channels`，所以 zod 不会被打进沙箱 preload。
+- 屏幕和面板页面的 CSP 只允许 `connect-src 'self'`，外部请求在运行时就会被浏览器拒绝。
+- preload 只允许 import `electron` 和 `contract/channels`，所以 zod 不会被打进沙箱 preload。沙箱 preload 不能加载共享的代码块，所以所有窗口共用一个 preload：面板窗口带 `--echo-panel` 参数，拿到的是面板的通道；显示窗口拿到的是屏幕的通道。主进程收到面板命令时还会核对发送方，并用 zod 重新校验。
 
 ## 5. 新代码放哪
 
@@ -166,7 +192,8 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
    - 只服务一个主题 → `screen/themes/<id>/parts/`
    - 已经有两个主题在用 → `screen/primitives/`
 6. 它只是窗口、托盘或传输吗？→ `server/shell/` 或 `server/api/`
-7. 它要把上面几层连起来吗？→ `cmd/`
+7. 它是用户管理 echo 的界面吗？→ `panel/`（新的操作先加进 `contract/shell.ts` 的 ShellCommand，再在 `server/shell/control.ts` 里实现）
+8. 它要把上面几层连起来吗？→ `cmd/`
 
 ## 6. 按里程碑建目录
 
@@ -177,13 +204,16 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 | M1 ✓ | contract、cmd（三个入口）、foundation、packs/card、stage、shell、api、runtime、primitives/blocks、tokens、themes/furin、themes/plasma、architecture | 核心里没有歌词，也能完整跑通：agent 投卡片 → 调度 → 风铃和流体显示 |
 | M2 ✓ | capabilities/director、providers/llm、primitives/text、themes/eva；themes/tide，同时把流体里的 gl 零件提到 primitives/gl | 导演服务和主题自带的规则能配合；两个 WebGL 主题共用底座 |
 | M3 ✓ | providers/muse、providers/netease、capabilities/lyrics、packs/music、primitives/color | 歌词只是一个普通内容包；删掉它，前两个里程碑不受影响 |
+| M4 ✓ | stage/routing、shell/control、contract/shell、panel、cmd/panel、native/hotkey | 多个窗口各有名字和路由，agent 可以点名、可以成组上台；托盘和面板都只是外壳的视图 |
 
 ## 7. 技术栈
 
 | 选型 | 用途 | 为什么 |
 |---|---|---|
 | TypeScript（strict） | 全部代码 | 契约、跨进程边界、MCP 和 CLI 都能拿到真实类型；agent 生态以 TS 为主 |
-| electron-vite | 构建 main、preload、renderer 三个目标 | 一份配置管三个进程；改主题时渲染层热更新；`?raw` 可以把着色器写成独立的 `.glsl` 文件 |
+| electron-vite | 构建 main、preload、renderer 三个目标（renderer 是多页：screen、panel） | 一份配置管三个进程；改主题时渲染层热更新；`?raw` 可以把着色器写成独立的 `.glsl` 文件 |
+| Preact + @preact/signals | `panel/` | 面板是状态驱动的应用界面，组件框架维护成本低；3kB，JSX 直接由 esbuild 编译。主题仍然是原生 TS |
+| Swift | `native/hotkey` | Electron 分不清左右修饰键，也不支持只按修饰键的组合；一个监听修饰键的小程序，`pnpm build:native` 编译，打包进 Resources |
 | zod | `contract/` 的唯一写法 | 一份定义同时得到 TS 类型、HTTP 入口的运行时校验、MCP 工具的输入 schema，以及给其他 agent 用的 JSON Schema |
 | @modelcontextprotocol/sdk | `cmd/mcp` | 官方 TS SDK，工具的输入 schema 直接用 zod |
 | tsup | 构建 `cmd/mcp`（以后还有 `cmd/cli`） | 这些入口不跑在 Electron 里，打成单文件的 Node 脚本就行 |
@@ -196,9 +226,9 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 
 ```text
 tsconfig.json            只做 references
-tsconfig.base.json       共享选项和路径别名：@contract、@server/*、@screen/*
+tsconfig.base.json       共享选项和路径别名：@contract、@server/*、@screen/*、@panel/*
 tsconfig.node.json       server/、cmd/display、cmd/mcp、contract/：有 Node 类型，没有 DOM
-tsconfig.web.json        screen/、cmd/screen、contract/：有 DOM 类型，没有 Node
+tsconfig.web.json        screen/、panel/、cmd/screen、cmd/panel、contract/：有 DOM 类型，没有 Node；面板的 JSX 用 preact
 ```
 
 这样"server 不碰 DOM、screen 不碰 Node"就在编译期被卡住了，不用等架构测试。`contract/` 两边都会编译，所以它只能用两边都有的东西。
@@ -209,8 +239,10 @@ tsconfig.web.json        screen/、cmd/screen、contract/：有 DOM 类型，没
 contract/
 ├── content.ts         Content、Presentation、Timeline、Block 的 zod schema
 ├── stage.ts           StageState、OnAir、SignalFrame
-├── theme.ts           ThemeManifest、SlotSpec
-├── channels.ts        主进程和屏幕之间的通道表：频道名 → 载荷类型
+├── theme.ts           ThemeManifest、SlotSpec、Grammar
+├── agent.ts           AgentCardInput：agent 投卡片的输入
+├── shell.ts           ShellState、ShellCommand：外壳是什么、能对它做什么
+├── channels.ts        主进程和屏幕、面板之间的通道表：频道名 → 载荷类型
 └── index.ts
 ```
 

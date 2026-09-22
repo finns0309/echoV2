@@ -43,6 +43,10 @@ type Content = {
   priority: 'ambient' | 'normal' | 'urgent';
   createdAt: number;          // epoch ms
   expiresAt?: number;         // 到点自动下架（新闻、临时提醒）
+  repeat?: boolean;           // 播完回到队尾而不是被消化（§5 第 10 条）
+  group?: string;             // 一批内容的名字，可以按批撤回
+  window?: string;            // 偏好的窗口名（§5 第 11 条）
+  together?: { id: string; of: number };  // 一起上台的组：同一 id 的 of 条内容同时上台（§5 第 12 条）
   presentation: Presentation; // 内容包负责转换，调度器和主题都只看这个
 };
 ```
@@ -237,10 +241,28 @@ MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发
 | 工具 | 转发到 | 用途 |
 |---|---|---|
 | `show` | `POST /contents` | 投一张卡；输入 schema 直接来自 `AgentCardInput` |
-| `status` | `GET /stage` + `GET /contents` | 现在在显示什么，队列里还有什么。只返回摘要：每个槽位给 id、kind、优先级、`title`、`headline`（第一行主文字）、上台秒数，不带 blocks |
+| `status` | `GET /stage` + `GET /contents` | 有哪些窗口（名字、收什么）、现在在显示什么、队列里还有什么。只返回摘要：每个槽位给窗口名、id、kind、优先级、`title`、`headline`（第一行主文字）、上台秒数，不带 blocks |
 | `clear` | `DELETE /contents/:id` 或 `?group=` | 按 id 撤回一张，或按 group 撤回一整批 |
 
-### 4.4 导演服务（主进程）
+### 4.4 外壳和面板（主进程 ↔ 面板）
+
+用户管理 echo 的一切，都经过同一个入口：`contract/shell.ts` 定义外壳是什么（`ShellState`）、能对它做什么（`ShellCommand`），`server/shell/control.ts` 是唯一的执行方。
+
+```ts
+type ShellState = {
+  windows: { id; name; theme; route; visible; clickThrough; fill: 'normal' | 'restorable' | 'full'; main }[];
+  themes: { id; label }[];  routes: { id; label }[];  names: string[];  presets: { id; label }[];
+};
+type ShellCommand =
+  | { type: 'setTheme' | 'setRoute' | 'rename' | 'closeWindow' | 'toggleVisible' | 'toggleClickThrough' | 'toggleFill' | 'resetWindow'; window; ... }
+  | { type: 'addWindow'; theme? } | { type: 'applyPreset'; preset };
+```
+
+- 托盘和面板都是它的视图：读状态，发命令。舞台也订阅它，窗口一隐藏、出现或关闭，内容就重新分配。
+- 面板通道（`contract/channels.ts`）：服务器推 `shell`、`stage`、`shown`；面板发 `ready`、`command`、`hide`。每条命令进主进程时都用 zod 重新校验，并核对发送方是面板窗口。
+- `main` 窗口始终存在、兜底、不能改名或关闭。可选的路由、窗口名、布局预设是 `cmd/display/config.ts` 里的数据，控制服务只按数据执行，不认识任何内容包。
+
+### 4.5 导演服务（主进程）
 
 分三层：
 
