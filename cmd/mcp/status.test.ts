@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { StageState } from '@contract'
+import type { QueuedContent, StageState } from '@contract'
 import { summarizeStatus } from './status'
 
 const lines = (n: number) => Array.from({ length: n }, (_, i) => ({ type: 'text' as const, role: 'primary' as const, text: `line ${i}`, at: i }))
@@ -35,7 +35,7 @@ const stage: StageState = {
   },
 }
 
-const contents = [
+const contents: QueuedContent[] = [
   { id: 'music:now', kind: 'song', priority: 'normal', title: 'Earth' },
   { id: 'card:w', kind: 'word', priority: 'normal' },
   { id: 'card:next', kind: 'fact', priority: 'normal' },

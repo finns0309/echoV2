@@ -156,7 +156,7 @@ app.whenReady().then(async () => {
   await startAgentApi({
     port: AGENT_PORT,
     token: loadOrCreateToken(userData),
-    handlers: createAgentHandlers({ accept: (raw) => card.accept(raw), contents, stage }),
+    handlers: createAgentHandlers({ accept: (raw) => card.accept(raw), withdraw: (id) => card.withdraw(id), contents, stage }),
   }).catch((err: unknown) => console.error(`[echo] agent API not started on ${AGENT_PORT}:`, err))
   service.run()
 })

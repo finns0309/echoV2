@@ -1,19 +1,9 @@
-import type { Route, StageState } from '@contract'
+import type { QueuedContent, Route, StageState } from '@contract'
 
 // What the `status` tool returns: enough for an agent to know what is on screen
 // and what is waiting, without dumping every block (a song carries hundreds).
 
-export interface ContentSummary {
-  id: string
-  kind: string
-  priority: string
-  title?: string
-  /** In rotation: goes back in line after it plays. */
-  repeat?: boolean
-  group?: string
-}
-
-export interface OnAirSummary extends Partial<ContentSummary> {
+export interface OnAirSummary extends Partial<QueuedContent> {
   id: string
   surface: string
   /** The window's name. */
@@ -41,7 +31,7 @@ export interface WindowSummary {
   hidden?: true
 }
 
-export function summarizeStatus(stage: StageState, contents: readonly ContentSummary[], now: number) {
+export function summarizeStatus(stage: StageState, contents: readonly QueuedContent[], now: number) {
   const byId = new Map(contents.map((c) => [c.id, c]))
   const windows: WindowSummary[] = Object.entries(stage.surfaces).map(([surface, s]) => ({
     ...(s.name ? { name: s.name } : {}),

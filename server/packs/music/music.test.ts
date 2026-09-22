@@ -80,7 +80,7 @@ describe('music pack', () => {
     const removals: string[] = []
     const lyricCalls: number[] = []
     let i = 0
-    const ctx: PackContext = { upsert: (c) => upserts.push(c), remove: (id) => removals.push(id), emitSignal: () => {} }
+    const ctx: PackContext = { upsert: (c) => upserts.push(c), remove: (id) => (removals.push(id), true), emitSignal: () => {} }
     const pack = createMusicPack({
       sources: { now: async () => sequence[Math.min(i, sequence.length - 1)] ?? null, spectrum: () => () => {} },
       lyrics: {

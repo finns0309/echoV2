@@ -6,8 +6,8 @@ import { join } from 'node:path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { AGENT_PORT, AgentCardInput, TOKEN_FILE, USER_DATA_DIR, type StageState } from '@contract'
-import { summarizeStatus, type ContentSummary } from './status'
+import { AGENT_PORT, AgentCardInput, QueuedContent, StageState, SubmitResult, TOKEN_FILE, USER_DATA_DIR, WithdrawGroupResult } from '@contract'
+import { summarizeStatus } from './status'
 
 const API = process.env.ECHO_API ?? `http://127.0.0.1:${AGENT_PORT}`
 // The display server writes this file on first launch, in its userData folder.
@@ -66,14 +66,8 @@ server.registerTool(
   },
   async (input) => {
     try {
-      const { id, updated, state, surface, note } = (await call('POST', '/contents', input)) as {
-        id: string
-        updated: boolean
-        state: 'on-air' | 'queued'
-        surface?: string
-        note?: string
-      }
-      const where = (surface ? ` (window ${surface})` : '') + (note ? `. Note: ${note}` : '')
+      const { id, updated, state, window, note } = SubmitResult.parse(await call('POST', '/contents', input))
+      const where = (window ? ` (window ${window})` : '') + (note ? `. Note: ${note}` : '')
       if (state === 'on-air') return text(updated ? `Updated ${id} in place; it is on screen now${where}.` : `${id} is on screen now${where}.`)
       const why = note ? ` Note: ${note}.` : ''
       return text((updated ? `Updated ${id}; it is still waiting in line.` : `Queued ${id}; it will show when echo is free (see status).`) + why)
@@ -92,10 +86,10 @@ server.registerTool(
   },
   async () => {
     try {
-      const [stage, contents] = (await Promise.all([call('GET', '/stage'), call('GET', '/contents')])) as [
-        StageState,
-        ContentSummary[],
-      ]
+      const [stage, contents] = await Promise.all([
+        call('GET', '/stage').then((d) => StageState.parse(d)),
+        call('GET', '/contents').then((d) => QueuedContent.array().parse(d)),
+      ])
       return text(JSON.stringify(summarizeStatus(stage, contents, Date.now()), null, 2))
     } catch (err) {
       return failure(err)
@@ -116,7 +110,7 @@ server.registerTool(
   async ({ id, group }) => {
     try {
       if (group) {
-        const { removed } = (await call('DELETE', `/contents?group=${encodeURIComponent(group)}`)) as { removed: number }
+        const { removed } = WithdrawGroupResult.parse(await call('DELETE', `/contents?group=${encodeURIComponent(group)}`))
         return text(`Removed ${removed} card${removed === 1 ? '' : 's'} in group ${group}.`)
       }
       if (!id) return failure(new Error('send id or group'))

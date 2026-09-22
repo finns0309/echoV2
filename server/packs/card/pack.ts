@@ -25,10 +25,10 @@ export function createCardPack(now: () => number = Date.now) {
       if (result.ok) ctx.upsert(result.content)
       return result
     },
+    /** By the id show returned ('card:x') or the one the agent chose ('x'). */
     withdraw(id) {
       if (!ctx) return false
-      ctx.remove(id.startsWith('card:') ? id : `card:${id}`)
-      return true
+      return ctx.remove(id) || ctx.remove(`card:${id}`)
     },
   }
   return pack

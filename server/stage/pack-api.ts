@@ -4,7 +4,8 @@ import type { Content, SignalFrame } from '@contract'
 // and write it through PackContext; the stage decides when and where it shows.
 export interface PackContext {
   upsert(content: Content): void
-  remove(id: string): void
+  /** True when there was something to remove. */
+  remove(id: string): boolean
   emitSignal(frame: SignalFrame): void
 }
 

@@ -11,7 +11,6 @@ export function App({ state }: { state: PanelState }) {
   const current = state.current.value
   const opened = state.opened.value
   const input = useRef<HTMLInputElement>(null)
-  const list = useRef<HTMLUListElement>(null)
   const selectedRow = useRef<HTMLLIElement>(null)
   const [cursorBox, setCursorBox] = useState<{ y: number; h: number } | null>(null)
 
@@ -75,7 +74,7 @@ export function App({ state }: { state: PanelState }) {
       </div>
 
       <div class="list-wrap">
-        <ul class="list" ref={list} role="listbox">
+        <ul class="list" role="listbox">
           {cursorBox && (
             <li class="cursor" aria-hidden="true" style={{ transform: `translateY(${cursorBox.y}px)`, height: `${cursorBox.h}px` }} />
           )}

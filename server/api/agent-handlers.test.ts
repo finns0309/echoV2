@@ -34,6 +34,7 @@ describe('agent handlers', () => {
         contents.upsert(content)
         return { ok: true, content }
       },
+      withdraw: () => false,
       contents,
       stage,
     })
@@ -47,12 +48,13 @@ describe('agent handlers', () => {
       note: 'waiting for 1 more of ensemble duo before any of it shows',
     })
     stage.update({ w2: window('top', { slots: { main: { contentId: 'a', presentation: card('a').presentation, since: 0 } } }) })
-    expect(handlers.submit(card('a'))).toEqual({ ok: true, id: 'a', updated: true, state: 'on-air', surface: 'top' })
+    expect(handlers.submit(card('a'))).toEqual({ ok: true, id: 'a', updated: true, state: 'on-air', window: 'top' })
   })
 
   it('passes a rejection through untouched', () => {
     const handlers = createAgentHandlers({
       accept: () => ({ ok: false, error: 'lines: too many' }),
+      withdraw: () => false,
       contents: createContentStore(createMemoryStore(), () => 0),
       stage: createStage({}),
     })

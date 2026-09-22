@@ -14,12 +14,12 @@ async function start(overrides: Partial<AgentApiHandlers> = {}) {
   const handlers: AgentApiHandlers = {
     submit: (raw) => {
       submitted.push(raw)
-      return { ok: true, id: 'card:x', updated: false, state: 'queued' }
+      return { ok: true, id: 'card:x', updated: false, state: 'queued' as const }
     },
     withdraw: (id) => id === 'card:x',
     withdrawGroup: (group) => (group === 'murmur' ? 3 : 0),
     contents: () => [],
-    stage: () => ({ rev: 3 }),
+    stage: () => ({ rev: 3, surfaces: {} }),
     ...overrides,
   }
   const api = await startAgentApi({ port: 0, token: TOKEN, handlers })
@@ -41,7 +41,7 @@ describe('agent HTTP API', () => {
     const { call } = await start()
     const res = await call('/stage')
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ rev: 3 })
+    expect(await res.json()).toEqual({ rev: 3, surfaces: {} })
   })
 
   it('hands a JSON body to submit and returns where the card went', async () => {

@@ -61,3 +61,35 @@ export const AgentCardInput = z
   })
   .refine((c) => c.lines || c.value || c.presentation, { message: 'send lines, value or presentation' })
 export type AgentCardInput = z.infer<typeof AgentCardInput>
+
+// What the agent API answers. The display server produces these; the MCP adapter parses them.
+
+/** POST /contents */
+export const SubmitResult = z.object({
+  id: z.string(),
+  /** The id was already there: this replaced it in place. */
+  updated: z.boolean(),
+  state: z.enum(['on-air', 'queued']),
+  /** The window it went on, by name, when it is on air. */
+  window: z.string().optional(),
+  /** Why a preferred window wasn't used, or what an ensemble is waiting for. */
+  note: z.string().optional(),
+})
+export type SubmitResult = z.infer<typeof SubmitResult>
+
+/** GET /contents: one entry per content, in the order they go on air. */
+export const QueuedContent = z.object({
+  id: z.string(),
+  kind: z.string(),
+  priority: Priority,
+  title: z.string().optional(),
+  /** In rotation: goes back in line after it plays. */
+  repeat: z.boolean().optional(),
+  group: z.string().optional(),
+})
+export type QueuedContent = z.infer<typeof QueuedContent>
+
+/** DELETE /contents?group= */
+export const WithdrawGroupResult = z.object({ removed: z.number().int() })
+export type WithdrawGroupResult = z.infer<typeof WithdrawGroupResult>
+

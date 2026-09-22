@@ -140,7 +140,7 @@ type StageState = {
   rev: number;                               // 每次变化加一，屏幕只认比自己新的
   surfaces: Record<string, {                 // 窗口 id → 窗口
     name?: string;                           // 用户起的窗口名（main、left、right……），agent 按名字表达偏好
-    profile: string;                         // 窗口配置：headline | subtitle-strip | card | ambient | overlay | ...
+    profile: string;                         // 窗口配置：ambient（铺满）| hanging（右上角挂着）
     theme: string;
     accepts?: { packs?: string[]; kinds?: string[] };  // 这个窗口收什么；不写就是全收（§5）
     fallback?: boolean;                      // 兜底窗口：也收「没有任何可见窗口收」的内容
@@ -224,13 +224,13 @@ type FrameClock = {
 
 | 方法 | 路径 | 做什么 |
 |---|---|---|
-| `POST` | `/contents` | 写入或更新一条内容（由 `card` 包接收并校验）。返回 `{id, updated, state, surface?, note?}`：`updated` 表示这个 id 原本就在，`state` 是 `on-air` 或 `queued`，`surface` 是上台的窗口名，`note` 说明点名的窗口为什么没用上 |
+| `POST` | `/contents` | 写入或更新一条内容（由 `card` 包接收并校验）。返回 `SubmitResult`：`{id, updated, state, window?, note?}`。`updated` 表示这个 id 原本就在，`state` 是 `on-air` 或 `queued`，`window` 是上台的窗口名，`note` 说明点名的窗口为什么没用上、或一起上台的组还在等谁 |
 | `DELETE` | `/contents/:id` | 撤回一条 |
 | `DELETE` | `/contents?group=` | 撤回同一批（`group` 相同）的全部内容，返回 `{removed}` |
-| `GET` | `/contents` | 内容库里还有什么，按上台顺序排（优先级高的在前，同级先来的在前） |
+| `GET` | `/contents` | 内容库里还有什么（`QueuedContent[]`），按上台顺序排（优先级高的在前，同级先来的在前） |
 | `GET` | `/stage` | 当前舞台状态：什么在台上、在哪个槽位 |
 
-`POST /contents` 的请求体是 `AgentCardInput`（`contract/agent.ts`），比完整的 Content 更友好：agent 只描述一张卡（几行文字、说话人、停留时长，或者一个状态值），card 包负责把它转换成 Presentation。需要完全控制时，可以直接传 `presentation`。
+请求体和各个返回值都是 `contract/agent.ts` 里的 zod schema，服务端按它产出，MCP 按它校验。`POST /contents` 的请求体是 `AgentCardInput`，比完整的 Content 更友好：agent 只描述一张卡（几行文字、说话人、停留时长，或者一个状态值），card 包负责把它转换成 Presentation。需要完全控制时，可以直接传 `presentation`。
 
 有时间节奏的内容（倒计时、分步提示）一次发完：每一帧写成一行，用 `at` 标出它在卡片上台后第几秒出现，echo 自己按时间播。不要每一帧调用一次，那样节奏会被调用延迟拉乱。
 

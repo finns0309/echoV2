@@ -1,21 +1,18 @@
 import { timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
+import type { QueuedContent, StageState, SubmitResult, WithdrawGroupResult } from '@contract'
 
 // The agent HTTP API. Transport and auth only: it hands raw bodies to the
 // handlers and never interprets content itself. Spec: docs/CONTRACT.md §4.3.
 
 export interface AgentApiHandlers {
-  submit(
-    raw: unknown,
-  ):
-    | { ok: true; id: string; updated: boolean; state: 'on-air' | 'queued'; surface?: string; note?: string }
-    | { ok: false; error: string }
+  submit(raw: unknown): ({ ok: true } & SubmitResult) | { ok: false; error: string }
   withdraw(id: string): boolean
   /** Withdraw every content sent with this group; returns how many. */
   withdrawGroup(group: string): number
-  contents(): unknown
-  stage(): unknown
+  contents(): QueuedContent[]
+  stage(): StageState
 }
 
 export interface AgentApiOptions {
@@ -51,14 +48,16 @@ export async function startAgentApi({ port, token, handlers, host = '127.0.0.1' 
         if (body === undefined) return send(res, 400, { error: 'body is not valid JSON (max 64 KB)' })
         const result = handlers.submit(body)
         if (!result.ok) return send(res, 400, { error: result.error })
-        const { id, updated, state, surface, note } = result
-        return send(res, 201, { id, updated, state, ...(surface ? { surface } : {}), ...(note ? { note } : {}) })
+        const answer: SubmitResult = { id: result.id, updated: result.updated, state: result.state }
+        if (result.window) answer.window = result.window
+        if (result.note) answer.note = result.note
+        return send(res, 201, answer)
       }
 
       if (req.method === 'DELETE' && url.pathname === '/contents') {
         const group = url.searchParams.get('group')
         if (!group) return send(res, 400, { error: 'DELETE /contents needs ?group=' })
-        return send(res, 200, { removed: handlers.withdrawGroup(group) })
+        return send(res, 200, { removed: handlers.withdrawGroup(group) } satisfies WithdrawGroupResult)
       }
 
       const del = url.pathname.match(/^\/contents\/(.+)$/)

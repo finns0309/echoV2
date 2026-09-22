@@ -124,7 +124,7 @@ export function createStageService(opts: StageServiceOptions) {
 
   const packContext: PackContext = {
     upsert: (content) => opts.contents.upsert(Content.parse(content)),
-    remove: (id) => void opts.contents.remove(id),
+    remove: (id) => opts.contents.remove(id),
     emitSignal: opts.emitSignal,
   }
 

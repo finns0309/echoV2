@@ -34,7 +34,7 @@ echoV2/
 
 ```text
 server/
-├── foundation/      L1 底座：store（原子写 JSON）、log、config、faults
+├── foundation/      L1 底座：store（原子写 JSON）、config（secrets.json）、fetch 的类型
 ├── providers/       L0 供应商协议，每个供应商一个目录
 │   ├── muse/          /now 轮询、/spectrum WebSocket
 │   ├── netease/       歌词接口
@@ -81,8 +81,9 @@ screen/
 ├── primitives/      没有主题语义的工具，至少两个主题在用才放进来
 │   ├── blocks/        当前该显示哪一块、toText、按容量取短版本（M1）
 │   ├── text/          分词、强调词、合成逐字时间（新世纪和夜潮用）
-│   ├── color/         从封面取色；由舞台宿主统一填进 context.palette，主题只读 palette
-│   └── gl/            全屏着色器的小框架（流体和夜潮共用）
+│   ├── color/         从封面取色；由舞台宿主统一填进 context.palette，主题只读 palette；hexToRgb
+│   ├── gl/            全屏着色器的小框架（流体和夜潮共用）
+│   └── scale/         随窗口对角线放大（风铃和流体共用）
 ├── tokens/          全局 token：字体栈、chrome 的颜色
 └── themes/          主题：决定"长什么样"；目录本身就是清单
     ├── plasma/        流体
@@ -177,7 +178,7 @@ panel/
 这些规则全部由 `architecture/dependencies.test.ts` 检查：扫描所有 import（包括动态 import 和 `import.meta.glob`），检查禁用词、屏幕端的网络请求、主题和内容包目录的形状。规则引擎在 `architecture/rules.ts`，`architecture/rules.test.ts` 用故意违规的例子证明它真的能拦住。
 
 另外两道运行时 / 编译期的防线：
-- 屏幕和面板页面的 CSP 只允许 `connect-src 'self'`，外部请求在运行时就会被浏览器拒绝。
+- 屏幕和面板页面的 CSP 只允许 `connect-src 'self' ws://localhost:*`（后者是开发时 Vite 的热更新），外部请求在运行时就会被浏览器拒绝。
 - preload 只允许 import `electron` 和 `contract/channels`，所以 zod 不会被打进沙箱 preload。沙箱 preload 不能加载共享的代码块，所以所有窗口共用一个 preload：面板窗口带 `--echo-panel` 参数，拿到的是面板的通道；显示窗口拿到的是屏幕的通道。主进程收到面板命令时还会核对发送方，并用 zod 重新校验。
 
 ## 5. 新代码放哪

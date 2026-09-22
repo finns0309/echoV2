@@ -2,10 +2,10 @@
 <html lang="zh">
   <head>
     <meta charset="utf-8" />
-    <!-- connect-src 'self' enforces "the screen makes no outbound requests" at runtime. -->
+    <!-- connect-src enforces "the screen makes no outbound requests" at runtime; ws://localhost is Vite's hot reload in development. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' ws:"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' ws://localhost:*"
     />
     <title>echo</title>
   </head>

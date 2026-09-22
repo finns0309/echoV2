@@ -8,6 +8,8 @@ import type { AgentApiHandlers } from './agent-http'
 export interface AgentHandlerDeps {
   /** Turn an agent's raw input into content and put it in the store (the card pack). */
   accept: (raw: unknown) => { ok: true; content: Content } | { ok: false; error: string }
+  /** Take one back by the id an agent knows it by (the pack that accepted it knows its id scheme). */
+  withdraw: (id: string) => boolean
   contents: ContentStore
   stage: Stage
 }
@@ -26,7 +28,7 @@ export function preferenceNote(content: Content, windows: readonly Surface[]): s
 }
 
 /** What the agent API does with each request: submit, withdraw, and the two views. */
-export function createAgentHandlers({ accept, contents, stage }: AgentHandlerDeps): AgentApiHandlers {
+export function createAgentHandlers({ accept, withdraw, contents, stage }: AgentHandlerDeps): AgentApiHandlers {
   return {
     // Accepting runs the scheduler synchronously, so the stage already tells where the card went.
     submit(raw) {
@@ -48,11 +50,11 @@ export function createAgentHandlers({ accept, contents, stage }: AgentHandlerDep
         id,
         updated: before.has(id),
         state: at ? 'on-air' : 'queued',
-        ...(at ? { surface: at[1].name ?? at[0] } : {}),
+        ...(at ? { window: at[1].name ?? at[0] } : {}),
         ...(note ? { note } : {}),
       }
     },
-    withdraw: (id) => contents.remove(id) || contents.remove(`card:${id}`),
+    withdraw,
     withdrawGroup: (group) => contents.removeGroup(group),
     // In the order they will go on air.
     contents: () =>
