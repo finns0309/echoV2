@@ -17,7 +17,7 @@ import { createResponsesClient } from '@server/providers/llm/responses'
 import { createMuseClient } from '@server/providers/muse/client'
 import { createNeteaseClient } from '@server/providers/netease/client'
 import { createShellPrefs } from '@server/shell/prefs'
-import { applyProfile, openSurface } from '@server/shell/surfaces'
+import { createSurface, type Surface } from '@server/shell/surfaces'
 import { createTray } from '@server/shell/tray'
 import { createContentStore } from '@server/stage/contents'
 import type { SurfaceConfig } from '@server/stage/scheduler'
@@ -108,27 +108,30 @@ app.whenReady().then(async () => {
   music.start(service.packContext)
   app.on('before-quit', () => music.stop())
 
-  // Surfaces.
-  const windows = new Map<string, BrowserWindow>()
+  // Surfaces: one window each, wearing its theme (or where the user last left it for that theme).
+  const windows = new Map<string, Surface>()
   for (const s of surfaces()) {
-    const win = openSurface({ profile: s.profile, preload: PRELOAD })
-    windows.set(s.id, win)
-    channel.attach(win)
-    void loadScreen(win, s.id)
+    const surface = createSurface({ id: s.id, preload: PRELOAD, prefs })
+    surface.wear(s.theme, s.profile)
+    windows.set(s.id, surface)
+    channel.attach(surface.win)
+    void loadScreen(surface.win, s.id)
   }
 
-  const tray = createTray({
-    icon: join(app.getAppPath(), 'assets/trayTemplate.png'),
-    themes: Object.values(manifests).map((m) => ({ id: m.id, label: m.label })),
-    current: () => surfaces()[0]?.theme ?? '',
-    onPickTheme: (id) => prefs.setTheme('main', id),
-  })
+  const main = windows.get('main')
+  if (main) {
+    createTray({
+      icon: join(app.getAppPath(), 'assets/trayTemplate.png'),
+      themes: Object.values(manifests).map((m) => ({ id: m.id, label: m.label })),
+      surface: main,
+      onPickTheme: (id) => prefs.setTheme('main', id),
+    })
+  }
   prefs.onChange(() => {
     for (const s of surfaces()) {
-      const win = windows.get(s.id)
-      if (win) applyProfile(win, s.profile)
+      const surface = windows.get(s.id)
+      if (surface && surface.state().theme !== s.theme) surface.wear(s.theme, s.profile)
     }
-    tray.rebuild()
     service.run()
   })
 
