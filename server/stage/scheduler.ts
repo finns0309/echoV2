@@ -5,6 +5,8 @@ import type { Content, OnAir, Presentation, Priority, Route, SlotSpec, Surface, 
 
 export interface SurfaceConfig {
   id: string
+  /** The user's name for it; content can prefer a window by this name. */
+  name?: string
   profile: string
   theme: string
   /** What this surface takes; absent means everything. */
@@ -105,7 +107,19 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
     if (v === undefined) homeless.set(c.id, (v = !visible.some((s) => admits(s.accepts, c))))
     return v
   }
-  const routes = (s: SurfaceConfig, c: Content) => !s.hidden && (admits(s.accepts, c) || (!!s.fallback && isHomeless(c)))
+  // A preferred window wins while it is visible and its route admits the content;
+  // otherwise the preference is ignored and the content routes as usual.
+  const named = new Map(visible.flatMap((s) => (s.name ? [[s.name, s] as const] : [])))
+  const preferred = (c: Content) => {
+    const s = c.window ? named.get(c.window) : undefined
+    return s && admits(s.accepts, c) ? s : undefined
+  }
+  const routes = (s: SurfaceConfig, c: Content) => {
+    if (s.hidden) return false
+    const pin = preferred(c)
+    if (pin) return s === pin
+    return admits(s.accepts, c) || (!!s.fallback && isHomeless(c))
+  }
 
   interface SlotRef {
     surface: SurfaceConfig
@@ -145,8 +159,15 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
     !slots.some((o) => o.surface === s.surface && o.holder && important(o.holder.content)) &&
     !waiting.some((c) => important(c) && takes(s, c))
 
+  // Slots an ensemble is waiting to fill; content behind it in line may not take them.
+  const reserved = new Map<SlotRef, Content>()
+  const behind = (s: SlotRef, c: Content) => {
+    const lead = reserved.get(s)
+    return !!lead && waitingOrder(c, lead) > 0
+  }
+  // Ensemble members are placed only as a whole, below; single picks skip them.
   const pick = (s: SlotRef, accept: (c: Content) => boolean) => {
-    const i = waiting.findIndex((c) => takes(s, c) && accept(c))
+    const i = waiting.findIndex((c) => !c.together && takes(s, c) && !behind(s, c) && accept(c))
     return i < 0 ? undefined : waiting.splice(i, 1)[0]
   }
   const fillFree = () => {
@@ -157,9 +178,45 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
     }
   }
 
-  // 3. Free slots first, so nothing is pushed aside while there is room elsewhere;
-  //    then higher priority may take held slots; then whatever was pushed aside
-  //    gets another chance at a free slot.
+  // One distinct slot per member, free slots first. `occupancy` false asks only
+  // whether the ensemble could ever fit here, ignoring what is on air.
+  const assign = (members: Content[], occupancy: boolean): SlotRef[] | null => {
+    const used = new Set<SlotRef>()
+    for (const m of members) {
+      const ok = (s: SlotRef) =>
+        !used.has(s) &&
+        takes(s, m) &&
+        (!occupancy || (s.holder ? canPreempt(m, s.holder.content, now) : !behind(s, m) && (important(m) || quiet(s))))
+      const s = slots.find((x) => ok(x) && !(occupancy && x.holder)) ?? slots.find(ok)
+      if (!s) return null
+      used.add(s)
+    }
+    return [...used]
+  }
+
+  // 3a. Ensembles go on air together, sharing one start, or not at all. While one
+  //     waits for its partners' slots, it keeps the free ones from later content.
+  const ensembles = new Map<string, Content[]>()
+  for (const c of waiting) if (c.together) ensembles.set(c.together, [...(ensembles.get(c.together) ?? []), c])
+  const onAir = new Set(slots.flatMap((s) => (s.holder?.content.together ? [s.holder.content.together] : [])))
+  for (const [id, members] of ensembles) {
+    if (onAir.has(id)) continue // part of it is still on; the rest waits to go on with it next time
+    const placed = assign(members, true)
+    if (placed) {
+      placed.forEach((s, i) => {
+        if (s.holder) waiting.push(s.holder.content)
+        s.holder = { content: members[i]!, since: now, directions: undefined }
+      })
+      for (const m of members) waiting.splice(waiting.indexOf(m), 1)
+      waiting.sort(waitingOrder)
+    } else if (assign(members, false)) {
+      for (const s of slots) if (!s.holder && members.some((m) => takes(s, m)) && !reserved.has(s)) reserved.set(s, members[0]!)
+    }
+  }
+
+  // 3b. Free slots first, so nothing is pushed aside while there is room elsewhere;
+  //     then higher priority may take held slots; then whatever was pushed aside
+  //     gets another chance at a free slot.
   fillFree()
   for (const s of slots) {
     if (!s.holder) continue
@@ -177,6 +234,7 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
   const out: Record<string, Surface> = {}
   for (const s of surfaces) {
     out[s.id] = {
+      ...(s.name ? { name: s.name } : {}),
       profile: s.profile,
       theme: s.theme,
       ...(s.accepts ? { accepts: s.accepts } : {}),

@@ -3,11 +3,14 @@ import type { Surface } from './surfaces'
 
 export interface TrayWindow {
   id: string
+  /** The name agents use for it. */
+  name: string
   surface: Surface
   /** Which of the tray's routes this window uses. */
   route: string
   /** The fallback window can't be closed: it is where everything else lands. */
   closable: boolean
+  renamable: boolean
 }
 
 export interface TrayOptions {
@@ -17,6 +20,9 @@ export interface TrayOptions {
   routes: readonly { id: string; label: string }[]
   presets: readonly { id: string; label: string }[]
   windows: () => readonly TrayWindow[]
+  /** Names a window can be given (menus can't take typing). */
+  names: readonly string[]
+  onPickName: (window: string, name: string) => void
   onPickTheme: (window: string, theme: string) => void
   onPickRoute: (window: string, route: string) => void
   onAddWindow: () => void
@@ -32,8 +38,9 @@ export function createTray(opts: TrayOptions) {
   const tray = new Tray(image)
   const themeLabel = (id: string) => opts.themes.find((t) => t.id === id)?.label ?? id
 
-  function windowItems(w: TrayWindow, many: boolean): MenuItemConstructorOptions[] {
+  function windowItems(w: TrayWindow, many: boolean, taken: Set<string>): MenuItemConstructorOptions[] {
     const s = w.surface.state()
+    const names = opts.names.includes(w.name) ? opts.names : [w.name, ...opts.names]
     const fill: MenuItemConstructorOptions =
       s.fill === 'restorable'
         ? { label: '还原窗口大小', click: () => w.surface.toggleFill() }
@@ -50,6 +57,20 @@ export function createTray(opts: TrayOptions) {
           click: () => opts.onPickTheme(w.id, t.id),
         })),
       },
+      ...(many && w.renamable
+        ? [
+            {
+              label: `名字：${w.name}`,
+              submenu: names.map((n) => ({
+                label: n,
+                type: 'radio' as const,
+                checked: n === w.name,
+                enabled: n === w.name || !taken.has(n),
+                click: () => opts.onPickName(w.id, n),
+              })),
+            },
+          ]
+        : []),
       ...(many
         ? [
             {
@@ -76,13 +97,14 @@ export function createTray(opts: TrayOptions) {
     const windows = opts.windows()
     const many = windows.length > 1
     const routeLabel = (id: string) => opts.routes.find((r) => r.id === id)?.label ?? id
+    const taken = new Set(windows.map((w) => w.name))
     const perWindow: MenuItemConstructorOptions[] = many
-      ? windows.map((w, i) => ({
-          label: `窗口 ${i + 1} · ${themeLabel(w.surface.state().theme)} · ${routeLabel(w.route)}${w.surface.state().visible ? '' : '（已隐藏）'}`,
-          submenu: windowItems(w, true),
+      ? windows.map((w) => ({
+          label: `${w.name} · ${themeLabel(w.surface.state().theme)} · ${routeLabel(w.route)}${w.surface.state().visible ? '' : '（已隐藏）'}`,
+          submenu: windowItems(w, true, taken),
         }))
       : windows[0]
-        ? windowItems(windows[0], false)
+        ? windowItems(windows[0], false, taken)
         : []
     tray.setContextMenu(
       Menu.buildFromTemplate([

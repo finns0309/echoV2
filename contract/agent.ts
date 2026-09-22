@@ -28,6 +28,18 @@ export const AgentCardInput = z
       .optional()
       .describe('Keep it in rotation: after it plays it goes back in line instead of disappearing. Defaults the priority to ambient, so it only plays while nothing else wants the window. Pair with ttlSeconds or clear it by group'),
     group: z.string().min(1).max(80).optional().describe('A batch name, e.g. murmur-2026-09-22; clear can withdraw the whole batch at once'),
+    window: z
+      .string()
+      .min(1)
+      .max(40)
+      .optional()
+      .describe("Prefer the window with this name (see status → windows). If it is hidden, missing, or its route doesn't take this card, the card goes where it normally would; the user's routes always win"),
+    together: z
+      .string()
+      .min(1)
+      .max(80)
+      .optional()
+      .describe('Cards sharing this id go on air at the same moment, usually each with its own window; their `at` times line up. They wait until all of them can show'),
     title: z.string().optional(),
     byline: z.string().optional(),
     speaker: z.string().optional().describe('Who is talking, e.g. Claude'),

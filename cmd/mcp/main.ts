@@ -56,7 +56,9 @@ server.registerTool(
       'For anything timed (a countdown, steps, a sequence), send every frame at once as lines with `at`',
       '(seconds after the card appears) and let echo play it; do not call show once per frame.',
       'If echo shares a window with music, normal cards wait for a break in the song; use priority urgent only when it',
-      'must show now. The user decides which window shows what (see status → windows); you never pick a window.',
+      'must show now. You may prefer a window by name (`window`, see status → windows); the user\'s routes still win,',
+      'and a hidden or missing window is skipped. Cards sharing a `together` id go on air at the same moment, one per',
+      'window, so their `at` times line up: a dialogue across two windows, a countdown that jumps from one to the other.',
       'To keep the window lively, send a batch with repeat: true and one group: they rotate whenever nothing else wants',
       'the window, and never hold back new cards. Give the batch a ttlSeconds, or clear it by group when it goes stale.',
     ].join(' '),
@@ -64,13 +66,14 @@ server.registerTool(
   },
   async (input) => {
     try {
-      const { id, updated, state, surface } = (await call('POST', '/contents', input)) as {
+      const { id, updated, state, surface, note } = (await call('POST', '/contents', input)) as {
         id: string
         updated: boolean
         state: 'on-air' | 'queued'
         surface?: string
+        note?: string
       }
-      const where = surface ? ` (window ${surface})` : ''
+      const where = (surface ? ` (window ${surface})` : '') + (note ? `. Note: ${note}` : '')
       if (state === 'on-air') return text(updated ? `Updated ${id} in place; it is on screen now${where}.` : `${id} is on screen now${where}.`)
       return text(updated ? `Updated ${id}; it is still waiting in line.` : `Queued ${id}; it will show when echo is free (see status).`)
     } catch (err) {

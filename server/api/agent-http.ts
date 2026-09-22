@@ -8,7 +8,9 @@ import type { AddressInfo } from 'node:net'
 export interface AgentApiHandlers {
   submit(
     raw: unknown,
-  ): { ok: true; id: string; updated: boolean; state: 'on-air' | 'queued'; surface?: string } | { ok: false; error: string }
+  ):
+    | { ok: true; id: string; updated: boolean; state: 'on-air' | 'queued'; surface?: string; note?: string }
+    | { ok: false; error: string }
   withdraw(id: string): boolean
   /** Withdraw every content sent with this group; returns how many. */
   withdrawGroup(group: string): number
@@ -49,8 +51,8 @@ export async function startAgentApi({ port, token, handlers, host = '127.0.0.1' 
         if (body === undefined) return send(res, 400, { error: 'body is not valid JSON (max 64 KB)' })
         const result = handlers.submit(body)
         if (!result.ok) return send(res, 400, { error: result.error })
-        const { id, updated, state, surface } = result
-        return send(res, 201, { id, updated, state, ...(surface ? { surface } : {}) })
+        const { id, updated, state, surface, note } = result
+        return send(res, 201, { id, updated, state, ...(surface ? { surface } : {}), ...(note ? { note } : {}) })
       }
 
       if (req.method === 'DELETE' && url.pathname === '/contents') {

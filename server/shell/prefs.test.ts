@@ -42,5 +42,17 @@ describe('shell prefs', () => {
     expect(prefs.override('w2', 'furin')).toEqual({})
     expect(changes).toBe(4)
   })
+
+  it('names windows uniquely and keeps the name when the route changes', () => {
+    const prefs = createShellPrefs(createMemoryStore(), [
+      { id: 'main', theme: 'furin', name: 'main' },
+      { id: 'w2', theme: 'furin' },
+    ])
+    expect(prefs.setName('w2', 'main')).toBe(false)
+    expect(prefs.setName('w2', 'right')).toBe(true)
+    prefs.setRoute('w2', { packs: ['card'] })
+    prefs.setRoute('w2', undefined)
+    expect(prefs.get()[1]).toEqual({ id: 'w2', theme: 'furin', name: 'right' })
+  })
 })
 

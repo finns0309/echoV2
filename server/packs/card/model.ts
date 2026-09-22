@@ -20,6 +20,8 @@ export function toContent(raw: unknown, now: number, newId: () => string): Accep
       ...(input.ttlSeconds ? { expiresAt: now + input.ttlSeconds * 1000 } : {}),
       ...(input.repeat ? { repeat: true } : {}),
       ...(input.group ? { group: input.group } : {}),
+      ...(input.window ? { window: input.window } : {}),
+      ...(input.together ? { together: input.together } : {}),
       presentation: present(input),
     },
   }

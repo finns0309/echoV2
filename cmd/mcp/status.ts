@@ -16,6 +16,8 @@ export interface ContentSummary {
 export interface OnAirSummary extends Partial<ContentSummary> {
   id: string
   surface: string
+  /** The window's name. */
+  window?: string
   slot: string
   theme: string
   title?: string
@@ -28,6 +30,8 @@ const HEADLINE_MAX = 60
 const clip = (t: string) => (t.length > HEADLINE_MAX ? t.slice(0, HEADLINE_MAX - 1) + '…' : t)
 
 export interface WindowSummary {
+  /** The name to prefer it by, in show's `window`. */
+  name?: string
   surface: string
   theme: string
   /** What this window takes; absent means everything. */
@@ -40,6 +44,7 @@ export interface WindowSummary {
 export function summarizeStatus(stage: StageState, contents: readonly ContentSummary[], now: number) {
   const byId = new Map(contents.map((c) => [c.id, c]))
   const windows: WindowSummary[] = Object.entries(stage.surfaces).map(([surface, s]) => ({
+    ...(s.name ? { name: s.name } : {}),
     surface,
     theme: s.theme,
     ...(s.accepts ? { accepts: s.accepts } : {}),
@@ -57,6 +62,7 @@ export function summarizeStatus(stage: StageState, contents: readonly ContentSum
       const headline = first?.type === 'text' ? first.text : undefined
       onAir.push({
         surface,
+        ...(s.name ? { window: s.name } : {}),
         slot,
         theme: s.theme,
         id: air.contentId,

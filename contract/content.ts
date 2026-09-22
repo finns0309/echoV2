@@ -105,6 +105,10 @@ export const Content = z.object({
   repeat: z.boolean().optional(),
   /** A batch this content was sent with; the whole batch can be withdrawn at once. */
   group: z.string().min(1).optional(),
+  /** Preferred window, by name. Honoured only if that window is visible and its route admits this content. */
+  window: z.string().min(1).optional(),
+  /** Contents sharing this id go on air together, in the same pass with the same start, or not at all. */
+  together: z.string().min(1).optional(),
   presentation: Presentation,
 })
 export type Content = z.infer<typeof Content>

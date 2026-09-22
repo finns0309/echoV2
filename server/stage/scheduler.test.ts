@@ -201,5 +201,83 @@ describe('scheduler', () => {
       expect(on(out, 'main')).toBeNull()
     })
   })
+
+  describe('named windows and ensembles', () => {
+    const on = (out: ReturnType<typeof schedule>, surface: string) => out.surfaces[surface]!.slots.main ?? null
+    const lr = (left: Partial<SurfaceConfig> = {}, right: Partial<SurfaceConfig> = {}): SurfaceConfig[] => [
+      { id: 'l', name: 'left', profile: 'hanging', theme: 'demo', ...left },
+      { id: 'r', name: 'right', profile: 'hanging', theme: 'demo', ...right },
+    ]
+    const step = (s: SurfaceConfig[], contents: Content[], current: Record<string, Surface> = {}, now = 1000) =>
+      schedule({ surfaces: s, manifests, contents, current, now })
+    const to = (c: Content, window: string, together?: string): Content => ({ ...c, window, ...(together ? { together } : {}) })
+
+    it('puts content in the window it prefers, even with another one free', () => {
+      const out = step(lr(), [to(card('a'), 'right')])
+      expect(on(out, 'r')?.contentId).toBe('a')
+      expect(on(out, 'l')).toBeNull()
+      expect(out.surfaces.r!.name).toBe('right')
+    })
+
+    it('waits for its window rather than taking another', () => {
+      const busy = step(lr(), [to(card('first'), 'right')], {}, 0)
+      const out = step(lr(), [to(card('first'), 'right'), to(card('next', 'normal', 1), 'right')], busy.surfaces)
+      expect(on(out, 'r')?.contentId).toBe('first')
+      expect(on(out, 'l')).toBeNull()
+    })
+
+    it("ignores the preference when that window is hidden, missing, or its route doesn't take it", () => {
+      expect(on(step(lr({}, { hidden: true }), [to(card('a'), 'right')]), 'l')?.contentId).toBe('a')
+      expect(on(step(lr(), [to(card('a'), 'nowhere')]), 'l')?.contentId).toBe('a')
+      const lyricsOnly = lr({}, { accepts: { packs: ['music'] } })
+      expect(on(step(lyricsOnly, [to(card('a'), 'right')]), 'l')?.contentId).toBe('a')
+    })
+
+    it('puts an ensemble on air together, with one start', () => {
+      const out = step(lr(), [to(card('says'), 'left', 'duo'), to(card('answers', 'normal', 1), 'right', 'duo')], {}, 5000)
+      expect(on(out, 'l')).toMatchObject({ contentId: 'says', since: 5000 })
+      expect(on(out, 'r')).toMatchObject({ contentId: 'answers', since: 5000 })
+    })
+
+    it('holds an ensemble until all of it fits, keeping the free window from later content', () => {
+      const busy = step(lr(), [to(card('long'), 'right')], {}, 0)
+      const duo = [to(card('says', 'normal', 1), 'left', 'duo'), to(card('answers', 'normal', 2), 'right', 'duo')]
+      const waiting = step(lr(), [to(card('long'), 'right'), ...duo, card('later', 'normal', 3)], busy.surfaces, 1000)
+      expect(on(waiting, 'l')).toBeNull() // kept for the duo, not given to "later"
+      const free = step(lr(), [...duo, card('later', 'normal', 3)], waiting.surfaces, 11_000) // "long" is done
+      expect(on(free, 'l')?.contentId).toBe('says')
+      expect(on(free, 'r')?.contentId).toBe('answers')
+    })
+
+    it('does not hold windows for an ensemble that cannot fit at all', () => {
+      const duo = [to(card('says'), 'left', 'duo'), to(card('answers'), 'right', 'duo')]
+      const out = step(lr({}, { hidden: true }), [...duo, card('later', 'normal', 3)])
+      expect(on(out, 'l')?.contentId).toBe('later')
+    })
+
+    it('lets a normal ensemble push ambient content aside, but an ambient one only takes quiet windows', () => {
+      const idle = step(lr(), [card('amb', 'ambient')], {}, 0)
+      const duo = [to(card('says', 'normal', 1), 'left', 'duo'), to(card('answers', 'normal', 2), 'right', 'duo')]
+      const out = step(lr(), [card('amb', 'ambient'), ...duo], idle.surfaces)
+      expect([on(out, 'l')?.contentId, on(out, 'r')?.contentId]).toEqual(['says', 'answers'])
+
+      const busy = step(lr(), [card('n')], {}, 0)
+      const quietDuo = [to(card('x', 'ambient', 1), 'left', 'q'), to(card('y', 'ambient', 2), 'right', 'q')]
+      const held = step(lr(), [card('n'), ...quietDuo], busy.surfaces)
+      expect(on(held, 'l')?.contentId).toBe('n')
+      expect(on(held, 'r')).toBeNull()
+    })
+
+    it('does not restart part of an ensemble while the rest is still on air', () => {
+      const short = { ...to(card('says'), 'left', 'duo'), presentation: { ...card('says').presentation, hints: { dwell: 2 } } }
+      const first = step(lr(), [short, to(card('answers'), 'right', 'duo')], {}, 0)
+      const later = step(lr(), [short, to(card('answers'), 'right', 'duo')], first.surfaces, 3000)
+      expect(later.finished).toEqual(['says'])
+      // "says" is back in line (as a repeat would be) while "answers" plays on: it waits
+      const again = step(lr(), [short, to(card('answers'), 'right', 'duo')], later.surfaces, 3500)
+      expect(on(again, 'l')).toBeNull()
+      expect(on(again, 'r')?.contentId).toBe('answers')
+    })
+  })
 })
 

@@ -3,6 +3,8 @@ import type { JsonStore } from '@server/foundation/store'
 
 export interface SurfacePref {
   id: string
+  /** The user's name for the window; stable across restarts, unlike nothing else about it. */
+  name?: string
   theme: string
   /** What this window takes; absent means everything. */
   accepts?: Route
@@ -49,7 +51,21 @@ export function createShellPrefs(store: JsonStore, defaults: SurfacePref[]) {
     },
     /** Undefined: the window takes everything. */
     setRoute(surface: string, accepts: Route | undefined): void {
-      save(prefs.map((p) => (p.id !== surface ? p : accepts ? { ...p, accepts } : { id: p.id, theme: p.theme })))
+      save(
+        prefs.map((p) => {
+          if (p.id !== surface) return p
+          const next: SurfacePref = { ...p }
+          if (accepts) next.accepts = accepts
+          else delete next.accepts
+          return next
+        }),
+      )
+    },
+    /** Names are unique; a name another window has is refused. */
+    setName(surface: string, name: string): boolean {
+      if (prefs.some((p) => p.id !== surface && p.name === name)) return false
+      save(prefs.map((p) => (p.id === surface ? { ...p, name } : p)))
+      return true
     },
     add(pref: SurfacePref): void {
       if (prefs.some((p) => p.id === pref.id)) return

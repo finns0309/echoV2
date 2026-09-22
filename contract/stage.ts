@@ -22,6 +22,8 @@ export const Route = z.object({
 export type Route = z.infer<typeof Route>
 
 export const Surface = z.object({
+  /** The user's name for this window (main, left, right, ...); what agents use to prefer it. */
+  name: z.string().min(1).optional(),
   profile: z.string().min(1),
   theme: z.string(),
   accepts: Route.optional(),

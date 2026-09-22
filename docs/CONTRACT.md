@@ -135,6 +135,7 @@ type SlotSpec = {
 type StageState = {
   rev: number;                               // 每次变化加一，屏幕只认比自己新的
   surfaces: Record<string, {                 // 窗口 id → 窗口
+    name?: string;                           // 用户起的窗口名（main、left、right……），agent 按名字表达偏好
     profile: string;                         // 窗口配置：headline | subtitle-strip | card | ambient | overlay | ...
     theme: string;
     accepts?: { packs?: string[]; kinds?: string[] };  // 这个窗口收什么；不写就是全收（§5）
@@ -219,7 +220,7 @@ type FrameClock = {
 
 | 方法 | 路径 | 做什么 |
 |---|---|---|
-| `POST` | `/contents` | 写入或更新一条内容（由 `card` 包接收并校验）。返回 `{id, updated, state}`：`updated` 表示这个 id 原本就在，`state` 是 `on-air` 或 `queued` |
+| `POST` | `/contents` | 写入或更新一条内容（由 `card` 包接收并校验）。返回 `{id, updated, state, surface?, note?}`：`updated` 表示这个 id 原本就在，`state` 是 `on-air` 或 `queued`，`surface` 是上台的窗口名，`note` 说明点名的窗口为什么没用上 |
 | `DELETE` | `/contents/:id` | 撤回一条 |
 | `DELETE` | `/contents?group=` | 撤回同一批（`group` 相同）的全部内容，返回 `{removed}` |
 | `GET` | `/contents` | 内容库里还有什么，按上台顺序排（优先级高的在前，同级先来的在前） |
@@ -281,6 +282,8 @@ interface Grammar {
 8. **先填空槽，再抢占**：先把排队的内容放进所有空槽；还没安置的才按第 4、5 条去抢；被抢下来的内容再补一轮空槽。所以只要别的窗口有空位，就不会把谁挤下台。
 9. **ambient 按窗口判断**：一个空槽能不能放 ambient 内容，只看同一个窗口里有没有更重要的内容在台上，以及有没有更重要、并且能进这个槽的内容在排队。单窗口时等同于第 4 条。
 10. **循环内容**：`repeat: true` 的内容播完不删除，而是回到队尾（`createdAt` 刷新为当前时刻），同一批按顺序轮流上台。agent 投的循环卡片默认是 ambient，所以只在窗口空闲时轮播，新来的卡片照常优先；被打断的循环卡片不算播完，保留原来的位置。下架靠 `ttlSeconds` 或按 group 撤回。调度器本身不知道循环：它只报告哪些内容播完了，由舞台服务决定消化还是重新排队。
+11. **窗口偏好**：内容可以带 `window`（窗口名）。点名的窗口存在、可见、并且它的 `accepts` 收这条内容时，内容只进这个窗口，哪怕别的窗口空着也不去；否则当作没点名，按第 7 条正常路由，内容不会丢。用户的路由永远优先：只收歌词的窗口，agent 点名也进不去。`show` 的返回会说明实际去了哪个窗口，没按偏好走时附上原因。窗口名由用户在托盘里起，main 固定叫 main，其他窗口默认叫 win2、win3……
+12. **一起上台**：带同一个 `together` 的内容要么在同一轮一起上台、共用同一个 `since`（各自的 `at` 因此对得上），要么都不上。一组内容可以按优先级抢占（normal 可以挤掉 ambient），ambient 的组只进安静的窗口。凑不齐时整组等待，并把它能用的空窗口留着，不让排在后面的内容占走，免得一直凑不齐；如果根本凑不齐（比如点名的窗口被隐藏，几张卡只剩一个窗口可去），就不占位。组里有一张还在台上时，其余的不单独重新上台，所以循环的组会整组一起回来。没有超时降级：凑不齐就一直等，靠 `ttlSeconds` 或 `clear` 收尾。
 
 ## 5.1 音乐内容包的约定（M3）
 

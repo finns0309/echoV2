@@ -3,7 +3,7 @@
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, net, type BrowserWindow } from 'electron'
-import { ThemeManifest, type Grammar, type Route } from '@contract'
+import { ThemeManifest, type Content, type Grammar, type Route, type Surface as StageSurface } from '@contract'
 import { startAgentApi } from '@server/api/agent-http'
 import { createScreenChannel } from '@server/api/screen-channel'
 import { loadOrCreateToken } from '@server/api/token'
@@ -20,7 +20,7 @@ import { createShellPrefs } from '@server/shell/prefs'
 import { createSurface, type Surface } from '@server/shell/surfaces'
 import { createTray } from '@server/shell/tray'
 import { createContentStore } from '@server/stage/contents'
-import { waitingOrder, type SurfaceConfig } from '@server/stage/scheduler'
+import { admits, waitingOrder, type SurfaceConfig } from '@server/stage/scheduler'
 import { createStageService } from '@server/stage/service'
 import { createStage } from '@server/stage/state'
 
@@ -55,6 +55,8 @@ const ROUTES: { id: string; label: string; accepts?: Route }[] = [
 ]
 const routeOf = (accepts: Route | undefined) =>
   ROUTES.find((r) => JSON.stringify(r.accepts) === JSON.stringify(accepts))?.id ?? 'all'
+// Names a user can give a window from the tray (menus can't take typing). Agents prefer windows by name.
+const NAMES = ['left', 'right', 'top', 'bottom', 'side', 'stage', 'chat', 'corner']
 const PRESETS = [
   { id: 'split', label: '歌词 + agent 双风铃' },
   { id: 'single', label: '只留一个窗口' },
@@ -74,6 +76,17 @@ if (!primary) {
   app.quit()
 }
 
+// Why a window preference wasn't honoured, in words an agent can pass on. Null when it was, or there was none.
+function preferenceNote(content: Content, windows: StageSurface[]): string | null {
+  if (!content.window) return null
+  const target = windows.find((w) => w.name === content.window)
+  const names = windows.flatMap((w) => (w.name ? [w.name] : [])).join(', ')
+  if (!target) return `there is no window named ${content.window} (windows: ${names}); it went where it normally would`
+  if (target.hidden) return `${content.window} is hidden; it went where it normally would`
+  if (!admits(target.accepts, content)) return `${content.window} doesn't take this kind of card (the user's route); it went where it normally would`
+  return null
+}
+
 function loadScreen(win: BrowserWindow, surface: string): Promise<void> {
   const devUrl = process.env.ELECTRON_RENDERER_URL
   return devUrl
@@ -89,6 +102,14 @@ app.whenReady().then(async () => {
   // Shell: which surfaces exist, what they wear and take, and whether they are showing.
   const prefs = createShellPrefs(store, [{ id: MAIN, theme: DEFAULT_THEME }])
   const windows = new Map<string, Surface>()
+  // Every window has a name: main is 'main'; others default to win2, win3, ... until renamed.
+  const nextName = () => {
+    const taken = new Set(prefs.get().map((p) => p.name))
+    let n = 2
+    while (taken.has(`win${n}`)) n++
+    return `win${n}`
+  }
+  for (const p of prefs.get()) if (!p.name) prefs.setName(p.id, p.id === MAIN ? MAIN : nextName())
   const surfaces = (): SurfaceConfig[] =>
     prefs.get().flatMap((p) => {
       const manifest = manifests[p.theme] ?? manifests[DEFAULT_THEME]
@@ -96,6 +117,7 @@ app.whenReady().then(async () => {
       return [
         {
           id: p.id,
+          ...(p.name ? { name: p.name } : {}),
           theme: manifest.id,
           profile: manifest.window,
           ...(p.accepts ? { accepts: p.accepts } : {}),
@@ -200,7 +222,7 @@ app.whenReady().then(async () => {
       if (agent) {
         prefs.setTheme(agent.id, theme)
         prefs.setRoute(agent.id, ROUTES.find((r) => r.id === 'card')!.accepts)
-      } else prefs.add({ id: `win-${Date.now().toString(36)}`, theme, accepts: ROUTES.find((r) => r.id === 'card')!.accepts })
+      } else prefs.add({ id: `win-${Date.now().toString(36)}`, name: nextName(), theme, accepts: ROUTES.find((r) => r.id === 'card')!.accepts })
     }
   }
 
@@ -213,11 +235,16 @@ app.whenReady().then(async () => {
     windows: () =>
       prefs.get().flatMap((p) => {
         const surface = windows.get(p.id)
-        return surface ? [{ id: p.id, surface, route: routeOf(p.accepts), closable: p.id !== MAIN }] : []
+        return surface
+          ? [{ id: p.id, name: p.name ?? p.id, surface, route: routeOf(p.accepts), closable: p.id !== MAIN, renamable: p.id !== MAIN }]
+          : []
       }),
     onPickTheme: (window, theme) => prefs.setTheme(window, theme),
     onPickRoute: (window, route) => prefs.setRoute(window, ROUTES.find((r) => r.id === route)?.accepts),
-    onAddWindow: () => prefs.add({ id: `win-${Date.now().toString(36)}`, theme: prefs.get().at(-1)?.theme ?? DEFAULT_THEME }),
+    names: NAMES,
+    onPickName: (window, name) => prefs.setName(window, name),
+    onAddWindow: () =>
+      prefs.add({ id: `win-${Date.now().toString(36)}`, name: nextName(), theme: prefs.get().at(-1)?.theme ?? DEFAULT_THEME }),
     onCloseWindow: (window) => prefs.remove(window),
     onPreset: preset,
   })
@@ -234,12 +261,18 @@ app.whenReady().then(async () => {
         const result = card.accept(raw)
         if (!result.ok) return result
         const id = result.content.id
-        const surface = Object.entries(stage.snapshot().surfaces).find(([, s]) =>
-          Object.values(s.slots).some((slot) => slot?.contentId === id),
-        )?.[0]
-        return surface
-          ? { ok: true, id, updated: existed.has(id), state: 'on-air', surface }
-          : { ok: true, id, updated: existed.has(id), state: 'queued' }
+        const all = Object.entries(stage.snapshot().surfaces)
+        const at = all.find(([, s]) => Object.values(s.slots).some((slot) => slot?.contentId === id))
+        const window = at ? (at[1].name ?? at[0]) : undefined
+        const note = preferenceNote(result.content, all.map(([, s]) => s))
+        return {
+          ok: true,
+          id,
+          updated: existed.has(id),
+          state: at ? 'on-air' : 'queued',
+          ...(window ? { surface: window } : {}),
+          ...(note ? { note } : {}),
+        }
       },
       withdraw: (id) => contents.remove(id) || contents.remove(`card:${id}`),
       withdrawGroup: (group) => contents.removeGroup(group),
