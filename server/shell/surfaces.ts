@@ -1,6 +1,7 @@
 import { BrowserWindow, screen, type Rectangle } from 'electron'
 import type { ShellWindow } from '@contract'
 import type { Bounds, ShellPrefs } from './prefs'
+import { pushedBack, same } from './place'
 import { resolveProfile } from './profiles'
 
 export interface SurfaceState {
@@ -27,7 +28,6 @@ const GAP = 20
 const ENTER_MS = 1500
 /** How soon after a window shows, or changes desktops, a move is macOS's, not the user's. */
 const PUSH_MS = 1000
-const same = (a: Bounds, b: Bounds) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 
 /** Slide `b` left, a window's width at a time, until it clears `taken` or runs out of room. */
 function clear(b: Bounds, taken: Bounds[], area: Rectangle): Bounds {
@@ -117,11 +117,16 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   // user put it, never where we did: a fill saved as the user's place would come back
   // after a restart as a full-screen window with no way back.
   const remember = () => {
-    if (!theme || full || (placed && same(win.getBounds(), placed))) return
-    // macOS may push a window back on screen a moment after the change: that isn't the user either.
-    if (settled && Date.now() - pushedAt < PUSH_MS) return place(settled)
+    const now = win.getBounds()
+    if (!theme || full || (placed && same(now, placed))) return
+    // macOS pushing it back on screen isn't the user either: right after a change of ours,
+    // or whenever it puts the window back up (a swipe between Spaces), which it gives away
+    // by landing exactly where the screen's edge stops it.
+    if (settled && (Date.now() - pushedAt < PUSH_MS || pushedBack(settled, now, screen.getDisplayMatching(settled).workArea))) {
+      return place(settled)
+    }
     placed = null
-    settled = win.getBounds()
+    settled = now
     prefs.setOverride(id, theme, { bounds: settled })
     changed()
   }
@@ -213,6 +218,11 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
 
     focused(): boolean {
       return win.isFocused()
+    },
+
+    /** The display it is on. */
+    display(): number {
+      return screen.getDisplayMatching(win.getBounds()).id
     },
 
     /** Forget what the user changed for the current theme and go back to its profile. */

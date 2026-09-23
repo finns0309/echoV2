@@ -14,6 +14,8 @@ export interface ShellSurface {
   /** Stay on the current desktop instead of every one, so a full-screen window's Space stays its own. */
   pin(on: boolean): void
   focused(): boolean
+  /** Which display it is on. */
+  display(): number
   toggleVisible(): void
   reset(): void
   destroy(): void
@@ -185,7 +187,12 @@ export function createShellControl(o: ShellControlOptions) {
         return { ok: true }
       }
       case 'setFullScreen':
-        if (command.on) for (const [id, w] of windows) if (id !== command.window) w.pin(true)
+        // Only windows on the same display: with a Space per display, the full-screen Space
+        // covers just its own, and a window pinned elsewhere would stop following its desktops.
+        if (command.on) {
+          const at = surface(command.window)?.display()
+          for (const [id, w] of windows) if (id !== command.window && w.display() === at) w.pin(true)
+        }
         surface(command.window)?.setFullScreen(command.on)
         return { ok: true }
       case 'resetWindow':

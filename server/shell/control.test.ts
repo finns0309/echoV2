@@ -22,6 +22,8 @@ function fakeSurface(log: string[], id: string): ShellSurface {
     setFullScreen: (on) => ((s.fullScreen = on), log.push(`full ${id} ${on}`), changed()),
     pin: (on) => void (pinned !== on && ((pinned = on), log.push(`pin ${id} ${on}`))),
     focused: () => false,
+    // everything on one display, but a window called 'far' on another
+    display: () => (id === 'far' ? 2 : 1),
     toggleVisible: () => ((s.visible = !s.visible), changed()),
     reset: () => log.push(`reset ${id}`),
     destroy: () => log.push(`destroy ${id}`),
@@ -138,6 +140,16 @@ describe('shell control', () => {
     log.length = 0
     shell.dispatch({ type: 'setFullScreen', window: 'main', on: false })
     expect(log).toEqual(['full main false', 'pin side false'])
+  })
+
+  it('leaves windows on another display alone: the full-screen Space covers only its own', () => {
+    const { shell, log } = setup([
+      { id: 'main', theme: 'furin' },
+      { id: 'far', theme: 'plasma' },
+    ])
+    log.length = 0
+    shell.dispatch({ type: 'setFullScreen', window: 'main', on: true })
+    expect(log).toEqual(['full main true'])
   })
 
   it('caps a window\'s loudness, and tells the stage', () => {
