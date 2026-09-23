@@ -61,7 +61,7 @@ export function App({ state }: { state: PanelState }) {
         <Mark />
         <div class="strip-meta">
           <div class="strip-title">echo</div>
-          <div class="strip-sub">{shell ? `${shell.windows.length} 个窗口 · ${live} 个在显示` : '连接中…'}</div>
+          <div class="strip-sub">{shell ? `${shell.windows.length} 个窗口 · ${live} 个在显示${state.stage.value?.paused ? ' · 轮播已暂停' : ''}` : '连接中…'}</div>
         </div>
         <div class={state.toast.value ? 'toast show' : 'toast'} aria-live="polite">
           {state.toast.value}

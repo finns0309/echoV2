@@ -49,7 +49,7 @@ server/
 │   ├── contents.ts    内容库（内容的唯一写入方）
 │   ├── routing.ts     内容能去哪些窗口：隐藏、点名、路由、兜底
 │   ├── scheduler.ts   调度规则（纯函数）
-│   ├── service.ts     把内容库、调度、舞台状态、导演串起来
+│   ├── service.ts     把内容库、调度、舞台状态、导演串起来；执行用户的 StageCommand（跳过、撤下、暂停）
 │   └── state.ts       舞台状态：rev，窗口 → 槽位
 ├── shell/           Electron 壳：窗口、面板、托盘、快捷键、显示偏好
 │   ├── control.ts     外壳的唯一写入方：让窗口跟着偏好走，执行 ShellCommand；托盘、面板、舞台都订阅它
@@ -146,7 +146,7 @@ panel/
 └── panel.css        和 muse 同一套 token、字号、光标和动效
 ```
 
-面板只是外壳的一个视图：读 `ShellState`，发 `ShellCommand`，自己不改任何东西。新增一种操作的顺序：先在 `contract/shell.ts` 加 `ShellCommand`，在 `server/shell/control.ts` 实现，再在 `panel/vocabulary.ts` 加一个动词，设置行、搜索、斜杠命令就同时有了。它和托盘、以后可能的 MCP 窗口工具，走的是同一个入口（`server/shell/control.ts`）。
+面板只是外壳和舞台的一个视图：读 `ShellState` 和 `StageState`，发 `ShellCommand`（窗口）或 `StageCommand`（窗口上的内容），自己不改任何东西。新增一种操作的顺序：先在 `contract/shell.ts` 加 `ShellCommand`（或 `contract/stage.ts` 加 `StageCommand`），在 `server/shell/control.ts`（或 `server/stage/service.ts`）实现，再在 `panel/vocabulary.ts` 加一个动词，设置行、搜索、斜杠命令就同时有了。它和托盘、以后可能的 MCP 窗口工具，走的是同一个入口（`server/shell/control.ts`）。
 
 ## 4. 依赖规则
 
@@ -242,10 +242,10 @@ tsconfig.web.json        screen/、panel/、cmd/screen、cmd/panel、contract/�
 ```text
 contract/
 ├── content.ts         Content、Presentation、Timeline、Block 的 zod schema
-├── stage.ts           StageState、OnAir、SignalFrame
+├── stage.ts           StageState、OnAir、SignalFrame、StageCommand
 ├── theme.ts           ThemeManifest、SlotSpec、Grammar
 ├── agent.ts           AgentCardInput：agent 投卡片的输入
-├── shell.ts           ShellState、ShellCommand：外壳是什么、能对它做什么
+├── shell.ts           ShellState、ShellCommand：外壳是什么、能对它做什么；PanelCommand：面板发的两种命令
 ├── channels.ts        主进程和屏幕、面板之间的通道表：频道名 → 载荷类型
 └── index.ts
 ```

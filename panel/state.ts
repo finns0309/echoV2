@@ -1,8 +1,9 @@
 import { computed, effect, signal } from '@preact/signals'
-import type { OnAir, ShellCommand, ShellState, StageState } from '@contract'
+import type { PanelCommand, ShellState, StageState } from '@contract'
 import type { PanelBridge } from '@contract/channels'
 import { homeItems, searchItems, windowItems, type Item, type Selectable } from './commands'
 import { slashItems } from './slash'
+import type { Scene } from './vocabulary'
 
 const TOAST_MS = 1600
 
@@ -33,23 +34,13 @@ export function createPanelState(bridge: PanelBridge) {
     summoned.value++
   })
 
-  /** What a window is showing right now, in a line. */
-  function showing(window: string): string | null {
-    const slots = stage.value?.surfaces[window]?.slots ?? {}
-    const onAir = Object.values(slots).find((s): s is OnAir => !!s)
-    if (!onAir) return null
-    const { context, blocks } = onAir.presentation
-    const first = blocks.find((b) => b.type === 'text')
-    return context.title ?? (first?.type === 'text' ? first.text : onAir.contentId)
-  }
-
   const items = computed<Item[]>(() => {
-    const s = shell.value
-    if (!s) return []
-    if (query.value.startsWith('/')) return slashItems(query.value, s, opened.value)
-    if (query.value.trim()) return searchItems(s, query.value, showing)
-    if (opened.value) return windowItems(s, opened.value)
-    return homeItems(s, showing)
+    if (!shell.value) return []
+    const scene: Scene = { shell: shell.value, stage: stage.value }
+    if (query.value.startsWith('/')) return slashItems(query.value, scene, opened.value)
+    if (query.value.trim()) return searchItems(scene, query.value)
+    if (opened.value) return windowItems(scene, opened.value)
+    return homeItems(scene)
   })
   const selectable = computed(() => items.value.filter((i): i is Selectable => i.kind !== 'section' && i.kind !== 'note'))
   const current = computed(() => selectable.value[cursor.value])
@@ -84,8 +75,8 @@ export function createPanelState(bridge: PanelBridge) {
   }
 
   let commitTimer: ReturnType<typeof setTimeout> | undefined
-  function send(command: ShellCommand, note?: string): void {
-    bridge.send('command', command)
+  function send(command: PanelCommand | readonly PanelCommand[], note?: string): void {
+    for (const c of Array.isArray(command) ? command : [command]) bridge.send('command', c)
     if (note) say(note)
     committed.value = current.value?.key ?? null
     clearTimeout(commitTimer)
@@ -94,6 +85,7 @@ export function createPanelState(bridge: PanelBridge) {
 
   return {
     shell,
+    stage,
     query,
     opened,
     cursor,

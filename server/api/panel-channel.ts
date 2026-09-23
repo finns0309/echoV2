@@ -1,11 +1,11 @@
 import { ipcMain, type BrowserWindow } from 'electron'
-import { ShellCommand } from '@contract'
+import { PanelCommand } from '@contract'
 import { panelChannelName, type ServerToPanel } from '@contract/channels'
 
 // Transport between the display server and the panel over Electron IPC. It moves
 // payloads and checks what comes in; what a command does is the shell's business.
 export function createPanelChannel(handlers: {
-  command: (command: ShellCommand) => void
+  command: (command: PanelCommand) => void
   hide: () => void
   ready: () => void
   resize: (height: number) => void
@@ -16,7 +16,7 @@ export function createPanelChannel(handlers: {
 
   ipcMain.on(panelChannelName('command'), (event, payload: unknown) => {
     if (!fromPanel(event.sender)) return
-    const parsed = ShellCommand.safeParse(payload)
+    const parsed = PanelCommand.safeParse(payload)
     if (parsed.success) handlers.command(parsed.data)
     else console.warn('[panel] dropped a malformed command:', parsed.error.issues[0]?.message)
   })

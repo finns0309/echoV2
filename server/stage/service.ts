@@ -1,4 +1,4 @@
-import { Content, type Presentation, type SignalFrame, type Surface, type ThemeManifest } from '@contract'
+import { Content, type Presentation, type SignalFrame, type StageCommand, type Surface, type ThemeManifest } from '@contract'
 import type { ContentStore } from './contents'
 import type { PackContext } from './pack-api'
 import type { SurfaceConfig } from './routing'
@@ -31,6 +31,9 @@ export function createStageService(opts: StageServiceOptions) {
   let consuming = false
   const asked = new Map<string, string>() // "surface/slot" → signature last asked about
   const prefetched = new Set<string>() // "theme\ncontent\ntext" already asked about while queued
+  let pausedAt: number | null = null
+  const credit = new Map<string, number>() // content → ms its dwell clock stood still (paused)
+  let ending = new Set<string>() // skipped by the user, ends on the next pass
 
   // What the text of a presentation is; timeline-only changes (a media clock) don't count.
   const textSignature = (p: Presentation) => p.blocks.map((b) => (b.type === 'text' ? b.text : JSON.stringify(b))).join('\n')
@@ -103,7 +106,11 @@ export function createStageService(opts: StageServiceOptions) {
       contents: opts.contents.list(),
       current: opts.stage.snapshot().surfaces,
       now: now(),
+      paused: pausedAt !== null,
+      ending,
+      credit,
     })
+    ending = new Set()
     consuming = true
     try {
       // Finished runs are consumed, except content kept in rotation, which goes back in line.
@@ -115,8 +122,53 @@ export function createStageService(opts: StageServiceOptions) {
       consuming = false
     }
     if (JSON.stringify(out.surfaces) !== JSON.stringify(opts.stage.snapshot().surfaces)) opts.stage.update(out.surfaces)
+    for (const id of credit.keys()) if (!onAirIds().has(id)) credit.delete(id)
     directOnAir()
     prefetchQueued()
+  }
+
+  function onAirIds(): Set<string> {
+    return new Set(Object.values(opts.stage.snapshot().surfaces).flatMap((s) => Object.values(s.slots).flatMap((o) => (o ? [o.contentId] : []))))
+  }
+
+  /** What a window shows that the user may skip or clear: anything not following a media clock. */
+  function movableIn(window: string): Content[] {
+    return Object.values(opts.stage.snapshot().surfaces[window]?.slots ?? {}).flatMap((o) => {
+      const c = o ? opts.contents.get(o.contentId) : undefined
+      return c && c.presentation.timeline.kind !== 'media' ? [c] : []
+    })
+  }
+
+  /** Carry out a user's StageCommand. Returns how many contents it touched. */
+  function dispatch(command: StageCommand): number {
+    switch (command.type) {
+      case 'skip': {
+        const skipped = movableIn(command.window)
+        if (!skipped.length) return 0
+        for (const c of skipped) ending.add(c.id)
+        run()
+        return skipped.length
+      }
+      case 'clear': {
+        const gone = command.window
+          ? movableIn(command.window)
+          : opts.contents.list().filter((c) => c.presentation.timeline.kind !== 'media')
+        return opts.contents.removeMany(gone.map((c) => c.id))
+      }
+      case 'setPaused': {
+        if (command.on === (pausedAt !== null)) return 0
+        if (command.on) pausedAt = now()
+        else {
+          // The clocks stood still: what was on air gets back the time it spent paused.
+          const stood = now() - pausedAt!
+          for (const id of onAirIds()) credit.set(id, (credit.get(id) ?? 0) + stood)
+          pausedAt = null
+        }
+        opts.stage.setPaused(command.on)
+        run()
+        return 1
+      }
+    }
   }
 
   const offChange = opts.contents.onChange(run)
@@ -130,6 +182,7 @@ export function createStageService(opts: StageServiceOptions) {
 
   return {
     run,
+    dispatch,
     packContext,
     stop(): void {
       clearInterval(timer)

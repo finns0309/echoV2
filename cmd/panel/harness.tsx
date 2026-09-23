@@ -3,7 +3,7 @@
 // Not part of the build.
 import '@panel/panel.css'
 import { render } from 'preact'
-import type { ShellCommand, ShellState, StageState } from '@contract'
+import type { PanelCommand, ShellState, StageState, Timeline } from '@contract'
 import type { PanelBridge, ServerToPanel } from '@contract/channels'
 import { App } from '@panel/app'
 import { createPanelState } from '@panel/state'
@@ -29,21 +29,32 @@ const shell: ShellState = {
   names: ['left', 'right', 'top', 'bottom', 'side', 'stage', 'chat', 'corner'],
 }
 
-const onAir = (id: string, title: string) => ({
-  main: { contentId: id, since: 0, presentation: { context: { title }, timeline: { kind: 'self' as const }, blocks: [] } },
+const SELF: Timeline = { kind: 'self' }
+const MEDIA: Timeline = { kind: 'media', position: 0, sampledAt: 0, rate: 1, version: 0 }
+const onAir = (id: string, title: string, timeline: Timeline = SELF) => ({
+  main: { contentId: id, since: 0, presentation: { context: { title }, timeline, blocks: [] } },
 })
-const stage: StageState = {
+let stage: StageState = {
   rev: 1,
   surfaces: {
-    main: { profile: 'hanging', theme: 'furin', slots: onAir('music:now', 'リビングデッド') },
+    main: { profile: 'hanging', theme: 'furin', slots: onAir('music:now', 'リビングデッド', MEDIA) },
     w2: { profile: 'ambient', theme: 'plasma', slots: onAir('card:a', 'ちょっと休憩') },
     w3: { profile: 'ambient', theme: 'plasma', slots: onAir('card:b', '金曜日の夕方にデプロイ') },
     w4: { profile: 'ambient', theme: 'tide', slots: { main: null } },
   },
 }
 
-// Just enough of the shell to see commands take effect.
-function apply(c: ShellCommand): void {
+// Just enough of the shell and the stage to see commands take effect.
+function apply(c: PanelCommand): void {
+  const empty = (id: string) => {
+    const s = stage.surfaces[id]
+    if (s?.slots.main?.presentation.timeline.kind === 'self') s.slots.main = null
+  }
+  if (c.type === 'setPaused') stage = { ...stage, rev: stage.rev + 1, ...(c.on ? { paused: true } : { paused: false }) }
+  if (c.type === 'skip' || c.type === 'clear') {
+    for (const id of c.type === 'clear' && !c.window ? Object.keys(stage.surfaces) : [c.window!]) empty(id)
+    stage = { ...stage, rev: stage.rev + 1 }
+  }
   const w = 'window' in c ? shell.windows.find((x) => x.id === c.window) : undefined
   if (c.type === 'setTheme' && w) w.theme = c.theme
   if (c.type === 'setRoute' && w) w.route = c.route
@@ -76,8 +87,9 @@ const bridge: PanelBridge = {
       emit('shell', structuredClone(shell))
       emit('stage', stage)
     } else if (channel === 'command') {
-      apply(payload as ShellCommand)
+      apply(payload as PanelCommand)
       emit('shell', structuredClone(shell))
+      emit('stage', structuredClone(stage))
     } else if (channel === 'resize') {
       root.style.height = `${Math.min(640, Math.max(260, payload as number))}px` // as the real window does
     } else console.log('[harness]', channel)

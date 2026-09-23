@@ -12,7 +12,15 @@ export function createStage(surfaces: Record<string, Surface>) {
     },
 
     update(next: Record<string, Surface>): void {
-      state = { rev: state.rev + 1, surfaces: next }
+      state = { ...state, rev: state.rev + 1, surfaces: next }
+      for (const listener of listeners) listener(state)
+    },
+
+    setPaused(on: boolean): void {
+      if (!!state.paused === on) return
+      const next: StageState = { rev: state.rev + 1, surfaces: state.surfaces }
+      if (on) next.paused = true
+      state = next
       for (const listener of listeners) listener(state)
     },
 

@@ -4,7 +4,7 @@
 //
 // Type-only imports on purpose: preload bundles this file, and must not pull
 // zod into a sandboxed preload.
-import type { ShellCommand, ShellState } from './shell'
+import type { PanelCommand, ShellState } from './shell'
 import type { SignalFrame, StageState } from './stage'
 
 export interface ServerToScreen {
@@ -31,7 +31,8 @@ export interface ScreenBridge {
 }
 
 // The panel: the control surface summoned by the hotkey. It reads the shell and
-// the stage, and changes things only by sending ShellCommands.
+// the stage, and changes things only by sending commands: ShellCommands for the
+// windows, StageCommands for what is on them.
 export interface ServerToPanel {
   shell: ShellState
   stage: StageState
@@ -41,7 +42,7 @@ export interface ServerToPanel {
 
 export interface PanelToServer {
   ready: null
-  command: ShellCommand
+  command: PanelCommand
   /** Put the panel away (Esc). */
   hide: null
   /** The height its content wants, in px; the window follows, top edge fixed. */

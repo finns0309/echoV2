@@ -141,3 +141,85 @@ describe('stage service rotation', () => {
   })
 })
 
+
+describe('what the user does to content', () => {
+  function user() {
+    let t = 0
+    const stage = createStage({ main: { profile: 'ambient', theme: 'demo', slots: {} } })
+    const contents = createContentStore(createMemoryStore(), () => t)
+    service = createStageService({
+      contents,
+      stage,
+      manifests: { demo: manifest },
+      surfaces: () => [{ id: 'main', profile: 'ambient', theme: 'demo' }],
+      emitSignal: () => {},
+      now: () => t,
+      tickMs: 60_000,
+    })
+    const s = service
+    const put = (id: string, extra: Partial<Content> = {}) => s.packContext.upsert({ ...card(id), id, createdAt: t, ...extra })
+    const onAir = () => stage.snapshot().surfaces.main!.slots.main?.contentId ?? null
+    const at = (ms: number) => {
+      t = ms
+      s.run()
+      s.run()
+    }
+    return { stage, contents, service: s, put, onAir, at }
+  }
+
+  it('skips what a window shows: the next one comes on, a repeating one goes back in line', () => {
+    const { contents, service, put, onAir } = user()
+    put('a', { repeat: true })
+    put('b')
+    expect(onAir()).toBe('a')
+    expect(service.dispatch({ type: 'skip', window: 'main' })).toBe(1)
+    service.run()
+    expect(onAir()).toBe('b')
+    expect(contents.get('a')).toBeDefined()
+    service.dispatch({ type: 'skip', window: 'main' })
+    service.run()
+    expect(onAir()).toBe('a') // b was used up; a took its turn again
+    expect(contents.get('b')).toBeUndefined()
+  })
+
+  it('clears what a window shows, or everything that is not following a player', () => {
+    const { contents, service, put, onAir } = user()
+    put('a', { repeat: true })
+    put('b')
+    put('song', { presentation: { context: {}, timeline: { kind: 'media', position: 0, sampledAt: 0, rate: 1, version: 0 }, blocks: card('la').presentation.blocks } })
+    expect(service.dispatch({ type: 'clear', window: 'main' })).toBe(1)
+    expect(contents.get('a')).toBeUndefined() // repeat or not, cleared is gone
+    expect(onAir()).toBe('b')
+    expect(service.dispatch({ type: 'clear' })).toBe(1)
+    expect(contents.list().map((c) => c.id)).toEqual(['song'])
+  })
+
+  it('holds the stage while paused, and gives back the time it stood still', () => {
+    const { stage, service, put, onAir, at } = user()
+    put('a') // dwell 60s
+    put('b')
+    at(30_000)
+    service.dispatch({ type: 'setPaused', on: true })
+    expect(stage.snapshot().paused).toBe(true)
+    put('urgent', { priority: 'urgent' })
+    at(200_000)
+    expect(onAir()).toBe('a') // not over, not pushed aside
+    service.dispatch({ type: 'setPaused', on: false })
+    expect(stage.snapshot()).not.toHaveProperty('paused')
+    expect(onAir()).toBe('urgent') // what was held back comes through once resumed
+  })
+
+  it("counts the pause out of a card's time", () => {
+    const { service, put, onAir, at } = user()
+    put('a') // dwell 60s
+    put('b')
+    at(30_000)
+    service.dispatch({ type: 'setPaused', on: true })
+    at(130_000)
+    service.dispatch({ type: 'setPaused', on: false })
+    at(150_000) // 30s before + 20s after: 50s of its 60
+    expect(onAir()).toBe('a')
+    at(161_000)
+    expect(onAir()).toBe('b')
+  })
+})

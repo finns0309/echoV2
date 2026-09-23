@@ -41,6 +41,6 @@ Also: `tsconfig.node.json` has no DOM and `tsconfig.web.json` has no Node, so cr
 - A theme lives entirely in `screen/themes/<id>/`. Only `theme.ts` and `manifest.ts` are visible from outside; `parts/` is private.
 - Move a helper to `screen/primitives/` only once a second theme needs it.
 - Tests sit next to the code as `*.test.ts` (Vitest).
-- Anything a user can do to echo's windows is a `ShellCommand` (`contract/shell.ts`) carried out by `server/shell/control.ts`. The tray and the panel only send commands; add the command first, then the button.
+- Anything a user can do to echo's windows is a `ShellCommand` (`contract/shell.ts`) carried out by `server/shell/control.ts`; anything done to what is on them (skip, clear, pause) is a `StageCommand` (`contract/stage.ts`) carried out by `server/stage/service.ts`. The tray and the panel only send commands; add the command first, then the button.
 - The user-facing choices (routes, window names) are data in `cmd/display/config.ts`; the shell never names a pack.
 - The panel's verbs live once in `panel/vocabulary.ts`. Settings rows, fuzzy search and slash commands (`panel/slash.ts`) are views of it: a new verb goes there, not into a view.

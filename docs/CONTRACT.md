@@ -163,6 +163,7 @@ type StageState = {
     hidden?: boolean;                        // 被用户隐藏：不分配任何内容
     slots: Record<string, OnAir | null>;
   }>;
+  paused?: boolean;                          // 用户暂停了轮播：台上的内容不结束、不被挤下，直到继续
 };
 
 type OnAir = {
@@ -262,7 +263,7 @@ MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发
 
 ### 4.4 外壳和面板（主进程 ↔ 面板）
 
-用户管理 echo 的一切，都经过同一个入口：`contract/shell.ts` 定义外壳是什么（`ShellState`）、能对它做什么（`ShellCommand`），`server/shell/control.ts` 是唯一的执行方。
+用户管理 echo 的一切，都经过同一个入口：`contract/shell.ts` 定义外壳是什么（`ShellState`）、能对它做什么（`ShellCommand`），`server/shell/control.ts` 是唯一的执行方。对窗口上内容的操作是 `StageCommand`，执行方是舞台服务。
 
 ```ts
 type ShellState = {
@@ -274,10 +275,18 @@ type ShellCommand =
   | { type: 'setVisible' | 'setClickThrough' | 'setFill'; window; on: boolean }   // 写目标状态，不是"翻转"，重复发也无害
   | { type: 'setLoudness'; window; loudness: Salience }                           // 醒目上限，attention = 不限
   | { type: 'resetWindow' | 'closeWindow'; window } | { type: 'addWindow'; theme? };
+
+// 对窗口上的内容做的事（contract/stage.ts），由 server/stage/service.ts 执行。
+// 跟着播放器走的内容（media 时间线，比如歌词）不受影响：它下一拍就会回来。
+type StageCommand =
+  | { type: 'skip'; window }      // 当它时间到了：轮换中的回到队尾，其他的用掉
+  | { type: 'clear'; window? }    // 撤下：某个窗口正在显示的；不给窗口就是全部，包括排队中的
+  | { type: 'setPaused'; on };    // 暂停轮播：不结束、不抢占，空位照样补；继续时，暂停的时长不算进停留时间
+type PanelCommand = ShellCommand | StageCommand;   // 面板的 command 频道发的就是它
 ```
 
 - 托盘和面板都是它的视图：读状态，发命令。舞台也订阅它，窗口一隐藏、出现或关闭，内容就重新分配。
-- 面板通道（`contract/channels.ts`）：服务器推 `shell`、`stage`、`shown`；面板发 `ready`、`command`、`hide`、`resize`、`locate`。`locate` 是面板正指着的窗口（光标所在的窗口行，或打开的设置页）：主进程转成屏幕通道的 `highlight`，那个窗口描一圈蓝边、挂上名字，好把名字和屏幕上的位置对上。每条命令进主进程时都用 zod 重新校验，并核对发送方是面板窗口。
+- 面板通道（`contract/channels.ts`）：服务器推 `shell`、`stage`、`shown`；面板发 `ready`、`command`（`PanelCommand`，主进程按类型交给外壳或舞台）、`hide`、`resize`、`locate`。`locate` 是面板正指着的窗口（光标所在的窗口行，或打开的设置页），只在面板显示时有效：主进程转成屏幕通道的 `highlight`，那个窗口描一圈蓝边、挂上名字，好把名字和屏幕上的位置对上。每条命令进主进程时都用 zod 重新校验，并核对发送方是面板窗口。
 - `main` 窗口始终存在、兜底、不能改名或关闭。可选的路由、窗口名是 `cmd/display/config.ts` 里的数据，控制服务只按数据执行，不认识任何内容包。
 
 ### 4.5 导演服务（主进程）

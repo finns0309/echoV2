@@ -2,6 +2,7 @@
 // is the only writer; the tray and the panel read ShellState and send ShellCommands.
 import { z } from 'zod'
 import { Salience } from './content'
+import { StageCommand } from './stage'
 
 export const ShellWindow = z.object({
   id: z.string().min(1),
@@ -50,3 +51,9 @@ export const ShellCommand = z.discriminatedUnion('type', [
   z.object({ type: z.literal('setLoudness'), ...onWindow, loudness: Salience }),
 ])
 export type ShellCommand = z.infer<typeof ShellCommand>
+
+/** What the panel sends: something done to a window, or to what is on them. */
+export const PanelCommand = z.union([ShellCommand, StageCommand])
+export type PanelCommand = z.infer<typeof PanelCommand>
+const STAGE_TYPES: ReadonlySet<string> = new Set(StageCommand.options.map((o) => o.shape.type.value))
+export const isStageCommand = (c: PanelCommand): c is StageCommand => STAGE_TYPES.has(c.type)

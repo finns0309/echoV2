@@ -26,7 +26,7 @@ import { createTray } from '@server/shell/tray'
 import { createContentStore } from '@server/stage/contents'
 import { createStageService } from '@server/stage/service'
 import { createStage } from '@server/stage/state'
-import { USER_DATA_DIR } from '@contract'
+import { USER_DATA_DIR, isStageCommand } from '@contract'
 import { AGENT_PORT, LLM_DEFAULTS, MAIN, NAMES, ROUTES } from './config'
 import { HOTKEY_HELPER, PRELOAD, loadPanel, loadScreen } from './pages'
 import { DEFAULT_THEME, grammars, manifests } from './themes'
@@ -119,7 +119,9 @@ app.whenReady().then(async () => {
   shell.start()
 
   const panelChannel = createPanelChannel({
+    // Windows are the shell's; what is on them is the stage's.
     command: (command) => {
+      if (isStageCommand(command)) return void service.dispatch(command)
       const result = shell.dispatch(command)
       if (!result.ok) console.warn('[panel]', result.error)
     },

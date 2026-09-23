@@ -40,6 +40,14 @@ export function createContentStore(store: JsonStore, now: () => number) {
       return n
     },
 
+    /** Withdraw these. Returns how many went. */
+    removeMany(ids: Iterable<string>): number {
+      let n = 0
+      for (const id of ids) if (items.delete(id)) n++
+      if (n) changed()
+      return n
+    },
+
     remove(id: string): boolean {
       const existed = items.delete(id)
       if (existed) changed()

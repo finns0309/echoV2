@@ -1,8 +1,8 @@
 // What the panel lists, as data. The home list, a window's settings and fuzzy
 // search are views of the vocabulary (vocabulary.ts); slash commands are another
 // (slash.ts). Pure, so the whole command surface is testable without a DOM.
-import type { ShellCommand, ShellState, ShellWindow } from '@contract'
-import { NEW_WINDOW, WINDOW_VERBS, choiceLabel, describe, switchLine, type WindowVerb } from './vocabulary'
+import type { PanelCommand, ShellWindow } from '@contract'
+import { NEW_WINDOW, PAUSE, WINDOW_VERBS, choiceLabel, describe, showing, switchLine, type Scene, type WindowVerb } from './vocabulary'
 
 export type Item =
   | { kind: 'section'; key: string; label: string; count?: number }
@@ -27,10 +27,10 @@ export type Item =
       value?: string
       /** A switch: shown as on/off. */
       on?: boolean
-      /** Enter runs this. */
-      run?: ShellCommand
+      /** Enter runs this: one command, or one per window ("全部"). */
+      run?: PanelCommand | readonly PanelCommand[]
       /** ←/→ (and Enter, forwards) step through values. */
-      step?: (dir: 1 | -1) => ShellCommand | null
+      step?: (dir: 1 | -1) => PanelCommand | null
       /** Enter (or ⇥) puts this in the input instead: completing a slash command. */
       fill?: string
       danger?: boolean
@@ -45,35 +45,42 @@ export type Action = Extract<Item, { kind: 'action' }>
 
 const at = <T>(list: readonly T[], i: number) => list[((i % list.length) + list.length) % list.length]
 
-function windowRow(shell: ShellState, w: ShellWindow, showing: (window: string) => string | null): Item {
+function windowRow(scene: Scene, w: ShellWindow): Item {
   return {
     kind: 'window',
     key: `w:${w.id}`,
     window: w.id,
     label: w.name,
-    sub: describe(shell, w),
-    hint: w.visible ? (showing(w.id) ?? '空闲') : '已隐藏',
+    sub: describe(scene.shell, w),
+    hint: w.visible ? (showing(scene, w.id) ?? '空闲') : '已隐藏',
     on: w.visible,
   }
 }
 
 const newWindowRow: Action = { kind: 'action', key: 'new', label: NEW_WINDOW.label, glyph: '+', run: NEW_WINDOW.run(), words: `${NEW_WINDOW.words} new` }
 
-/** Home: every window, and a way to add one. */
-export function homeItems(shell: ShellState, showing: (window: string) => string | null): Item[] {
+/** Pausing the rotation: a switch for the whole stage. */
+function pauseRow(scene: Scene): Action {
+  const on = PAUSE.value(scene)
+  return { kind: 'action', key: 'pause', label: PAUSE.label, glyph: '‖', on, run: PAUSE.set(!on), words: PAUSE.words }
+}
+
+/** Home: every window, a way to add one, and the pause. */
+export function homeItems(scene: Scene): Item[] {
   return [
-    { kind: 'section', key: 's:windows', label: '窗口', count: shell.windows.length },
-    ...shell.windows.map((w) => windowRow(shell, w, showing)),
+    { kind: 'section', key: 's:windows', label: '窗口', count: scene.shell.windows.length },
+    ...scene.shell.windows.map((w) => windowRow(scene, w)),
     newWindowRow,
+    pauseRow(scene),
   ]
 }
 
 /** One settings row for a verb: a stepper, a switch, or an action. */
-function settingRow(shell: ShellState, w: ShellWindow, v: WindowVerb): Action {
+function settingRow(scene: Scene, w: ShellWindow, v: WindowVerb): Action {
   const key = v.slash
   switch (v.kind) {
     case 'choice': {
-      const choices = v.choices(shell, w)
+      const choices = v.choices(scene, w)
       const current = v.current(w)
       return {
         kind: 'action',
@@ -99,23 +106,23 @@ function settingRow(shell: ShellState, w: ShellWindow, v: WindowVerb): Action {
 }
 
 /** A window's settings, one row per verb that applies to it. */
-export function windowItems(shell: ShellState, id: string): Item[] {
-  const w = shell.windows.find((x) => x.id === id)
+export function windowItems(scene: Scene, id: string): Item[] {
+  const w = scene.shell.windows.find((x) => x.id === id)
   if (!w) return []
   return [
     { kind: 'section', key: 's:settings', label: '设置' },
-    ...WINDOW_VERBS.filter((v) => v.applies(shell, w)).map((v) => settingRow(shell, w, v)),
+    ...WINDOW_VERBS.filter((v) => v.applies(scene, w)).map((v) => settingRow(scene, w, v)),
   ]
 }
 
 /** What a verb can do to a window, flattened into commands: one per other value, or the flip of a switch. */
-function commandsFor(shell: ShellState, w: ShellWindow, v: WindowVerb): Action[] {
+function commandsFor(scene: Scene, w: ShellWindow, v: WindowVerb): Action[] {
   const key = `${w.id}:${v.slash}`
   const words = `${w.name} ${v.slash} ${v.words}`
   switch (v.kind) {
     case 'choice':
       return v
-        .choices(shell, w)
+        .choices(scene, w)
         .filter((c) => c.id !== v.current(w))
         .map((c) => ({ kind: 'action', key: `${key}:${c.id}`, label: `${w.name} · ${v.label}换成${c.label}`, run: v.set(w, c.id), words: `${words} ${c.id}` }))
     case 'switch': {
@@ -128,13 +135,13 @@ function commandsFor(shell: ShellState, w: ShellWindow, v: WindowVerb): Action[]
 }
 
 /** Everything that can be done, flat: "top 流体", "隐藏 left", "新增". Windows too, to open them. */
-export function allCommands(shell: ShellState, showing: (window: string) => string | null): Selectable[] {
+export function allCommands(scene: Scene): Selectable[] {
   const out: Selectable[] = []
-  for (const w of shell.windows) {
-    out.push(windowRow(shell, w, showing) as Selectable)
-    for (const v of WINDOW_VERBS) if (v.applies(shell, w)) out.push(...commandsFor(shell, w, v))
+  for (const w of scene.shell.windows) {
+    out.push(windowRow(scene, w) as Selectable)
+    for (const v of WINDOW_VERBS) if (v.applies(scene, w)) out.push(...commandsFor(scene, w, v))
   }
-  out.push(newWindowRow)
+  out.push(newWindowRow, pauseRow(scene))
   return out
 }
 
@@ -148,8 +155,8 @@ export function matches(query: string, item: Selectable): boolean {
     .every((term) => hay.includes(term))
 }
 
-export function searchItems(shell: ShellState, query: string, showing: (window: string) => string | null): Item[] {
-  const hits = allCommands(shell, showing).filter((a) => matches(query, a))
+export function searchItems(scene: Scene, query: string): Item[] {
+  const hits = allCommands(scene).filter((a) => matches(query, a))
   if (!hits.length) return [{ kind: 'note', key: 'note', label: '没有匹配的命令，输入 / 查看全部' }]
   return [{ kind: 'section', key: 's:results', label: '结果', count: hits.length }, ...hits]
 }

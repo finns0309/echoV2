@@ -23,6 +23,12 @@ export interface ScheduleInput {
   contents: readonly Content[]
   current: Readonly<Record<string, Surface>>
   now: number
+  /** Nothing on air ends or is pushed aside on its own; free slots still fill. */
+  paused?: boolean
+  /** On-air content the user skipped: it ends this pass, whatever its clock says. */
+  ending?: ReadonlySet<string>
+  /** Milliseconds an on-air content's clock stood still while the stage was paused. */
+  credit?: ReadonlyMap<string, number>
 }
 
 export interface ScheduleOutput {
@@ -83,7 +89,7 @@ function canPreempt(challenger: Content, holder: Content, now: number): boolean 
   return challenger.priority === 'urgent' || h === RANK.ambient
 }
 
-export function schedule({ surfaces, manifests, contents, current, now }: ScheduleInput): ScheduleOutput {
+export function schedule({ surfaces, manifests, contents, current, now, paused, ending, credit }: ScheduleInput): ScheduleOutput {
   const byId = new Map(contents.map((c) => [c.id, c]))
   const routes = createRouter(surfaces)
   const finished: string[] = []
@@ -108,7 +114,7 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
       const prev = current[s.id]?.slots[slot] ?? null
       const content = prev ? byId.get(prev.contentId) : undefined
       if (prev && content && takes(ref, content)) {
-        if (completed(content, prev, now)) finished.push(content.id)
+        if (ending?.has(content.id) || (!paused && completed(content, prev, now - (credit?.get(content.id) ?? 0)))) finished.push(content.id)
         else if (rewritten(prev.presentation, content.presentation)) ref.holder = onAir(content)
         else ref.holder = { content, since: prev.since, directions: prev.directions }
       }
@@ -172,7 +178,7 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
       const ok = (s: SlotRef) =>
         !used.has(s) &&
         takes(s, m) &&
-        (!occupancy || (s.holder ? canPreempt(m, s.holder.content, now) : !behind(s, m) && (important(m) || quiet(s))))
+        (!occupancy || (s.holder ? !paused && canPreempt(m, s.holder.content, now) : !behind(s, m) && (important(m) || quiet(s))))
       const s = slots.find((x) => ok(x) && !(occupancy && x.holder)) ?? slots.find(ok)
       if (!s) return null
       used.add(s)
@@ -207,7 +213,7 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
   //    pushed aside gets another chance at a free slot.
   placeEnsembles()
   fillFree()
-  preempt()
+  if (!paused) preempt()
   fillFree()
 
   // 4. Render the stage.

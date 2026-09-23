@@ -40,8 +40,24 @@ export type Surface = z.infer<typeof Surface>
 export const StageState = z.object({
   rev: z.number().int().nonnegative(),
   surfaces: z.record(z.string(), Surface),
+  /** The user paused the rotation: what is on air stays until paused is lifted. */
+  paused: z.boolean().optional(),
 })
 export type StageState = z.infer<typeof StageState>
+
+/**
+ * What the user can do to content, as opposed to windows (ShellCommand). The stage
+ * service carries these out. Content that follows a media clock (lyrics) belongs to
+ * its player and is left alone: it would be back on the next tick anyway.
+ */
+export const StageCommand = z.discriminatedUnion('type', [
+  /** End what a window shows now, as if its time were up: kept-in-rotation content goes back in line. */
+  z.object({ type: z.literal('skip'), window: z.string().min(1) }),
+  /** Take content away: what a window shows now, or with no window, everything, waiting or not. */
+  z.object({ type: z.literal('clear'), window: z.string().min(1).optional() }),
+  z.object({ type: z.literal('setPaused'), on: z.boolean() }),
+])
+export type StageCommand = z.infer<typeof StageCommand>
 
 // High-frequency (~30fps). Never folded into StageState.
 export const SignalFrame = z.object({
