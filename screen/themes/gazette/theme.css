@@ -33,16 +33,18 @@
     radial-gradient(ellipse 80% 75% at 50% 45%, transparent 55%, rgb(150 115 60 / 0.13) 100%),
     var(--gz-paper);
 }
-.gz-paper::after {
+/* The fold is in the paper, under the ink: ::before paints ahead of the page's
+   (positioned) contents, so type prints over it rather than being washed by it. */
+.gz-paper::before {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
   top: 50%;
-  height: calc(var(--u) * 0.9);
+  height: calc(var(--u) * 1.4);
   transform: translateY(-50%);
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent, rgb(60 45 20 / 0.06) 48%, rgb(255 255 255 / 0.35) 52%, transparent);
+  background: linear-gradient(to bottom, transparent, rgb(60 45 20 / 0.045) 49%, rgb(255 255 255 / 0.22) 51%, transparent);
 }
 
 /* — Masthead: ears either side of the name, a heavy and a hairline rule under it — */
