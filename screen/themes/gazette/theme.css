@@ -1,4 +1,4 @@
-/* 晨报 · a front page on newsprint. One ink, one spot of vermilion, a fold. */
+/* 晨报 · a front page on newsprint. One ink and one spot of vermilion. */
 
 .gz {
   --gz-paper: #f1ece0;
@@ -20,7 +20,7 @@
 }
 .gz :lang(zh) { --gz-mincho: "Songti SC", "Hiragino Mincho ProN", serif; --gz-gothic: "PingFang SC", "Hiragino Sans", sans-serif; }
 
-/* The paper: grain, edges a shade older than the middle, and the fold across it. */
+/* The paper: grain, and edges a shade older than the middle. */
 .gz-paper {
   --u: clamp(11px, calc(0.9cqw + 0.75cqh), 30px);
   position: absolute;
@@ -32,19 +32,6 @@
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .22 0 0 0 0 .19 0 0 0 0 .14 0 0 0 .11 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
     radial-gradient(ellipse 80% 75% at 50% 45%, transparent 55%, rgb(150 115 60 / 0.13) 100%),
     var(--gz-paper);
-}
-/* The fold is in the paper, under the ink: ::before paints ahead of the page's
-   (positioned) contents, so type prints over it rather than being washed by it. */
-.gz-paper::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  height: calc(var(--u) * 1.4);
-  transform: translateY(-50%);
-  pointer-events: none;
-  background: linear-gradient(to bottom, transparent, rgb(60 45 20 / 0.045) 49%, rgb(255 255 255 / 0.22) 51%, transparent);
 }
 
 /* — Masthead: ears either side of the name, a heavy and a hairline rule under it — */

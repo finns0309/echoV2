@@ -8,7 +8,7 @@ New in echoV2, not ported.
 
 - **Masthead**: ECHO in a didone, with ears either side. The left ear has the issue number (the day of the year) and the weekday. The right ear has a vermilion seal, 朝刊 until three in the afternoon and 夕刊 after, and the time. Under it is a heavy rule and a hairline, then the dateline in kanji numerals with the era year (二〇二六年（令和八年）九月二十三日).
 - **Tiers**: the lead (slot `lead`) runs across the left. Two stories (`col2`, `col3`) sit under it, split by a rule. A rail on the right holds one story (`col1`) and, at its foot, the literary box (`verse`). Rules separate everything, as on a real page. When the window is taller than it is wide, the page becomes a single column and `col3` is left out.
-- **Paper**: fractal-noise grain, edges a shade older than the middle, and a fold across the half.
+- **Paper**: fractal-noise grain, and edges a shade older than the middle. No fold: across the whole page it read as a line through the type.
 - **Nothing on the page**: 本日休刊, set vertically.
 
 ## A story
