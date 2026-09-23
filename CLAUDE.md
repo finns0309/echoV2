@@ -18,6 +18,7 @@ pnpm check        # typecheck + lint + tests, including the architecture tests
 pnpm build        # Electron targets into out/, the MCP script into out/mcp/, the hotkey helper into out/native/
 pnpm package      # build, then dist/Echo-<version>-arm64.dmg
 pnpm icon         # regenerate the icon from scripts/make-icon.swift
+pnpm harness      # the theme and panel debug pages (cmd/*/harness.html) on localhost:5199, no Electron needed
 ```
 
 ## Rules that fail the build

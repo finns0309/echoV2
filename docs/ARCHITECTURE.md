@@ -263,5 +263,5 @@ tsconfig.json  tsconfig.node.json  tsconfig.web.json  eslint.config.js  vitest.c
 ### 已知代价
 
 - 多了构建步骤。开发时用 `electron-vite dev`，发布前用 `electron-vite build`。
-- 调试页不能直接双击打开，要用 dev server 打开：`/screen/harness.html` 用假的通道把示例内容（日文、中文、数值、进度、图片）按不同醒目程度喂给任意主题，还能模拟音乐信号和面板定位；`/panel/harness.html` 是面板的。两个都不进打包产物。
+- 调试页不能直接双击打开，要跑 `pnpm harness`（只起 Vite，不起 Electron，所以装好的 Echo 开着也能用），浏览器里打开 `localhost:5199/screen/harness.html`（文件在 `cmd/screen/harness.html`） 用假的通道把示例内容（日文、中文、数值、进度、图片）按不同醒目程度喂给任意主题，还能模拟音乐信号和面板定位；`localhost:5199/panel/harness.html` 是面板的（`cmd/panel/harness.html`）。两个都不进打包产物。
 - electron-vite 是第三方工具。它只负责构建，不侵入代码，以后要换成 tsc + esbuild 脚本也只改配置。

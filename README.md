@@ -42,6 +42,7 @@ LLM 的 key 放在 `~/Library/Application Support/echo-v2/secrets.json`（`opena
 pnpm install
 pnpm dev      # 右上角挂出风铃；托盘里打开面板（dev 版不启用 ⌥ + 右⌘，见下）
 pnpm check    # 类型检查 + lint + 测试（含架构测试）
+pnpm harness  # 主题和面板的调试页，localhost:5199，Echo 开着也能用
 ```
 
 投一张卡试试：

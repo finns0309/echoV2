@@ -10,6 +10,7 @@
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "electron-vite dev",
+    "harness": "vite --config harness.config.ts",
     "build": "electron-vite build && tsup && pnpm build:native",
     "build:native": "mkdir -p out/native && swiftc -O native/hotkey/main.swift -o out/native/echo-hotkey",
     "preview": "electron-vite preview",
