@@ -1,0 +1,420 @@
+/* Duo · a foldable phone on the desk. Titanium (Night Sky), glass, and a hinge. */
+
+.du {
+  --du-frame: #1d2331;
+  --du-frame-hi: #3a4459;
+  --du-glass: rgb(255 255 255 / 0.13);
+  --du-glass-edge: rgb(255 255 255 / 0.22);
+  --du-font: -apple-system, "SF Pro Text", system-ui, "Hiragino Sans", "PingFang SC", sans-serif;
+  --du-round: "SF Pro Rounded", ui-rounded, -apple-system, system-ui, sans-serif;
+  container-type: size;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: #fff;
+  font-family: var(--du-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* — The body. Height fits the window; each half is 0.69 of it wide (the cover's
+   shape), so open it is about 1.4 wide, as the inside display is. — */
+.du-device {
+  --h: min(88cqh, 64cqw);
+  --w: calc(var(--h) * 0.69);
+  --s: calc(var(--h) / 100);
+  --r: calc(var(--s) * 9);
+  --bezel: calc(var(--s) * 1.15);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--w) * 2);
+  height: var(--h);
+  /* folded, the phone (the right half) sits in the middle; open, the whole spread does */
+  transform: translate(-50%, -50%) translateX(calc(var(--w) * -0.5));
+  transition: transform 1.1s cubic-bezier(0.6, 0, 0.2, 1);
+  perspective: calc(var(--h) * 4);
+  transform-style: preserve-3d;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+.du-device.is-open { transform: translate(-50%, -50%); }
+
+.du-right {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: var(--w);
+  height: 100%;
+  transform: translateZ(-1px);
+  transform-style: preserve-3d;
+}
+/* The leaf swings on the hinge (its right edge). Folded it lies over the right half, back up. */
+.du-leaf {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--w);
+  height: 100%;
+  transform-origin: right center;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);
+  transition: transform 1.1s cubic-bezier(0.6, 0, 0.2, 1);
+}
+.is-open .du-leaf { transform: rotateY(0deg); }
+
+.du-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  background: linear-gradient(150deg, var(--du-frame-hi), var(--du-frame) 38%, #11151f);
+  box-shadow: 0 calc(var(--s) * 2.5) calc(var(--s) * 6) rgb(0 0 0 / 0.42);
+}
+.du-cover { transform: rotateY(180deg); border-radius: var(--r); }
+.du-inner-left { border-radius: var(--r) 0 0 var(--r); }
+/* backface-visibility doesn't reach everything inside a face (blurs, glass and animated
+   layers get their own), so the face turned away is also hidden once the swing is over. */
+.du-inner-left { visibility: hidden; transition: visibility 0s linear 1.1s; }
+.is-open .du-inner-left { visibility: visible; transition-delay: 0s; }
+.is-open .du-cover { visibility: hidden; transition: visibility 0s linear 1.1s; }
+/* Folded, the back half is covered whole by the cover; its screen, square at the hinge, would
+   show around the cover's rounded corners, so it too goes once the leaf has landed. */
+.du-right { visibility: hidden; transition: visibility 0s linear 1.1s; }
+.is-open .du-right { visibility: visible; transition-delay: 0s; }
+.du-inner-right { border-radius: 0 var(--r) var(--r) 0; }
+/* The half turning away darkens as it goes. */
+.du-inner-left::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #000;
+  opacity: 0.7;
+  pointer-events: none;
+  transition: opacity 1.1s cubic-bezier(0.6, 0, 0.2, 1);
+}
+.is-open .du-inner-left::after { opacity: 0; }
+
+.du-screen {
+  position: absolute;
+  inset: var(--bezel);
+  border-radius: calc(var(--r) - var(--bezel));
+  overflow: hidden;
+  isolation: isolate;
+  background: #000;
+}
+/* The inside display runs across the hinge: no bezel there, square corners. */
+.du-inner-left .du-screen { right: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.du-inner-right .du-screen { left: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.du-inner-right .du-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--s) * 0.6);
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(to right, rgb(0 0 0 / 0.35), transparent);
+}
+.du-shadow {
+  position: absolute;
+  left: 50%;
+  right: 0;
+  bottom: calc(var(--s) * -3.5);
+  height: calc(var(--s) * 5);
+  background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.35), transparent 70%);
+  filter: blur(calc(var(--s) * 1.2));
+  transform: translateZ(-4px);
+  transition: left 1.1s cubic-bezier(0.6, 0, 0.2, 1);
+}
+.is-open .du-shadow { left: 0; }
+
+.du-app-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: calc(var(--s) * 6.2);
+  height: calc(var(--s) * 6.2);
+  border-radius: 24%;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--app, #5e5ce6) 80%, #fff), var(--app, #5e5ce6));
+  color: #fff;
+  font: 700 calc(var(--s) * 3) / 1 var(--du-round);
+  font-style: normal;
+}
+
+/* — The cover: a Lock Screen — */
+.du-wall {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 60% at 20% 10%, #4b5fb0 0%, transparent 60%),
+    radial-gradient(ellipse 80% 70% at 90% 90%, #b3477c 0%, transparent 55%),
+    linear-gradient(170deg, #1a2150, #0b0d1c);
+}
+.du-wall-art {
+  position: absolute;
+  inset: -20%;
+  width: 140%;
+  height: 140%;
+  object-fit: cover;
+  filter: blur(calc(var(--s) * 5)) saturate(1.5) brightness(0.75);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.has-art .du-wall-art { opacity: 1; }
+.du-lock {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--s) * 6) calc(var(--s) * 4.5) calc(var(--s) * 4) calc(var(--s) * 10);
+}
+.du-date { font: 600 calc(var(--s) * 3) / 1.2 var(--du-font); opacity: 0.85; }
+.du-time {
+  font: 700 calc(var(--s) * 17) / 1 var(--du-round);
+  letter-spacing: -0.02em;
+  margin-top: calc(var(--s) * 0.5);
+  text-shadow: 0 calc(var(--s) * 0.5) calc(var(--s) * 3) rgb(0 0 0 / 0.25);
+}
+.du-np,
+.du-note {
+  background: var(--du-glass);
+  -webkit-backdrop-filter: blur(calc(var(--s) * 4)) saturate(1.6);
+  backdrop-filter: blur(calc(var(--s) * 4)) saturate(1.6);
+  border: 1px solid var(--du-glass-edge);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+  border-radius: calc(var(--s) * 4.2);
+}
+.du-np {
+  display: none;
+  grid-template-columns: auto 1fr;
+  gap: calc(var(--s) * 1.2) calc(var(--s) * 2);
+  align-items: center;
+  margin-top: calc(var(--s) * 4);
+  padding: calc(var(--s) * 2.2);
+}
+.has-np .du-np { display: grid; }
+.du-np-art { width: calc(var(--s) * 8); height: calc(var(--s) * 8); border-radius: calc(var(--s) * 1.6); object-fit: cover; background: rgb(255 255 255 / 0.1); }
+.du-np-text { display: flex; flex-direction: column; min-width: 0; }
+.du-np-text b { font: 600 calc(var(--s) * 2.8) / 1.25 var(--du-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.du-np-text span { font: 400 calc(var(--s) * 2.4) / 1.3 var(--du-font); opacity: 0.7; }
+.du-np-line { grid-column: 1 / -1; margin: 0; min-height: 1.3em; font: 700 calc(var(--s) * 3.3) / 1.3 var(--du-font); }
+.du-np-line.is-new { animation: du-rise 500ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+.du-notes { margin-top: auto; display: flex; flex-direction: column; gap: calc(var(--s) * 1.1); }
+.du-note { display: flex; gap: calc(var(--s) * 1.8); padding: calc(var(--s) * 2); transform-origin: top center; }
+.du-note:nth-child(2) { transform: scale(0.95); opacity: 0.8; }
+.du-note:nth-child(3) { transform: scale(0.9); opacity: 0.55; }
+.du-note.is-new { animation: du-drop 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15); }
+.du-note-text { min-width: 0; flex: 1; }
+.du-note-head { display: flex; justify-content: space-between; font: 600 calc(var(--s) * 2.5) / 1.3 var(--du-font); }
+.du-note-head span { font-weight: 400; opacity: 0.6; }
+.du-note-body { font: 400 calc(var(--s) * 2.5) / 1.35 var(--du-font); }
+.du-note-body b { display: block; font-weight: 600; }
+.du-note-body p { margin: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+@keyframes du-drop { from { transform: translateY(calc(var(--s) * -4)) scale(0.9); opacity: 0; } }
+@keyframes du-rise { from { transform: translateY(0.4em); opacity: 0; } }
+
+/* StandBy: nothing on air, just the time. */
+.du-standby {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+.is-standby .du-standby { display: flex; }
+.is-standby .du-lock,
+.is-standby .du-wall { display: none; }
+.du-standby-date { font: 600 calc(var(--s) * 3) / 1 var(--du-font); color: #ff9f5a; letter-spacing: 0.04em; }
+.du-standby-time { order: 2; font: 700 calc(var(--s) * 21) / 1 var(--du-round); color: #ffe7d6; letter-spacing: -0.03em; margin-top: calc(var(--s) * 1.5); }
+
+/* — The Dynamic Island, upright along the side; it opens into a Live Activity — */
+.du-island {
+  position: absolute;
+  z-index: 10;
+  left: calc(var(--s) * 2.4);
+  top: calc(var(--s) * 7);
+  width: calc(var(--s) * 4.2);
+  height: calc(var(--s) * 15);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--s) * 1.8);
+  padding: 0;
+  border-radius: calc(var(--s) * 2.1);
+  background: #000;
+  overflow: hidden;
+  transition:
+    width 520ms cubic-bezier(0.3, 1.2, 0.4, 1),
+    height 520ms cubic-bezier(0.3, 1.2, 0.4, 1),
+    border-radius 520ms ease,
+    padding 520ms ease;
+}
+/* the camera, up at its top */
+.du-island::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: calc(var(--s) * 1.3);
+  width: calc(var(--s) * 1.5);
+  height: calc(var(--s) * 1.5);
+  margin-left: calc(var(--s) * -0.75);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #2c3550, #05060a 65%);
+}
+.du-island > * { opacity: 0; transition: opacity 200ms ease; }
+.du-island.is-open {
+  width: calc(100% - var(--s) * 4.8);
+  height: calc(var(--s) * 13);
+  border-radius: calc(var(--s) * 5);
+  padding: 0 calc(var(--s) * 2.4);
+}
+.du-island.is-open::before { opacity: 0; }
+.du-island.is-open > * { opacity: 1; transition-delay: 220ms; }
+.du-island.is-loud { animation: du-shake 520ms ease 480ms; box-shadow: 0 0 0 calc(var(--s) * 0.35) rgb(255 69 58 / 0.9); }
+.du-island-text { display: flex; flex-direction: column; min-width: 0; }
+.du-island-text b { font: 600 calc(var(--s) * 2.6) / 1.2 var(--du-font); color: rgb(255 255 255 / 0.65); }
+.du-island-text span { font: 600 calc(var(--s) * 3) / 1.3 var(--du-font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@keyframes du-shake {
+  20% { transform: translateX(calc(var(--s) * -0.8)); }
+  40% { transform: translateX(calc(var(--s) * 0.8)); }
+  60% { transform: translateX(calc(var(--s) * -0.5)); }
+  80% { transform: translateX(calc(var(--s) * 0.3)); }
+}
+
+/* — Inside, left: the player — */
+.du-inner-left .du-screen { background: linear-gradient(165deg, #1d2336, #0b0d15); }
+.du-player-bg {
+  position: absolute;
+  inset: -15%;
+  width: 130%;
+  height: 130%;
+  object-fit: cover;
+  filter: blur(calc(var(--s) * 6)) saturate(1.5) brightness(0.62);
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+.has-player.has-art .du-player-bg { opacity: 1; }
+.du-player-head,
+.du-player-lines { display: none; }
+.has-player .du-player-head { display: flex; }
+.has-player .du-player-lines { display: flex; }
+.has-player .du-widget { display: none; }
+.du-player-head {
+  position: absolute;
+  top: calc(var(--s) * 6);
+  left: calc(var(--s) * 6);
+  right: calc(var(--s) * 4);
+  gap: calc(var(--s) * 2);
+  align-items: center;
+}
+.du-player-art { width: calc(var(--s) * 10); height: calc(var(--s) * 10); border-radius: calc(var(--s) * 1.8); object-fit: cover; background: rgb(255 255 255 / 0.12); box-shadow: 0 calc(var(--s) * 1) calc(var(--s) * 3) rgb(0 0 0 / 0.35); }
+.du-player-names { display: flex; flex-direction: column; min-width: 0; }
+.du-player-names b { font: 600 calc(var(--s) * 3) / 1.25 var(--du-font); }
+.du-player-names span { font: 400 calc(var(--s) * 2.5) / 1.3 var(--du-font); opacity: 0.65; }
+.du-player-lines {
+  position: absolute;
+  left: calc(var(--s) * 6);
+  right: calc(var(--s) * 5);
+  top: 28%;
+  bottom: calc(var(--s) * 5);
+  flex-direction: column;
+  justify-content: center;
+}
+.du-player-lines p {
+  margin: 0 0 calc(var(--s) * 2.2);
+  font: 700 calc(var(--s) * 4.4) / 1.25 var(--du-font);
+  color: rgb(255 255 255 / 0.32);
+  transition: color 300ms ease;
+}
+.du-player-lines .is-now { color: #fff; animation: du-rise 480ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+.du-player-lines .is-far { opacity: 0.5; }
+.du-player-lines .is-past { color: rgb(255 255 255 / 0.2); }
+.du-widget {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--s) * 1);
+}
+.du-widget-date { font: 600 calc(var(--s) * 3) / 1 var(--du-font); opacity: 0.7; }
+.du-widget-time { font: 700 calc(var(--s) * 18) / 1 var(--du-round); letter-spacing: -0.02em; }
+
+/* — Inside, right: the chat — */
+.du-inner-right .du-screen { background: #000; }
+.du-chat-bar {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--s) * 13);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: calc(var(--s) * 0.6);
+  padding-bottom: calc(var(--s) * 1.4);
+  background: rgb(28 28 30 / 0.92);
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+.du-chat-bar .du-app-icon { border-radius: 50%; width: calc(var(--s) * 5.2); height: calc(var(--s) * 5.2); font-size: calc(var(--s) * 2.4); }
+.du-chat-bar b { font: 500 calc(var(--s) * 2.3) / 1 var(--du-font); opacity: 0.85; }
+.du-thread {
+  position: absolute;
+  top: calc(var(--s) * 13);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: calc(var(--s) * 0.8);
+  padding: calc(var(--s) * 3) calc(var(--s) * 3) calc(var(--s) * 4) calc(var(--s) * 3.5);
+  overflow: hidden;
+}
+.du-stamp { align-self: center; margin-top: calc(var(--s) * 1.6); font: 500 calc(var(--s) * 2.1) / 1.2 var(--du-font); color: rgb(235 235 245 / 0.5); }
+.du-group { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--s) * 0.7); }
+.du-bubble {
+  max-width: 84%;
+  padding: calc(var(--s) * 1.5) calc(var(--s) * 2.5);
+  border-radius: calc(var(--s) * 3.8);
+  background: #262629;
+  font: 400 calc(var(--s) * 2.9) / 1.35 var(--du-font);
+  transform-origin: bottom left;
+}
+.du-bubble.is-new { animation: du-pop 360ms cubic-bezier(0.3, 1.4, 0.5, 1); }
+@keyframes du-pop { from { transform: scale(0.55); opacity: 0; } }
+.du-bubble strong { color: color-mix(in srgb, var(--app) 60%, #fff); font-weight: 700; }
+.du-bubble rt { font-size: 0.55em; opacity: 0.7; }
+.du-aside { background: transparent; border: 1px solid rgb(255 255 255 / 0.16); color: rgb(235 235 245 / 0.7); font-size: calc(var(--s) * 2.5); }
+.du-credit { padding-left: calc(var(--s) * 2.5); font: 400 calc(var(--s) * 2) / 1.2 var(--du-font); color: rgb(235 235 245 / 0.45); }
+.du-figure small,
+.du-meter small { display: flex; justify-content: space-between; gap: 1em; font-size: calc(var(--s) * 2.2); color: rgb(235 235 245 / 0.6); }
+.du-figure-n { font: 700 calc(var(--s) * 6.5) / 1.1 var(--du-round); letter-spacing: -0.02em; }
+.du-figure-n span { font-size: 0.45em; font-weight: 600; margin-left: 0.2em; opacity: 0.8; }
+.du-figure-n em { font-style: normal; font-size: 0.4em; margin-left: 0.5em; }
+.du-figure-n em.is-up { color: #30d158; }
+.du-figure-n em.is-down { color: #ff453a; }
+.du-meter { min-width: 62%; }
+.du-meter small b { color: #fff; font-weight: 600; }
+.du-meter-bar { height: calc(var(--s) * 1.3); margin-top: calc(var(--s) * 1); border-radius: 99px; background: rgb(255 255 255 / 0.14); overflow: hidden; }
+.du-meter-bar i { display: block; height: 100%; width: calc(var(--p) * 100%); border-radius: inherit; background: var(--app, #0a84ff); transition: width 700ms ease; }
+.du-photo { padding: 0; overflow: hidden; }
+.du-photo img { display: block; width: calc(var(--s) * 34); max-width: 100%; }
+.du-typing { display: flex; gap: calc(var(--s) * 0.7); padding: calc(var(--s) * 1.9) calc(var(--s) * 2.5); }
+.du-typing i { width: calc(var(--s) * 1.2); height: calc(var(--s) * 1.2); border-radius: 50%; background: rgb(235 235 245 / 0.55); animation: du-dot 1.2s ease-in-out infinite; }
+.du-typing i:nth-child(2) { animation-delay: 0.15s; }
+.du-typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes du-dot { 0%, 60%, 100% { opacity: 0.35; transform: none; } 30% { opacity: 1; transform: translateY(calc(var(--s) * -0.5)); } }
+.du-chat-empty {
+  position: absolute;
+  inset: calc(var(--s) * 13) 0 0;
+  display: grid;
+  place-items: center;
+  font: 400 calc(var(--s) * 2.6) / 1 var(--du-font);
+  color: rgb(235 235 245 / 0.4);
+}
+.has-chat .du-chat-empty { display: none; }
