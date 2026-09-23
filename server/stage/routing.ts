@@ -1,4 +1,4 @@
-import type { Content, Route } from '@contract'
+import type { Content, Route, Salience } from '@contract'
 
 // Which surfaces a content may go to. Rules: docs/CONTRACT.md §5, rules 7 and 11.
 
@@ -14,6 +14,8 @@ export interface SurfaceConfig {
   fallback?: boolean
   /** Hidden surfaces get nothing; what they held goes elsewhere. */
   hidden?: boolean
+  /** The loudest content may look here; absent means no limit. */
+  loudness?: Salience
 }
 
 /** Does `route` admit `content`? No route admits everything. */

@@ -1,6 +1,7 @@
 // The shell: echo's windows and what the user can do to them. The display server
 // is the only writer; the tray and the panel read ShellState and send ShellCommands.
 import { z } from 'zod'
+import { Salience } from './content'
 
 export const ShellWindow = z.object({
   id: z.string().min(1),
@@ -13,6 +14,8 @@ export const ShellWindow = z.object({
   clickThrough: z.boolean(),
   /** normal; restorable: filled by the user and can go back; full: its theme is full-screen anyway. */
   fill: z.enum(['normal', 'restorable', 'full']),
+  /** The loudest this window lets content look; louder content is shown at this level. attention: no limit. */
+  loudness: Salience,
   /** The fallback window: can't be closed or renamed, takes what no visible window does. */
   main: z.boolean(),
 })
@@ -44,5 +47,6 @@ export const ShellCommand = z.discriminatedUnion('type', [
   /** Fill the screen, or go back to the size before. A theme that is full-screen anyway can't. */
   z.object({ type: z.literal('setFill'), ...onOff }),
   z.object({ type: z.literal('resetWindow'), ...onWindow }),
+  z.object({ type: z.literal('setLoudness'), ...onWindow, loudness: Salience }),
 ])
 export type ShellCommand = z.infer<typeof ShellCommand>

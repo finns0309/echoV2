@@ -124,7 +124,7 @@ type Block =
   | progress | 一条光带，头上一个亮点 | 短冊边缘的朱色墨线 | 活動限界式 20 格分段条 | 光字下面一条光带，由浪带来 |
   | image | 带流体光晕的圆角图 | 贴在短冊顶上的小相片 | 满版黑白硬切 | 只写说明文字 |
 
-- **醒目程度（salience）**：内容可以在 `hints.salience` 自己写；没写就按优先级推导（ambient → quiet，normal → normal，urgent → attention）。舞台把结果写进 `OnAir.salience`，主题只看这个。它和调度无关，只管「看起来有多响」。每个主题用自己的方式表达：
+- **醒目程度（salience）**：内容可以在 `hints.salience` 自己写；没写就按优先级推导（ambient → quiet，normal → normal，urgent → attention）。窗口还有用户设的醒目上限（`ShellWindow.loudness`，`/loud`）：比上限响的内容在那个窗口按上限显示，比如把一个窗口设成「安静」就是勿扰。舞台把两者合起来的结果写进 `OnAir.salience`，主题只看这个。它和调度无关，只管「看起来有多响」。每个主题用自己的方式表达：
 
   | | quiet | attention |
   |---|---|---|
@@ -266,12 +266,13 @@ MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发
 
 ```ts
 type ShellState = {
-  windows: { id; name; theme; route; visible; clickThrough; fill: 'normal' | 'restorable' | 'full'; main }[];
+  windows: { id; name; theme; route; visible; clickThrough; fill: 'normal' | 'restorable' | 'full'; loudness: Salience; main }[];
   themes: { id; label }[];  routes: { id; label }[];  names: string[];
 };
 type ShellCommand =
   | { type: 'setTheme'; window; theme } | { type: 'setRoute'; window; route } | { type: 'rename'; window; name }
   | { type: 'setVisible' | 'setClickThrough' | 'setFill'; window; on: boolean }   // 写目标状态，不是"翻转"，重复发也无害
+  | { type: 'setLoudness'; window; loudness: Salience }                           // 醒目上限，attention = 不限
   | { type: 'resetWindow' | 'closeWindow'; window } | { type: 'addWindow'; theme? };
 ```
 

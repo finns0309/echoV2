@@ -79,6 +79,7 @@ export function createShellControl(o: ShellControlOptions) {
             visible: s.visible,
             clickThrough: s.clickThrough,
             fill: s.fill,
+            loudness: p.loudness ?? 'attention',
             main: p.id === o.main,
           },
         ]
@@ -108,6 +109,7 @@ export function createShellControl(o: ShellControlOptions) {
           ...(p.accepts ? { accepts: p.accepts } : {}),
           ...(p.id === o.main ? { fallback: true } : {}),
           ...(windows.get(p.id)?.state().visible === false ? { hidden: true } : {}),
+          ...(p.loudness ? { loudness: p.loudness } : {}),
         },
       ]
     })
@@ -182,6 +184,9 @@ export function createShellControl(o: ShellControlOptions) {
       }
       case 'resetWindow':
         surface(command.window)?.reset()
+        return { ok: true }
+      case 'setLoudness':
+        prefs.setLoudness(command.window, command.loudness)
         return { ok: true }
     }
   }

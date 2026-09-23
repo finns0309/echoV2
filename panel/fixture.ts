@@ -4,8 +4,8 @@ import type { ShellState } from '@contract'
 
 export const shell: ShellState = {
   windows: [
-    { id: 'main', name: 'main', theme: 'furin', route: 'music', visible: true, clickThrough: false, fill: 'normal', main: true },
-    { id: 'w2', name: 'top', theme: 'plasma', route: 'card', visible: false, clickThrough: true, fill: 'full', main: false },
+    { id: 'main', name: 'main', theme: 'furin', route: 'music', visible: true, clickThrough: false, fill: 'normal', loudness: 'attention', main: true },
+    { id: 'w2', name: 'top', theme: 'plasma', route: 'card', visible: false, clickThrough: true, fill: 'full', loudness: 'attention', main: false },
   ],
   themes: [
     { id: 'furin', label: '风铃' },

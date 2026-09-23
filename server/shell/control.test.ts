@@ -60,7 +60,7 @@ describe('shell control', () => {
     const { shell, log } = setup()
     expect(log).toEqual(['open main', 'wear main furin'])
     expect(shell.state().windows).toEqual([
-      { id: 'main', name: 'main', theme: 'furin', route: 'all', visible: true, clickThrough: false, fill: 'normal', main: true },
+      { id: 'main', name: 'main', theme: 'furin', route: 'all', visible: true, clickThrough: false, fill: 'normal', loudness: 'attention', main: true },
     ])
   })
 
@@ -119,6 +119,16 @@ describe('shell control', () => {
     expect(shell.state().windows[0]?.clickThrough).toBe(true)
     shell.dispatch({ type: 'setClickThrough', window: 'main', on: false })
     expect(shell.state().windows[0]?.clickThrough).toBe(false)
+  })
+
+  it('caps a window\'s loudness, and tells the stage', () => {
+    const { shell } = setup()
+    expect(shell.state().windows[0]?.loudness).toBe('attention')
+    shell.dispatch({ type: 'setLoudness', window: 'main', loudness: 'quiet' })
+    expect(shell.state().windows[0]?.loudness).toBe('quiet')
+    expect(shell.surfaces()[0]?.loudness).toBe('quiet')
+    shell.dispatch({ type: 'setLoudness', window: 'main', loudness: 'attention' })
+    expect(shell.surfaces()[0]).not.toHaveProperty('loudness')
   })
 })
 

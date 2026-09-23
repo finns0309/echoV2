@@ -38,6 +38,10 @@ export const waitingOrder = (a: Content, b: Content): number => RANK[b.priority]
 /** A content's own salience hint wins; otherwise what it waited for says how loud it should be. */
 const SALIENCE_BY_PRIORITY: Record<Priority, Salience> = { ambient: 'quiet', normal: 'normal', urgent: 'attention' }
 export const salienceOf = (c: Content): Salience => c.presentation.hints?.salience ?? SALIENCE_BY_PRIORITY[c.priority]
+const LOUDNESS: readonly Salience[] = ['quiet', 'normal', 'attention']
+/** A window's loudness is a ceiling: louder content is shown at that level there. */
+export const capSalience = (s: Salience, ceiling: Salience | undefined): Salience =>
+  ceiling && LOUDNESS.indexOf(s) > LOUDNESS.indexOf(ceiling) ? ceiling : s
 
 const ROLE_ORDER: Record<SlotSpec['role'], number> = { main: 0, side: 1, ambient: 2 }
 const MIN_DWELL_S = 6
@@ -226,7 +230,7 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
           contentId: h.content.id,
           presentation: h.content.presentation,
           since: h.since,
-          salience: salienceOf(h.content),
+          salience: capSalience(salienceOf(h.content), s.surface.loudness),
           ...(h.directions === undefined ? {} : { directions: h.directions }),
         }
       : null

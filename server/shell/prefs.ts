@@ -1,4 +1,4 @@
-import type { Route } from '@contract'
+import type { Route, Salience } from '@contract'
 import type { JsonStore } from '@server/foundation/store'
 
 export interface SurfacePref {
@@ -8,6 +8,8 @@ export interface SurfacePref {
   theme: string
   /** What this window takes; absent means everything. */
   accepts?: Route
+  /** The loudest content may look here; absent means no limit. */
+  loudness?: Salience
 }
 
 export interface Bounds {
@@ -57,6 +59,18 @@ export function createShellPrefs(store: JsonStore, defaults: SurfacePref[]) {
           const next: SurfacePref = { ...p }
           if (accepts) next.accepts = accepts
           else delete next.accepts
+          return next
+        }),
+      )
+    },
+    /** 'attention' (no limit) is stored as absent. */
+    setLoudness(surface: string, loudness: Salience): void {
+      save(
+        prefs.map((p) => {
+          if (p.id !== surface) return p
+          const next: SurfacePref = { ...p }
+          if (loudness === 'attention') delete next.loudness
+          else next.loudness = loudness
           return next
         }),
       )

@@ -10,7 +10,7 @@ const slash = (input: string, opened: string | null = null) => slashItems(input,
 
 describe('slash commands', () => {
   it('lists every command after /, and narrows by prefix or by the Chinese name', () => {
-    expect(picks(slash('/'))).toEqual(['/new ', '/open ', '/theme ', '/route ', '/name ', '/show ', '/hide ', '/click ', '/fill ', '/reset ', '/close '])
+    expect(picks(slash('/'))).toEqual(['/new ', '/open ', '/theme ', '/route ', '/loud ', '/name ', '/show ', '/hide ', '/click ', '/fill ', '/reset ', '/close '])
     expect(picks(slash('/th'))).toEqual(['/theme '])
     expect(picks(slash('/隐藏'))).toEqual(['/hide '])
     expect(note(slash('/zzz'))).toMatch(/没有以 \/zzz 开头/)
@@ -34,6 +34,12 @@ describe('slash commands', () => {
     // main can't be closed; a full-screen theme can't fill
     expect(picks(slash('/close '))).toEqual([{ type: 'closeWindow', window: 'w2' }])
     expect(picks(slash('/fill '))).toEqual(['/fill main '])
+  })
+
+  it('caps how loud a window may look', () => {
+    expect(picks(slash('/loud top '))).toEqual(['当前', { type: 'setLoudness', window: 'w2', loudness: 'normal' }, { type: 'setLoudness', window: 'w2', loudness: 'quiet' }])
+    expect(picks(slash('/loud top 安'))).toEqual([{ type: 'setLoudness', window: 'w2', loudness: 'quiet' }])
+    expect(picks(slash('/醒目'))).toEqual(['/loud '])
   })
 
   it('offers the flip first for a switch, and says when a window cannot', () => {

@@ -1,7 +1,7 @@
 // Everything the panel can do to echo's windows, written once. A window's settings
 // rows, fuzzy search and slash commands are three views of this table
 // (commands.ts, slash.ts); adding a verb here adds it to all three.
-import type { ShellCommand, ShellState, ShellWindow } from '@contract'
+import type { Salience, ShellCommand, ShellState, ShellWindow } from '@contract'
 
 export interface Choice {
   id: string
@@ -48,6 +48,12 @@ export interface ActionVerb extends VerbBase {
 
 export type WindowVerb = ChoiceVerb | SwitchVerb | ActionVerb
 
+const LOUDNESS: readonly (Choice & { id: Salience })[] = [
+  { id: 'attention', label: '醒目' },
+  { id: 'normal', label: '正常' },
+  { id: 'quiet', label: '安静' },
+]
+
 const label = (list: readonly Choice[], id: string) => list.find((x) => x.id === id)?.label ?? id
 const always = () => true
 const notMain = (_: ShellState, w: ShellWindow) => !w.main
@@ -82,6 +88,18 @@ export const WINDOW_VERBS: readonly WindowVerb[] = [
     choices: (shell) => shell.routes,
     current: (w) => w.route,
     set: (w, route) => ({ type: 'setRoute', window: w.id, route }),
+  },
+  {
+    kind: 'choice',
+    slash: 'loud',
+    label: '醒目上限',
+    arg: '程度',
+    words: 'xingmu 醒目程度 salience anjing 安静 勿扰',
+    applies: always,
+    // A ceiling: content louder than this is shown at this level in this window.
+    choices: () => [...LOUDNESS],
+    current: (w) => w.loudness,
+    set: (w, loudness) => ({ type: 'setLoudness', window: w.id, loudness: LOUDNESS.find((c) => c.id === loudness)?.id ?? 'attention' }),
   },
   {
     kind: 'choice',
