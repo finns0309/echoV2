@@ -25,6 +25,8 @@ const inside = (b: Bounds, area: Rectangle) =>
 const GAP = 20
 /** How long macOS gets to take a window into full screen before we assume it won't. */
 const ENTER_MS = 1500
+/** How soon after a window shows a move is macOS's, not the user's. */
+const PUSH_MS = 1000
 const same = (a: Bounds, b: Bounds) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 
 /** Slide `b` left, a window's width at a time, until it clears `taken` or runs out of room. */
@@ -69,10 +71,19 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     everywhere(!pinned)
   }
   float()
+  // Showing a window that hangs off the screen, macOS pushes it back on; the user left it
+  // half off on purpose (a big chime at the edge), so put it back where it was meant to be.
+  // Placed, not remembered: the push isn't the user's.
+  let revealedAt = 0
+  function reveal(): void {
+    revealedAt = Date.now()
+    win.showInactive()
+    if (settled && !full) place(settled)
+  }
   // What the user wants, which is not the same as isVisible() while the page is still loading.
   let shown = true
   win.once('ready-to-show', () => {
-    if (shown) win.showInactive()
+    if (shown) reveal()
   })
 
   let theme = ''
@@ -80,6 +91,8 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   let clickThrough = false
   /** Where we last put the window ourselves. Our own setBounds fires moved/resized too, sometimes late. */
   let placed: Bounds | null = null
+  /** Where the window is meant to be: where we placed it, or where the user last left it. */
+  let settled: Bounds | null = null
   /** From asking for full screen until it has been left: its bounds are macOS's, not a place to keep. */
   let full = false
   const listeners = new Set<() => void>()
@@ -89,6 +102,7 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
 
   function place(bounds: Bounds): void {
     placed = { ...bounds }
+    settled = { ...bounds }
     win.setBounds(bounds)
   }
   function setClickThrough(value: boolean): void {
@@ -102,8 +116,11 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   // after a restart as a full-screen window with no way back.
   const remember = () => {
     if (!theme || full || (placed && same(win.getBounds(), placed))) return
+    // macOS may push a window back on screen a moment after it shows: that isn't the user either.
+    if (settled && Date.now() - revealedAt < PUSH_MS) return place(settled)
     placed = null
-    prefs.setOverride(id, theme, { bounds: win.getBounds() })
+    settled = win.getBounds()
+    prefs.setOverride(id, theme, { bounds: settled })
     changed()
   }
   win.on('moved', remember)
@@ -164,16 +181,10 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     const area = workAreaHere()
     const base = resolveProfile(profile, area)
     const saved = prefs.override(id, theme)
-    const displays = screen.getAllDisplays()
-    // A saved position on a display that is no longer there falls back to the profile. So does
-    // one the size of a whole screen for a theme that isn't full-screen: a fill that older builds
-    // saved as the user's place by mistake (by size: displays get rearranged, positions move).
-    const onScreen = !!saved.bounds && displays.some((d) => intersects(d.workArea, saved.bounds!))
-    const whole = (b: Bounds) => displays.some((d) => d.workArea.width === b.width && d.workArea.height === b.height)
-    const strayFill = !!saved.bounds && !same(base, area) && whole(saved.bounds)
-    if (strayFill) prefs.setOverride(id, theme, { bounds: undefined })
+    // A saved position on a display that is no longer there falls back to the profile.
+    const onScreen = !!saved.bounds && screen.getAllDisplays().some((d) => intersects(d.workArea, saved.bounds!))
     // In full screen the Space decides its size; it is placed when it comes back.
-    if (!full) place(onScreen && !strayFill ? saved.bounds! : clear(base, others(), area))
+    if (!full) place(onScreen ? saved.bounds! : clear(base, others(), area))
     setClickThrough(saved.clickThrough ?? base.clickThrough)
     changed()
   }
@@ -210,7 +221,7 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
 
     toggleVisible(): void {
       shown = !shown
-      if (shown) win.showInactive()
+      if (shown) reveal()
       else onDesktop(() => win.hide())
     },
 
