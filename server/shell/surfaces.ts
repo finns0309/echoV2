@@ -52,8 +52,6 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     transparent: true,
     hasShadow: false,
     resizable: true,
-    // Not a document: a double-click on a drag region would otherwise zoom it to fill the screen.
-    maximizable: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     show: false,
@@ -174,12 +172,8 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     const whole = (b: Bounds) => displays.some((d) => d.workArea.width === b.width && d.workArea.height === b.height)
     const strayFill = !!saved.bounds && !same(base, area) && whole(saved.bounds)
     if (strayFill) prefs.setOverride(id, theme, { bounds: undefined })
-    // A theme that can't be resized keeps its own size wherever it was left.
-    const kept = onScreen && !strayFill ? (base.resizable ? saved.bounds! : { ...saved.bounds!, width: base.width, height: base.height }) : null
-    win.setResizable(base.resizable)
-    win.setMaximizable(false)
     // In full screen the Space decides its size; it is placed when it comes back.
-    if (!full) place(kept ?? clear(base, others(), area))
+    if (!full) place(onScreen && !strayFill ? saved.bounds! : clear(base, others(), area))
     setClickThrough(saved.clickThrough ?? base.clickThrough)
     changed()
   }
