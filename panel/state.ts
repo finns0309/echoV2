@@ -66,7 +66,9 @@ export function createPanelState(bridge: PanelBridge) {
     cursor.value = 0
   })
   // Point at a window on screen: the one whose settings are open, else the row under the cursor.
+  // Again on each summon: the rows may be the same as when it was put away.
   effect(() => {
+    void summoned.value
     const item = current.value
     bridge.send('locate', opened.value ?? (item?.kind === 'window' ? item.window : null))
   })

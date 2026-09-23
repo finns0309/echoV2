@@ -126,7 +126,10 @@ app.whenReady().then(async () => {
     hide: () => panel.hide(),
     resize: (height) => panel.resize(height),
     // Outline the window the panel points at, so a name can be matched to a place on screen.
+    // A hidden panel still hears the stage change and recomputes its rows; only a
+    // panel that is showing gets to point at anything.
     locate: (window) => {
+      if (!panel.win.isVisible()) return
       const w = window ? shell.state().windows.find((x) => x.id === window && x.visible) : undefined
       channel.publish('highlight', w ? { surface: w.id, name: w.name } : null)
     },
