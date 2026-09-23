@@ -10,13 +10,15 @@ import type { SignalFrame, StageState } from './stage'
 export interface ServerToScreen {
   stage: StageState
   signal: SignalFrame
+  /** The panel is pointing at a window: that screen outlines itself with this name. Null: none. */
+  highlight: { surface: string; name: string } | null
 }
 
 export interface ScreenToServer {
   ready: { screen: string }
 }
 
-export const SERVER_TO_SCREEN = ['stage', 'signal'] as const satisfies readonly (keyof ServerToScreen)[]
+export const SERVER_TO_SCREEN = ['stage', 'signal', 'highlight'] as const satisfies readonly (keyof ServerToScreen)[]
 export const SCREEN_TO_SERVER = ['ready'] as const satisfies readonly (keyof ScreenToServer)[]
 
 export function channelName(channel: keyof ServerToScreen | keyof ScreenToServer): string {
@@ -44,10 +46,12 @@ export interface PanelToServer {
   hide: null
   /** The height its content wants, in px; the window follows, top edge fixed. */
   resize: number
+  /** The window the panel is pointing at (a row under the cursor, or the settings open), so it can be found on screen. */
+  locate: string | null
 }
 
 export const SERVER_TO_PANEL = ['shell', 'stage', 'shown'] as const satisfies readonly (keyof ServerToPanel)[]
-export const PANEL_TO_SERVER = ['ready', 'command', 'hide', 'resize'] as const satisfies readonly (keyof PanelToServer)[]
+export const PANEL_TO_SERVER = ['ready', 'command', 'hide', 'resize', 'locate'] as const satisfies readonly (keyof PanelToServer)[]
 
 export function panelChannelName(channel: keyof ServerToPanel | keyof PanelToServer): string {
   return `echo-panel:${channel}`

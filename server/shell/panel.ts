@@ -5,6 +5,8 @@ export interface PanelWindowOptions {
   load: (win: BrowserWindow) => Promise<void>
   /** Called each time it is summoned, so the view can reset its focus. */
   onShow?: () => void
+  /** Called each time it goes away (Esc, or focus elsewhere). */
+  onHide?: () => void
 }
 
 const WIDTH = 640
@@ -18,7 +20,7 @@ const background = () => (nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#f5f5f7
  * The panel: a Spotlight-like window summoned by the hotkey, on the display under
  * the pointer. It hides when it loses focus, and is created once and reused.
  */
-export function createPanelWindow({ preload, load, onShow }: PanelWindowOptions) {
+export function createPanelWindow({ preload, load, onShow, onHide }: PanelWindowOptions) {
   const win = new BrowserWindow({
     // A non-activating NSPanel, like Spotlight: it takes the keyboard without
     // pulling echo (a menu-bar app) to the front, which macOS won't reliably allow.
@@ -43,6 +45,7 @@ export function createPanelWindow({ preload, load, onShow }: PanelWindowOptions)
   win.setAlwaysOnTop(true, 'modal-panel')
   win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   win.on('blur', () => win.hide())
+  win.on('hide', () => onHide?.())
   nativeTheme.on('updated', () => win.setBackgroundColor(background()))
   // The panel has no devtools open; surface its warnings and errors in echo's log.
   win.webContents.on('console-message', (event) => {

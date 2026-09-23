@@ -65,6 +65,12 @@ export function createPanelState(bridge: PanelBridge) {
     void opened.value
     cursor.value = 0
   })
+  // Point at a window on screen: the one whose settings are open, else the row under the cursor.
+  effect(() => {
+    const item = current.value
+    bridge.send('locate', opened.value ?? (item?.kind === 'window' ? item.window : null))
+  })
+
   /** Whether the input is a slash command. */
   const slashing = computed(() => query.value.startsWith('/'))
 

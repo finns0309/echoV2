@@ -13,6 +13,8 @@ export interface StageHostOptions {
 
 export interface StageHost {
   render(state: StageState): void
+  /** Outline this screen with its name while the panel points at it; null (or another surface) clears it. */
+  highlight(target: { surface: string; name: string } | null): void
 }
 
 // Mounts the surface's theme and turns stage state into show / update / clear
@@ -148,6 +150,20 @@ export function createStageHost({ root, surface, themes, bridge }: StageHostOpti
       rev = state.rev
       latest = state
       void sync()
+    },
+
+    highlight(target) {
+      let ring = root.querySelector<HTMLElement>(':scope > .echo-locate')
+      if (target?.surface !== surface) return ring?.classList.remove('on')
+      if (!ring) {
+        ring = document.createElement('div')
+        ring.className = 'echo-locate'
+        ring.innerHTML = '<span class="echo-locate-name"></span>'
+        root.appendChild(ring)
+      }
+      ring.querySelector('.echo-locate-name')!.textContent = target.name
+      void ring.offsetWidth // let a fresh ring fade in rather than appear
+      ring.classList.add('on')
     },
   }
 }

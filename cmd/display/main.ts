@@ -125,12 +125,22 @@ app.whenReady().then(async () => {
     },
     hide: () => panel.hide(),
     resize: (height) => panel.resize(height),
+    // Outline the window the panel points at, so a name can be matched to a place on screen.
+    locate: (window) => {
+      const w = window ? shell.state().windows.find((x) => x.id === window && x.visible) : undefined
+      channel.publish('highlight', w ? { surface: w.id, name: w.name } : null)
+    },
     ready: () => {
       panelChannel.publish('shell', shell.state())
       panelChannel.publish('stage', stage.snapshot())
     },
   })
-  const panel = createPanelWindow({ preload: PRELOAD, load: loadPanel, onShow: () => panelChannel.publish('shown', null) })
+  const panel = createPanelWindow({
+    preload: PRELOAD,
+    load: loadPanel,
+    onShow: () => panelChannel.publish('shown', null),
+    onHide: () => channel.publish('highlight', null),
+  })
   panelChannel.attach(panel.win)
   shell.subscribe((state) => panelChannel.publish('shell', state))
   stage.subscribe((state) => panelChannel.publish('stage', state))
