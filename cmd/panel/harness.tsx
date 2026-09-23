@@ -27,10 +27,6 @@ const shell: ShellState = {
     { id: 'card', label: '只放 agent 投递' },
   ],
   names: ['left', 'right', 'top', 'bottom', 'side', 'stage', 'chat', 'corner'],
-  presets: [
-    { id: 'split', label: '歌词 + agent 双风铃' },
-    { id: 'single', label: '只留一个窗口' },
-  ],
 }
 
 const onAir = (id: string, title: string) => ({
@@ -52,9 +48,13 @@ function apply(c: ShellCommand): void {
   if (c.type === 'setTheme' && w) w.theme = c.theme
   if (c.type === 'setRoute' && w) w.route = c.route
   if (c.type === 'rename' && w) w.name = c.name
-  if (c.type === 'toggleVisible' && w) w.visible = !w.visible
-  if (c.type === 'toggleClickThrough' && w) w.clickThrough = !w.clickThrough
-  if (c.type === 'toggleFill' && w && w.fill !== 'full') w.fill = w.fill === 'normal' ? 'restorable' : 'normal'
+  if (c.type === 'setVisible' && w) w.visible = c.on
+  if (c.type === 'setClickThrough' && w) w.clickThrough = c.on
+  if (c.type === 'setFill' && w && w.fill !== 'full') w.fill = c.on ? 'restorable' : 'normal'
+  if (c.type === 'addWindow') {
+    const n = shell.windows.length + 1
+    shell.windows.push({ id: `w${n}`, name: `win${n}`, theme: c.theme ?? 'furin', route: 'all', visible: true, clickThrough: false, fill: 'normal', main: false })
+  }
   if (c.type === 'closeWindow') shell.windows = shell.windows.filter((x) => x.id !== c.window)
   console.log('[harness] command', c)
 }

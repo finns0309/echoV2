@@ -27,7 +27,7 @@ import { createContentStore } from '@server/stage/contents'
 import { createStageService } from '@server/stage/service'
 import { createStage } from '@server/stage/state'
 import { USER_DATA_DIR } from '@contract'
-import { AGENT_PORT, LLM_DEFAULTS, MAIN, NAMES, PRESETS, ROUTES } from './config'
+import { AGENT_PORT, LLM_DEFAULTS, MAIN, NAMES, ROUTES } from './config'
 import { HOTKEY_HELPER, PRELOAD, loadPanel, loadScreen } from './pages'
 import { DEFAULT_THEME, grammars, manifests } from './themes'
 
@@ -57,7 +57,6 @@ app.whenReady().then(async () => {
     defaultTheme: DEFAULT_THEME,
     routes: ROUTES,
     names: NAMES,
-    presets: PRESETS,
     main: MAIN,
     open: (id, others) => {
       const surface = createSurface({ id, preload: PRELOAD, prefs, others })

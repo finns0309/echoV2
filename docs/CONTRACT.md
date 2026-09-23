@@ -251,16 +251,17 @@ MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发
 ```ts
 type ShellState = {
   windows: { id; name; theme; route; visible; clickThrough; fill: 'normal' | 'restorable' | 'full'; main }[];
-  themes: { id; label }[];  routes: { id; label }[];  names: string[];  presets: { id; label }[];
+  themes: { id; label }[];  routes: { id; label }[];  names: string[];
 };
 type ShellCommand =
-  | { type: 'setTheme' | 'setRoute' | 'rename' | 'closeWindow' | 'toggleVisible' | 'toggleClickThrough' | 'toggleFill' | 'resetWindow'; window; ... }
-  | { type: 'addWindow'; theme? } | { type: 'applyPreset'; preset };
+  | { type: 'setTheme'; window; theme } | { type: 'setRoute'; window; route } | { type: 'rename'; window; name }
+  | { type: 'setVisible' | 'setClickThrough' | 'setFill'; window; on: boolean }   // 写目标状态，不是"翻转"，重复发也无害
+  | { type: 'resetWindow' | 'closeWindow'; window } | { type: 'addWindow'; theme? };
 ```
 
 - 托盘和面板都是它的视图：读状态，发命令。舞台也订阅它，窗口一隐藏、出现或关闭，内容就重新分配。
 - 面板通道（`contract/channels.ts`）：服务器推 `shell`、`stage`、`shown`；面板发 `ready`、`command`、`hide`。每条命令进主进程时都用 zod 重新校验，并核对发送方是面板窗口。
-- `main` 窗口始终存在、兜底、不能改名或关闭。可选的路由、窗口名、布局预设是 `cmd/display/config.ts` 里的数据，控制服务只按数据执行，不认识任何内容包。
+- `main` 窗口始终存在、兜底、不能改名或关闭。可选的路由、窗口名是 `cmd/display/config.ts` 里的数据，控制服务只按数据执行，不认识任何内容包。
 
 ### 4.5 导演服务（主进程）
 

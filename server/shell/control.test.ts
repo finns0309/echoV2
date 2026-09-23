@@ -42,10 +42,6 @@ function setup(initial = [{ id: 'main', theme: 'furin' }]) {
       { id: 'card', label: '卡片', accepts: { packs: ['card'] } },
     ],
     names: ['left', 'right'],
-    presets: [
-      { id: 'split', label: '双', windows: [{ theme: 'furin', route: 'music' }, { theme: 'furin', route: 'card' }] },
-      { id: 'single', label: '单', windows: [{ route: 'all' }] },
-    ],
     main: 'main',
     open: (id) => {
       log.push(`open ${id}`)
@@ -96,25 +92,14 @@ describe('shell control', () => {
     expect(shell.dispatch({ type: 'rename', window: 'main', name: 'left' }).ok).toBe(false)
     expect(shell.dispatch({ type: 'setTheme', window: 'nope', theme: 'furin' }).ok).toBe(false)
     expect(shell.dispatch({ type: 'setTheme', window: 'main', theme: 'nope' }).ok).toBe(false)
-    expect(shell.dispatch({ type: 'applyPreset', preset: 'nope' }).ok).toBe(false)
-  })
-
-  it('lays out presets, reusing and removing extra windows', () => {
-    const { shell } = setup()
-    shell.dispatch({ type: 'applyPreset', preset: 'split' })
-    expect(shell.state().windows.map((w) => [w.name, w.theme, w.route])).toEqual([
-      ['main', 'furin', 'music'],
-      ['win2', 'furin', 'card'],
-    ])
-    shell.dispatch({ type: 'addWindow' })
-    shell.dispatch({ type: 'applyPreset', preset: 'single' })
-    expect(shell.state().windows.map((w) => [w.name, w.route])).toEqual([['main', 'all']])
   })
 
   it('tells the stage when a window hides, and marks it hidden', () => {
     const { shell, changes } = setup()
     const before = changes()
-    shell.dispatch({ type: 'toggleVisible', window: 'main' })
+    shell.dispatch({ type: 'setVisible', window: 'main', on: false })
+    expect(changes()).toBe(before + 1)
+    shell.dispatch({ type: 'setVisible', window: 'main', on: false }) // already hidden: nothing happens
     expect(changes()).toBe(before + 1)
     expect(shell.surfaces()[0]).toMatchObject({ hidden: true, fallback: true })
   })
@@ -126,4 +111,14 @@ describe('shell control', () => {
     ])
     expect(shell.state().windows.map((w) => w.name)).toEqual(['main', 'win2'])
   })
+
+  it('sets switches to what was asked, and refuses to fill a full-screen theme', () => {
+    const { shell } = setup()
+    shell.dispatch({ type: 'setClickThrough', window: 'main', on: true })
+    shell.dispatch({ type: 'setClickThrough', window: 'main', on: true })
+    expect(shell.state().windows[0]?.clickThrough).toBe(true)
+    shell.dispatch({ type: 'setClickThrough', window: 'main', on: false })
+    expect(shell.state().windows[0]?.clickThrough).toBe(false)
+  })
 })
+

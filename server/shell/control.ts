@@ -16,13 +16,6 @@ export interface ShellSurface {
   destroy(): void
 }
 
-export interface Preset {
-  id: string
-  label: string
-  /** The windows it lays out, main first. A missing theme keeps the window's current one. */
-  windows: { theme?: string; route: string }[]
-}
-
 export interface ShellControlOptions {
   prefs: ShellPrefs
   /** Themes and the window profile each one wears. */
@@ -32,7 +25,6 @@ export interface ShellControlOptions {
   routes: readonly { id: string; label: string; accepts?: Route }[]
   /** Names a window can be given, besides the default winN. */
   names: readonly string[]
-  presets: readonly Preset[]
   /** The fallback window's id; it always exists. */
   main: string
   /**
@@ -54,7 +46,7 @@ export function createShellControl(o: ShellControlOptions) {
   const { prefs } = o
   const windows = new Map<string, ShellSurface>()
   const listeners = new Set<(state: ShellState) => void>()
-  // Time plus a counter: a preset can add several windows within one millisecond.
+  // Time plus a counter, so two windows added within one millisecond still differ.
   let seq = 0
   const newId = o.newId ?? (() => `win-${Date.now().toString(36)}${(seq++).toString(36)}`)
 
@@ -94,7 +86,6 @@ export function createShellControl(o: ShellControlOptions) {
       themes: o.themes.map(({ id, label }) => ({ id, label })),
       routes: o.routes.map(({ id, label }) => ({ id, label })),
       names: [...o.names],
-      presets: o.presets.map(({ id, label }) => ({ id, label })),
     }
   }
 
@@ -145,25 +136,6 @@ export function createShellControl(o: ShellControlOptions) {
     changed()
   }
 
-  function applyPreset(preset: Preset): void {
-    const [first, ...rest] = preset.windows
-    if (!first) return
-    if (first.theme) prefs.setTheme(o.main, first.theme)
-    prefs.setRoute(o.main, acceptsOf(first.route))
-    const extras = prefs.get().filter((p) => p.id !== o.main)
-    rest.forEach((spec, i) => {
-      const existing = extras[i]
-      if (existing) {
-        if (spec.theme) prefs.setTheme(existing.id, spec.theme)
-        prefs.setRoute(existing.id, acceptsOf(spec.route))
-      } else {
-        const accepts = acceptsOf(spec.route)
-        prefs.add({ id: newId(), name: nextName(), theme: spec.theme ?? o.defaultTheme, ...(accepts ? { accepts } : {}) })
-      }
-    })
-    for (const p of extras.slice(rest.length)) prefs.remove(p.id)
-  }
-
   function dispatch(command: ShellCommand): CommandResult {
     const known = (id: string) => prefs.get().some((p) => p.id === id)
     const surface = (id: string) => windows.get(id)
@@ -171,12 +143,6 @@ export function createShellControl(o: ShellControlOptions) {
       const t = command.theme ?? prefs.get().at(-1)?.theme ?? o.defaultTheme
       if (!theme(t)) return { ok: false, error: `no theme ${t}` }
       prefs.add({ id: newId(), name: nextName(), theme: t })
-      return { ok: true }
-    }
-    if (command.type === 'applyPreset') {
-      const preset = o.presets.find((p) => p.id === command.preset)
-      if (!preset) return { ok: false, error: `no preset ${command.preset}` }
-      applyPreset(preset)
       return { ok: true }
     }
     if (!known(command.window)) return { ok: false, error: `no window ${command.window}` }
@@ -196,15 +162,24 @@ export function createShellControl(o: ShellControlOptions) {
         if (command.window === o.main) return { ok: false, error: `${o.main} can't be closed` }
         prefs.remove(command.window)
         return { ok: true }
-      case 'toggleVisible':
-        surface(command.window)?.toggleVisible()
+      // The window only knows how to flip; flip when it isn't already what was asked for.
+      case 'setVisible': {
+        const w = surface(command.window)
+        if (w && w.state().visible !== command.on) w.toggleVisible()
         return { ok: true }
-      case 'toggleClickThrough':
-        surface(command.window)?.toggleClickThrough()
+      }
+      case 'setClickThrough': {
+        const w = surface(command.window)
+        if (w && w.state().clickThrough !== command.on) w.toggleClickThrough()
         return { ok: true }
-      case 'toggleFill':
-        surface(command.window)?.toggleFill()
+      }
+      case 'setFill': {
+        const w = surface(command.window)
+        const fill = w?.state().fill
+        if (fill === 'full') return { ok: false, error: 'this theme is full-screen already' }
+        if (w && (fill === 'restorable') !== command.on) w.toggleFill()
         return { ok: true }
+      }
       case 'resetWindow':
         surface(command.window)?.reset()
         return { ok: true }

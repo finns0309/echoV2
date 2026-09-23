@@ -2,6 +2,7 @@ import { computed, effect, signal } from '@preact/signals'
 import type { OnAir, ShellCommand, ShellState, StageState } from '@contract'
 import type { PanelBridge } from '@contract/channels'
 import { homeItems, searchItems, windowItems, type Item, type Selectable } from './commands'
+import { slashItems } from './slash'
 
 const TOAST_MS = 1600
 
@@ -45,11 +46,12 @@ export function createPanelState(bridge: PanelBridge) {
   const items = computed<Item[]>(() => {
     const s = shell.value
     if (!s) return []
-    if (query.value.trim()) return searchItems(s, query.value)
+    if (query.value.startsWith('/')) return slashItems(query.value, s, opened.value)
+    if (query.value.trim()) return searchItems(s, query.value, showing)
     if (opened.value) return windowItems(s, opened.value)
     return homeItems(s, showing)
   })
-  const selectable = computed(() => items.value.filter((i): i is Selectable => i.kind !== 'section'))
+  const selectable = computed(() => items.value.filter((i): i is Selectable => i.kind !== 'section' && i.kind !== 'note'))
   const current = computed(() => selectable.value[cursor.value])
 
   // Keep the cursor on something that exists as the list changes under it.
@@ -63,6 +65,8 @@ export function createPanelState(bridge: PanelBridge) {
     void opened.value
     cursor.value = 0
   })
+  /** Whether the input is a slash command. */
+  const slashing = computed(() => query.value.startsWith('/'))
 
   let toastTimer: ReturnType<typeof setTimeout> | undefined
   function say(text: string): void {
@@ -90,6 +94,7 @@ export function createPanelState(bridge: PanelBridge) {
     summoned,
     items,
     selectable,
+    slashing,
     current,
     /** Ask for the window to be as tall as the content. */
     fit: (height: number) => bridge.send('resize', height),
@@ -97,7 +102,7 @@ export function createPanelState(bridge: PanelBridge) {
       const n = selectable.value.length
       if (n) cursor.value = (cursor.value + by + n) % n
     },
-    /** Enter: open a window, run an action, or step a setting forwards. */
+    /** Enter: open a window, complete a slash command, run an action, or step a setting forwards. */
     activate(item: Selectable | undefined = current.value): void {
       if (!item) return
       if (item.kind === 'window') {
@@ -105,11 +110,22 @@ export function createPanelState(bridge: PanelBridge) {
         query.value = ''
         return
       }
+      if (item.fill !== undefined) {
+        query.value = item.fill
+        return
+      }
       const command = item.run ?? item.step?.(1)
       if (!command) return
       send(command, item.run ? `${item.label}${item.on === undefined ? '' : item.on ? ' · 关' : ' · 开'}` : undefined)
       // A search is for one command: once it has run, the list goes back to where it was.
       if (query.value) query.value = ''
+    },
+    /** ⇥: complete a slash command from the selected row, if it completes to anything. */
+    complete(): boolean {
+      const item = current.value
+      if (item?.kind !== 'action' || item.fill === undefined) return false
+      query.value = item.fill
+      return true
     },
     /** ←/→ on a setting. */
     step(dir: 1 | -1): boolean {

@@ -23,7 +23,7 @@ echoV2/
 
 | 入口 | 进程 | 组装什么 |
 |---|---|---|
-| `cmd/display/` | Electron 主进程 | server 的全部，加上主题的 manifest 和 grammar。`main.ts` 只做组装；`config.ts` 是可调的选项（路由、窗口名、布局预设、LLM 默认值），`themes.ts` 发现主题，`pages.ts` 管页面路径；`preload.ts` 是所有窗口共用的沙箱 preload |
+| `cmd/display/` | Electron 主进程 | server 的全部，加上主题的 manifest 和 grammar。`main.ts` 只做组装；`config.ts` 是可调的选项（路由、窗口名、LLM 默认值），`themes.ts` 发现主题，`pages.ts` 管页面路径；`preload.ts` 是所有窗口共用的沙箱 preload |
 | `cmd/screen/` | 渲染层（每个显示窗口加载它） | screen 的 runtime，加上主题注册表 |
 | `cmd/panel/` | 渲染层（面板窗口加载它） | panel 的状态和视图 |
 | `cmd/mcp/` | stdio MCP 适配器（Claude Code 拉起） | 只把工具调用转发到 agent HTTP 接口 |
@@ -135,15 +135,18 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 
 ```text
 panel/
-├── commands.ts      列表内容是数据：窗口、每个窗口的设置、所有可执行的命令，以及搜索；纯函数，有测试
+├── vocabulary.ts    面板能做的每件事只写一次：新增窗口，加上窗口的动词（主题、内容、名字、显示、穿透、铺满、重置、关闭）
+├── commands.ts      词表的三种视图之二：首页和窗口设置的行、模糊搜索；纯函数，有测试
+├── slash.ts         词表的第三种视图：斜杠命令，/动词 → 窗口 → 值，逐步补全；纯函数，有测试
+├── fixture.ts       测试用的一份小 ShellState
 ├── state.ts         面板知道什么：外壳和舞台（服务器推来的）、查询、打开的窗口、光标、toast
 ├── bridge.ts        唯一的出口：preload 暴露的 window.echoPanel
-├── app.tsx          布局和键盘：↑↓ 选，⏎ 打开或执行，←→ 调设置，esc 逐级返回
+├── app.tsx          布局和键盘：↑↓ 选，⏎ 打开、补全或执行，⇥ 补全，←→ 调设置，esc 逐级返回
 ├── views/           行、echo 的标记
 └── panel.css        和 muse 同一套 token、字号、光标和动效
 ```
 
-面板只是外壳的一个视图：读 `ShellState`，发 `ShellCommand`，自己不改任何东西。它和托盘、以后可能的 MCP 窗口工具，走的是同一个入口（`server/shell/control.ts`）。
+面板只是外壳的一个视图：读 `ShellState`，发 `ShellCommand`，自己不改任何东西。新增一种操作的顺序：先在 `contract/shell.ts` 加 `ShellCommand`，在 `server/shell/control.ts` 实现，再在 `panel/vocabulary.ts` 加一个动词，设置行、搜索、斜杠命令就同时有了。它和托盘、以后可能的 MCP 窗口工具，走的是同一个入口（`server/shell/control.ts`）。
 
 ## 4. 依赖规则
 

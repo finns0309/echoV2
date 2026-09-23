@@ -30,7 +30,7 @@ export function createTray({ icon, state, subscribe, dispatch, openPanel }: Tray
           label: windows.length > 1 ? `${w.name} · ${themeLabel(w.theme)}` : `显示 echo · ${themeLabel(w.theme)}`,
           type: 'checkbox' as const,
           checked: w.visible,
-          click: () => dispatch({ type: 'toggleVisible', window: w.id }),
+          click: () => dispatch({ type: 'setVisible', window: w.id, on: !w.visible }),
         })),
         { type: 'separator' },
         { label: '退出 echo', click: () => app.quit() },

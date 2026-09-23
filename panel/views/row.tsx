@@ -4,6 +4,13 @@ import type { Item } from '../commands'
 // One line of the list. Selection is drawn by the gliding cursor, not by the row.
 export function Row(props: { item: Item; selected: boolean; rowRef?: Ref<HTMLLIElement>; onPick: () => void; onHover: () => void }) {
   const { item } = props
+  if (item.kind === 'note') {
+    return (
+      <li class="empty" role="presentation">
+        {item.label}
+      </li>
+    )
+  }
   if (item.kind === 'section') {
     return (
       <li class="sec" role="presentation">
@@ -44,6 +51,7 @@ export function Row(props: { item: Item; selected: boolean; rowRef?: Ref<HTMLLIE
       )}
       <span class="main">
         <span class="label">{item.label}</span>
+        {item.sub && <span class="sub">{item.sub}</span>}
       </span>
       {item.step ? (
         <span class="value stepper">

@@ -41,6 +41,7 @@ export function App({ state }: { state: PanelState }) {
     if (key === 'ArrowDown' || (key === 'n' && e.ctrlKey)) state.move(1)
     else if (key === 'ArrowUp' || (key === 'p' && e.ctrlKey)) state.move(-1)
     else if (key === 'Enter') state.activate()
+    else if (key === 'Tab') state.complete()
     else if (key === 'Escape') state.back()
     else if ((key === 'ArrowRight' || key === 'ArrowLeft') && !state.query.value) {
       const stepped = state.step(key === 'ArrowRight' ? 1 : -1)
@@ -75,7 +76,7 @@ export function App({ state }: { state: PanelState }) {
         <input
           ref={input}
           class="input"
-          placeholder={where ? '调整这个窗口，或输入命令…' : '输入命令：top 流体、隐藏 left、双风铃…'}
+          placeholder={where ? '调整这个窗口，或输入 / 命令…' : '搜索：top 流体、隐藏 left… 输入 / 查看命令'}
           value={state.query.value}
           onInput={(e) => (state.query.value = e.currentTarget.value)}
           onKeyDown={onKey}
@@ -94,14 +95,15 @@ export function App({ state }: { state: PanelState }) {
             />
           )}
           {items.map((item) => {
-            const selected = item.kind !== 'section' && item.key === current?.key
+            const pickable = item.kind === 'window' || item.kind === 'action'
+            const selected = pickable && item.key === current?.key
             return (
               <Row
                 key={item.key}
                 item={item}
                 selected={selected}
                 rowRef={selected ? selectedRow : undefined}
-                onPick={() => item.kind !== 'section' && state.activate(item)}
+                onPick={() => pickable && state.activate(item)}
                 onHover={() => {
                   const i = state.selectable.value.findIndex((s) => s.key === item.key)
                   if (i >= 0 && i !== state.cursor.value) state.cursor.value = i
@@ -109,7 +111,6 @@ export function App({ state }: { state: PanelState }) {
               />
             )
           })}
-          {state.query.value && items.length <= 1 && <li class="empty">没有匹配的命令</li>}
         </ul>
       </div>
 
@@ -118,9 +119,14 @@ export function App({ state }: { state: PanelState }) {
           <kbd>↑↓</kbd> 选择
         </span>
         <span>
-          <kbd>⏎</kbd> {opened ? '切换' : '打开'}
+          <kbd>⏎</kbd> {state.slashing.value ? '执行' : opened ? '切换' : '打开'}
         </span>
-        {opened && (
+        {state.slashing.value && (
+          <span>
+            <kbd>⇥</kbd> 补全
+          </span>
+        )}
+        {opened && !state.slashing.value && (
           <span>
             <kbd>←→</kbd> 调整
           </span>

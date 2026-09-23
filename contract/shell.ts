@@ -26,11 +26,12 @@ export const ShellState = z.object({
   routes: z.array(Choice),
   /** Names a window can be given. */
   names: z.array(z.string().min(1)),
-  presets: z.array(Choice),
 })
 export type ShellState = z.infer<typeof ShellState>
 
 const onWindow = { window: z.string().min(1) }
+/** Switches say what they should become, not "flip": repeating a command is harmless. */
+const onOff = { ...onWindow, on: z.boolean() }
 
 export const ShellCommand = z.discriminatedUnion('type', [
   z.object({ type: z.literal('setTheme'), ...onWindow, theme: z.string().min(1) }),
@@ -38,10 +39,10 @@ export const ShellCommand = z.discriminatedUnion('type', [
   z.object({ type: z.literal('rename'), ...onWindow, name: z.string().min(1).max(40) }),
   z.object({ type: z.literal('addWindow'), theme: z.string().min(1).optional() }),
   z.object({ type: z.literal('closeWindow'), ...onWindow }),
-  z.object({ type: z.literal('toggleVisible'), ...onWindow }),
-  z.object({ type: z.literal('toggleClickThrough'), ...onWindow }),
-  z.object({ type: z.literal('toggleFill'), ...onWindow }),
+  z.object({ type: z.literal('setVisible'), ...onOff }),
+  z.object({ type: z.literal('setClickThrough'), ...onOff }),
+  /** Fill the screen, or go back to the size before. A theme that is full-screen anyway can't. */
+  z.object({ type: z.literal('setFill'), ...onOff }),
   z.object({ type: z.literal('resetWindow'), ...onWindow }),
-  z.object({ type: z.literal('applyPreset'), preset: z.string().min(1) }),
 ])
 export type ShellCommand = z.infer<typeof ShellCommand>

@@ -41,4 +41,5 @@ Also: `tsconfig.node.json` has no DOM and `tsconfig.web.json` has no Node, so cr
 - Move a helper to `screen/primitives/` only once a second theme needs it.
 - Tests sit next to the code as `*.test.ts` (Vitest).
 - Anything a user can do to echo's windows is a `ShellCommand` (`contract/shell.ts`) carried out by `server/shell/control.ts`. The tray and the panel only send commands; add the command first, then the button.
-- The user-facing choices (routes, window names, layout presets) are data in `cmd/display/config.ts`; the shell never names a pack.
+- The user-facing choices (routes, window names) are data in `cmd/display/config.ts`; the shell never names a pack.
+- The panel's verbs live once in `panel/vocabulary.ts`. Settings rows, fuzzy search and slash commands (`panel/slash.ts`) are views of it: a new verb goes there, not into a view.
