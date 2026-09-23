@@ -13,7 +13,14 @@ import FRAG from './tide.frag.glsl?raw'
 import { ARRIVE_END, HOLD, TB, TU, scheduleWaves, type TimedLine } from './waves'
 
 const NW = 6 // waves the shader tracks at once; must match the shader's arrays
-const FONT = '"Hiragino Sans","PingFang SC",system-ui,sans-serif'
+const FONTS: Record<string, string> = {
+  ja: '"Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif',
+  zh: '"PingFang SC","Hiragino Sans GB",system-ui,sans-serif',
+}
+const fontFor = (lang: string | undefined) => FONTS[lang ?? ''] ?? '"SF Pro Display","PingFang SC",system-ui,sans-serif'
+/** How a line arrives, by salience: the wave's reach and the text's brightness. */
+const LOUDNESS = { quiet: { reach: 0.78, ink: 0.62 }, normal: { reach: 1, ink: 1 }, attention: { reach: 1.3, ink: 1 } } as const
+type Loudness = keyof typeof LOUDNESS
 const DEFAULT_ACCENT: [number, number, number] = [0.2, 0.55, 0.95]
 
 interface Wave {
@@ -37,7 +44,7 @@ export function createTideEngine(root: HTMLElement) {
   const cv = document.createElement('canvas')
   root.appendChild(cv)
   const pass = createFullscreenPass(cv, FRAG, { label: 'tide', contextAttributes: { alpha: false } })
-  const noop = { setLines: () => {}, clear: () => {}, setAccent: () => {}, energy: () => {}, onset: () => {}, frame: () => {}, dispose: () => {} }
+  const noop = { setLoudness: () => {}, setLines: () => {}, clear: () => {}, setAccent: () => {}, energy: () => {}, onset: () => {}, frame: () => {}, dispose: () => {} }
   if (!pass) return noop
   const { gl } = pass
 
@@ -50,6 +57,7 @@ export function createTideEngine(root: HTMLElement) {
   const [bcur, bcurx] = canvas2d()
   const [bprev, bprevx] = canvas2d()
   const [bcomp, bcctx] = canvas2d()
+  let loudness: Loudness = 'normal'
   let curSpan = 6
   let prevSpan = 6
 
@@ -167,6 +175,7 @@ export function createTideEngine(root: HTMLElement) {
     const units = line.units.filter((u) => u.text)
     const W = cur.width
     const H = cur.height
+    const FONT = fontFor(line.lang)
     curx.font = `600 100px ${FONT}`
     const wOf = (u: { text: string }) => curx.measureText(u.text).width
     const total = units.reduce((s, u) => s + wOf(u), 0)
@@ -241,8 +250,19 @@ export function createTideEngine(root: HTMLElement) {
     })
     // The whole line goes into the texture NOW; the shader reveals each unit on its own clock.
     curx.textBaseline = 'middle'
-    curx.fillStyle = '#fff'
+    curx.fillStyle = `rgb(255 255 255 / ${LOUDNESS[loudness].ink})`
     for (const g of glyphs) curx.fillText(g.text, g.x, g.y)
+    // A progress line of light under the text: the lit part bright, the rest a faint trace.
+    if (line.bar !== undefined) {
+      const bw = W * 0.42
+      const bh = Math.max(2, fs * 0.07)
+      const bx = W / 2 - bw / 2
+      const by = y0 + (rows.length - 1) * lh + lh * 0.72
+      curx.fillStyle = 'rgb(255 255 255 / 0.16)'
+      curx.fillRect(bx, by, bw, bh)
+      curx.fillStyle = `rgb(255 255 255 / ${LOUDNESS[loudness].ink})`
+      curx.fillRect(bx, by, bw * line.bar, bh)
+    }
     // Birth map: every pixel takes the code of the nearest unit in its row, so
     // the blurred halo (which spills past the glyph) reveals with its own unit.
     rows.forEach((_, ri) => {
@@ -276,7 +296,7 @@ export function createTideEngine(root: HTMLElement) {
     const now = wall()
     waves.push(
       line
-        ? { t0: now, R: 0.92 + 0.26 * e, seed: (seedN++ * 0.618) % 10, Tu: TU, Tb: TB + e * 0.6, foam: 0.5 + 0.8 * e, line: true }
+        ? { t0: now, R: (0.92 + 0.26 * e) * LOUDNESS[loudness].reach, seed: (seedN++ * 0.618) % 10, Tu: TU, Tb: TB + e * 0.6, foam: 0.5 + 0.8 * e, line: true }
         : { t0: now + 1.8, R: 0.26 + Math.random() * 0.13, seed: 20 + ((seedN++ * 0.618) % 10), Tu: 1.0, Tb: 2.2, foam: 0.3 + 0.2 * e, line: false },
     )
     if (line) nextWavelet = Math.max(nextWavelet, now + TU + 2.2) // don't crowd the line wave
@@ -297,6 +317,11 @@ export function createTideEngine(root: HTMLElement) {
   }
 
   return {
+    /** How loudly the next lines arrive. */
+    setLoudness(level: Loudness): void {
+      loudness = level
+    },
+
     setLines(next: TimedLine[]): void {
       lines = next
       lineWaves = scheduleWaves(lines)

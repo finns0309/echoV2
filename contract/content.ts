@@ -68,9 +68,13 @@ export const PresentationContext = z.object({
   speaker: z.object({ name: z.string().min(1), avatar: z.string().optional() }).optional(),
 })
 
+/** How much a content should ask for the eye: themes express it in their own way. */
+export const Salience = z.enum(['quiet', 'normal', 'attention'])
+export type Salience = z.infer<typeof Salience>
+
 export const Hints = z.object({
   dwell: z.number().positive().optional(),
-  salience: z.enum(['quiet', 'normal', 'attention']).optional(),
+  salience: Salience.optional(),
   breaks: z.array(z.object({ at: seconds, until: seconds })).optional(),
 })
 

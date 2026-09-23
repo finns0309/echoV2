@@ -9,7 +9,7 @@ export const AGENT_PORT = 10757
 export const USER_DATA_DIR = 'echo-v2'
 /** The shared secret agents send as x-echo-token, in that folder. */
 export const TOKEN_FILE = 'agent-token'
-import { Presentation, Priority, Role } from './content'
+import { Presentation, Priority, Role, Salience } from './content'
 
 export const CardLine = z.union([
   z.string().min(1),
@@ -20,6 +20,7 @@ export const CardLine = z.union([
     emphasis: z.string().min(1).optional().describe('A substring of text to highlight'),
     short: z.string().min(1).optional().describe('A short form for small themes'),
     at: z.number().nonnegative().optional().describe('Seconds after the card appears'),
+    lang: z.string().min(2).optional().describe('ja, zh, en…; detected from the text when absent (kana → ja)'),
   }),
 ])
 export type CardLine = z.infer<typeof CardLine>
@@ -30,6 +31,9 @@ export const AgentCardInput = z
     kind: z.string().min(1).max(40).optional().describe('What this is, e.g. word, fact, news, message, status'),
     priority: Priority.optional().describe('ambient: only when idle; normal: default; urgent: interrupts'),
     ttlSeconds: z.number().positive().optional().describe('Remove the card after this many seconds'),
+    salience: Salience.optional().describe(
+      'How loud it looks, apart from when it shows: quiet (background murmur), normal, attention (worth a glance now). Defaults from priority: ambient is quiet, urgent is attention',
+    ),
     repeat: z
       .boolean()
       .optional()
@@ -53,13 +57,28 @@ export const AgentCardInput = z
     speaker: z.string().optional().describe('Who is talking, e.g. Claude'),
     lines: z.array(CardLine).min(1).max(12).optional().describe('Shown in order; first is primary'),
     value: z
-      .object({ value: z.union([z.number(), z.string()]), unit: z.string().optional(), label: z.string().optional() })
+      .object({
+        value: z.union([z.number(), z.string()]),
+        unit: z.string().optional(),
+        label: z.string().optional(),
+        delta: z.number().optional().describe('Change since last time; shown as ↑ or ↓'),
+      })
       .optional()
-      .describe('A status value instead of lines; stays until removed or expired'),
+      .describe('A status value instead of lines; stays until removed or expired. Resend with the same id to update it'),
+    progress: z
+      .object({ value: z.number(), max: z.number().positive(), label: z.string().optional() })
+      .optional()
+      .describe('A progress bar instead of lines, e.g. {value: 7, max: 10, label: "打包"}; stays until removed or expired. Resend with the same id to move it'),
+    image: z
+      .object({ src: z.string().url(), alt: z.string().optional().describe('Shown as its caption') })
+      .optional()
+      .describe('A picture (https or data: URL) instead of lines'),
     dwellSeconds: z.number().positive().max(600).optional().describe('How long the card stays on screen'),
-    presentation: Presentation.optional().describe('Full control; overrides lines and value'),
+    presentation: Presentation.optional().describe('Full control; overrides lines, value, progress and image'),
   })
-  .refine((c) => c.lines || c.value || c.presentation, { message: 'send lines, value or presentation' })
+  .refine((c) => c.lines || c.value || c.progress || c.image || c.presentation, {
+    message: 'send lines, value, progress, image or presentation',
+  })
 export type AgentCardInput = z.infer<typeof AgentCardInput>
 
 // What the agent API answers. The display server produces these; the MCP adapter parses them.

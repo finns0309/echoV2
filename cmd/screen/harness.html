@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <title>echo screen · harness</title>
+    <style>
+      html, body { margin: 0; background: #7d8594; font: 13px -apple-system, "PingFang SC", sans-serif; color: #111; }
+      /* A desktop-ish backdrop, so transparent themes (风铃) are judged against something. */
+      body { min-height: 100vh; background: linear-gradient(135deg, #e9eef5, #cfd6e2 60%, #aeb8c9); }
+      #bar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 10px 14px; background: rgb(255 255 255 / 0.7); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 10; }
+      #bar label { display: inline-flex; gap: 4px; align-items: center; }
+      #bar button { font: inherit; padding: 3px 9px; border-radius: 6px; border: 1px solid #0002; background: #fff; }
+      #frame { margin: 18px auto; position: relative; box-shadow: 0 0 0 1px #0003; }
+      #frame > #stage { position: absolute; inset: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <div id="bar"></div>
+    <div id="frame"><main id="stage"></main></div>
+    <script type="module" src="./harness.ts"></script>
+  </body>
+</html>

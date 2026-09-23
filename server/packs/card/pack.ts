@@ -12,7 +12,7 @@ export function createCardPack(now: () => number = Date.now) {
     withdraw(id: string): boolean
   } = {
     id: 'card',
-    kinds: ['card', 'word', 'fact', 'news', 'message', 'status'],
+    kinds: ['card', 'word', 'fact', 'news', 'message', 'status', 'image'],
     start(context) {
       ctx = context
     },

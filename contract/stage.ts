@@ -1,13 +1,15 @@
 // Stage state and signals — what the display server pushes to every screen.
 // Spec: docs/CONTRACT.md §3.6. The display server is the only writer.
 import { z } from 'zod'
-import { Presentation } from './content'
+import { Presentation, Salience } from './content'
 
 export const OnAir = z.object({
   contentId: z.string().min(1),
   presentation: Presentation,
   since: z.number(),
   directions: z.unknown().optional(),
+  /** Resolved by the stage: the content's own hint, else from its priority (ambient → quiet, urgent → attention). */
+  salience: Salience.optional(),
 })
 export type OnAir = z.infer<typeof OnAir>
 

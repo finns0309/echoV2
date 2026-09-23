@@ -1,6 +1,15 @@
 // The chime's DOM: a glass bell (SVG), the clapper bead, and the paper strip,
 // nested as 3D-transformed links. Ported from echo's furin.js.
+import { setLang } from '@screen/primitives/text'
 import type { ChimePhysics, StrikeEvent } from './physics'
+
+/** What a strip can carry. Everything is written vertically, top to bottom. */
+export type PaperContent =
+  | { kind: 'blank' }
+  | { kind: 'text'; text: string; reading?: string; lang?: string }
+  | { kind: 'value'; label?: string; number: string; unit?: string; delta?: string; lang?: string }
+  | { kind: 'progress'; label?: string; ratio: number; lang?: string }
+  | { kind: 'image'; src: string; alt?: string; lang?: string }
 
 const DEPTH_VIEW_GAIN = 1.7 // render-only exaggeration of the depth tilt
 const PAPER_PITCH_KEEP = 0.15 // how much of the chain's depth pitch the paper keeps
@@ -52,6 +61,7 @@ const MARKUP = `
           <div class="fr-tz">
             <div class="tz-paper blank">
               <div class="tz-hole"></div>
+              <div class="tz-rail"><i></i></div>
               <div class="tz-text"><span></span></div>
               <div class="tz-seal"></div>
             </div>
@@ -60,6 +70,20 @@ const MARKUP = `
       </div>
     </div>
   </div>`
+
+function span(cls: string, content: string): HTMLSpanElement {
+  const s = document.createElement('span')
+  s.className = cls
+  s.textContent = content
+  return s
+}
+
+/** Up to two digits stand upright in the column (縦中横); longer numbers lie along it. */
+function upright(cls: string, digits: string): HTMLSpanElement {
+  const s = span(cls, digits)
+  if ([...digits].length <= 2) s.classList.add('tcy')
+  return s
+}
 
 function q<T extends Element>(root: Element, selector: string): T {
   const el = root.querySelector<T>(selector)
@@ -74,6 +98,7 @@ export function buildChime(root: HTMLElement) {
   const l2 = q<HTMLElement>(root, '.fr-l2')
   const paper = q<HTMLElement>(root, '.tz-paper')
   const text = q<HTMLElement>(root, '.tz-text span')
+  const rail = q<HTMLElement>(root, '.tz-rail i')
   const bellSvg = q<SVGSVGElement>(root, '.fr-bell-svg')
   const deco = q<SVGGElement>(root, '.fr-deco')
   const refl = q<SVGGElement>(root, '.fr-refl')
@@ -104,22 +129,61 @@ export function buildChime(root: HTMLElement) {
       if (intensity > 0.62) setTimeout(() => root.isConnected && spawnRing(rect, intensity * 0.7, true, centroid), 130)
     },
 
-    /** Write the strip. Vertical text; a reading becomes ruby beside it. */
-    write(content: string, reading?: string): void {
+    /** Write the strip. Vertical text; a reading becomes ruby beside it; numbers stand upright. */
+    write(content: PaperContent): void {
       text.replaceChildren()
-      if (content && reading) {
-        const ruby = document.createElement('ruby')
-        const rt = document.createElement('rt')
-        ruby.append(content)
-        rt.textContent = reading
-        ruby.append(rt)
-        text.append(ruby)
-      } else {
-        text.textContent = content
+      paper.dataset.kind = content.kind
+      paper.classList.toggle('blank', content.kind === 'blank')
+      setLang(text, content.kind === 'blank' ? undefined : content.lang)
+      let size = 17
+      switch (content.kind) {
+        case 'text': {
+          if (content.reading) {
+            const ruby = document.createElement('ruby')
+            const rt = document.createElement('rt')
+            ruby.append(content.text)
+            rt.textContent = content.reading
+            ruby.append(rt)
+            text.append(ruby)
+          } else text.textContent = content.text
+          const n = [...content.text].length
+          size = n > 22 ? 12 : n > 18 ? 13 : n > 14 ? 14 : n > 11 ? 15 : n > 8 ? 16 : 17
+          break
+        }
+        case 'value': {
+          if (content.label) text.append(span('tz-label', content.label))
+          text.append(upright('tz-num', content.number))
+          if (content.unit) text.append(span('tz-unit', content.unit))
+          if (content.delta) text.append(span('tz-delta', content.delta))
+          const n = [...content.number].length + (content.label ? [...content.label].length * 0.6 : 0)
+          size = n > 10 ? 14 : 16
+          break
+        }
+        case 'progress': {
+          if (content.label) text.append(span('tz-label', content.label))
+          text.append(upright('tz-num', String(Math.round(content.ratio * 100))), span('tz-unit', '%'))
+          rail.style.setProperty('--p', content.ratio.toFixed(4))
+          break
+        }
+        case 'image': {
+          const img = document.createElement('img')
+          img.className = 'tz-photo'
+          img.src = content.src
+          img.alt = content.alt ?? ''
+          text.append(img)
+          if (content.alt) text.append(span('tz-caption', content.alt))
+          size = 14
+          break
+        }
       }
-      const n = [...content].length
-      text.style.fontSize = `${n > 22 ? 12 : n > 18 ? 13 : n > 14 ? 14 : n > 11 ? 15 : n > 8 ? 16 : 17}px`
-      paper.classList.toggle('blank', !content)
+      text.style.fontSize = `${size}px`
+    },
+
+    /** The seal warms for a moment: something worth a glance was written. */
+    glow(): void {
+      paper.classList.remove('hot')
+      void paper.offsetWidth
+      paper.classList.add('hot')
     },
 
     render(physics: ChimePhysics, flipDeg: number, skewDeg: number): void {

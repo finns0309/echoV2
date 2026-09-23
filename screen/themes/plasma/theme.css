@@ -6,6 +6,7 @@
   --plasma-base: #1a0e3d; /* matches the shader's dark stop, so uncovered edges blend */
   --plasma-glow: rgba(255, 230, 210, 0.35);
   --plasma-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --plasma-accent: #eb3885; /* the palette's first color when there is one */
   overflow: hidden;
   font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
   user-select: none;
@@ -26,6 +27,30 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+/* Attention: one wash of the accent over the fluid, from the center out. */
+.echo-theme-plasma .pl-flare {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(ellipse 70% 60% at 50% 52%, color-mix(in srgb, var(--plasma-accent) 70%, #fff) 0%, transparent 70%);
+  mix-blend-mode: screen;
+}
+.echo-theme-plasma .pl-flare.on { animation: pl-flare 1600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes pl-flare {
+  0% { opacity: 0; transform: scale(0.85); }
+  18% { opacity: 0.55; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+/* Japanese in a Japanese face (the same kanji are drawn differently), Chinese in PingFang. */
+.echo-theme-plasma .stage-card:lang(ja) {
+  font-family: "SF Pro Display", -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif;
+}
+.echo-theme-plasma .stage-card:lang(zh) {
+  font-family: "SF Pro Display", -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif;
 }
 
 .echo-theme-plasma .pl-tint {
@@ -53,15 +78,20 @@
   padding: 0 clamp(40px, calc(40px * var(--plasma-scale)), 180px);
   text-align: center;
   transform: translateY(-50%);
-  font-size: calc(32px * var(--plasma-scale));
+  /* Salience sets size (--s), ink (--ink), glow (--g) and reveal pace (--step). */
+  --s: 1;
+  --ink: 1;
+  --g: 1;
+  --step: 42ms;
+  font-size: calc(32px * var(--plasma-scale) * var(--s));
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.4px;
-  color: #ffffff;
+  color: rgb(255 255 255 / var(--ink));
   text-shadow:
     0 2px 12px rgba(0, 0, 0, 0.55),
-    0 0 24px rgba(255, 255, 255, 0.45),
-    0 0 48px var(--plasma-glow);
+    0 0 calc(24px * var(--g)) rgb(255 255 255 / calc(0.45 * var(--g))),
+    0 0 calc(48px * var(--g)) var(--plasma-glow);
   will-change: transform, opacity, filter;
   /* A departing card dissipates rather than sliding off as one block: it blurs
      out early, keeps drifting up the whole time, and fades late. */
@@ -88,7 +118,7 @@
   filter: blur(18px);
   transform: translateY(18px) scale(0.88);
   animation: pl-reveal-wave 900ms var(--plasma-ease) forwards;
-  animation-delay: calc(var(--i) * 42ms);
+  animation-delay: calc(var(--i) * var(--step));
   will-change: transform, opacity, filter;
 }
 @keyframes pl-reveal-wave {
@@ -115,6 +145,124 @@
   to { opacity: 0.82; transform: translateY(0); filter: blur(0); }
 }
 
+/* — salience — quiet murmurs: smaller, thinner ink, a slower reveal; attention
+   stands up: larger, brighter, faster, with the flare behind it. */
+.echo-theme-plasma .stage-card[data-salience="quiet"] { --s: 0.8; --ink: 0.78; --g: 0.55; --step: 70ms; font-weight: 600; }
+.echo-theme-plasma .stage-card[data-salience="attention"] { --s: 1.16; --g: 1.5; --step: 28ms; }
+
+/* — value: a number set large, its label above, unit and change beside — */
+.echo-theme-plasma .stage-value { font-variant-numeric: tabular-nums; }
+.echo-theme-plasma .sv-label,
+.echo-theme-plasma .sp-label {
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  opacity: 0.72;
+}
+.echo-theme-plasma .sv-line {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.18em;
+  margin-top: 0.1em;
+}
+.echo-theme-plasma .sv-num {
+  font-size: 2.6em;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.echo-theme-plasma .sv-unit { font-size: 0.8em; font-weight: 600; opacity: 0.72; }
+.echo-theme-plasma .sv-delta {
+  margin-left: 0.4em;
+  font-size: 0.6em;
+  font-weight: 600;
+  padding: 0.12em 0.45em;
+  border-radius: 999px;
+  text-shadow: none;
+  background: rgb(255 255 255 / 0.14);
+}
+.echo-theme-plasma .sv-delta.up { color: color-mix(in srgb, var(--plasma-accent) 40%, #fff); }
+.echo-theme-plasma .sv-delta.down { color: rgb(255 255 255 / 0.7); }
+.echo-theme-plasma .stage-value,
+.echo-theme-plasma .stage-progress,
+.echo-theme-plasma .stage-image { animation: pl-card-in 1000ms var(--plasma-ease) both; }
+@keyframes pl-card-in {
+  from { opacity: 0; filter: blur(16px); transform: translateY(calc(-50% + 18px)) scale(0.96); }
+  to { opacity: 1; filter: blur(0); transform: translateY(-50%) scale(1); }
+}
+/* Leaving is a transition; an entrance animation still holding its end state would block it. */
+.echo-theme-plasma .stage-card.leaving { animation: none; }
+/* A value that changed in place gives a small nod. */
+.echo-theme-plasma .stage-value.bump .sv-num { animation: pl-bump 700ms var(--plasma-ease); }
+@keyframes pl-bump {
+  30% { text-shadow: 0 0 36px rgb(255 255 255 / 0.9), 0 0 72px var(--plasma-glow); }
+}
+
+/* — progress: a line of light with a bright head — */
+.echo-theme-plasma .stage-progress {
+  --w: min(62%, calc(560px * var(--plasma-scale)));
+  font-variant-numeric: tabular-nums;
+}
+.echo-theme-plasma .sp-head {
+  width: var(--w);
+  margin: 0 auto 0.5em;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.echo-theme-plasma .sp-pct { font-size: 1.1em; font-weight: 700; }
+.echo-theme-plasma .sp-track {
+  position: relative;
+  width: var(--w);
+  height: calc(4px * var(--plasma-scale));
+  margin: 0 auto;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+}
+.echo-theme-plasma .sp-fill {
+  --p: 0;
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--p) * 100%);
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.55), #fff);
+  box-shadow: 0 0 calc(14px * var(--g)) color-mix(in srgb, var(--plasma-accent) 60%, #fff);
+  transition: width 1100ms var(--plasma-ease);
+}
+.echo-theme-plasma .sp-fill::after {
+  content: '';
+  position: absolute;
+  right: calc(-5px * var(--plasma-scale));
+  top: 50%;
+  width: calc(10px * var(--plasma-scale));
+  height: calc(10px * var(--plasma-scale));
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: #fff;
+  box-shadow: 0 0 calc(16px * var(--plasma-scale)) 2px color-mix(in srgb, var(--plasma-accent) 55%, #fff);
+}
+
+/* — picture: floats in with the fluid's glow around it — */
+.echo-theme-plasma .si-img {
+  display: block;
+  max-width: min(64%, calc(720px * var(--plasma-scale)));
+  max-height: 58vh;
+  margin: 0 auto;
+  border-radius: calc(14px * var(--plasma-scale));
+  object-fit: contain;
+  box-shadow:
+    0 calc(18px * var(--plasma-scale)) calc(60px * var(--plasma-scale)) rgb(0 0 0 / 0.45),
+    0 0 calc(80px * var(--plasma-scale)) color-mix(in srgb, var(--plasma-accent) 35%, transparent);
+}
+.echo-theme-plasma .si-cap {
+  margin-top: 0.8em;
+  font-size: 0.5em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .echo-theme-plasma .stage-card .w { animation: none; }
+  .echo-theme-plasma .pl-flare.on { animation: none; }
 }

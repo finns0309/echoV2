@@ -59,6 +59,8 @@ server.registerTool(
       'must show now. You may prefer a window by name (`window`, see status → windows); the user\'s routes still win,',
       'and a hidden or missing window is skipped. Cards sharing a `together` id go on air at the same moment, one per',
       'window, so their `at` times line up: a dialogue across two windows, a countdown that jumps from one to the other.',
+      'Besides lines, a card can be a value (with delta), a progress bar or an image; resend a status with the same id',
+      'and it updates in place. salience (quiet / normal / attention) sets how loud it looks, apart from when it shows.',
       'To keep the window lively, send a batch with repeat: true and one group: they rotate whenever nothing else wants',
       'the window, and never hold back new cards. Give the batch a ttlSeconds, or clear it by group when it goes stale.',
     ].join(' '),

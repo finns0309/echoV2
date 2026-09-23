@@ -1,6 +1,7 @@
 // 新世纪 · hard-cut Mincho title cards on a black void. Design notes: ./README.md.
 import type { OnAir } from '@contract'
-import { activeBlockIndex, toText } from '@screen/primitives/blocks'
+import { activeBlockIndex, progressRatio, salienceOf, valueParts } from '@screen/primitives/blocks'
+import { langOf } from '@screen/primitives/text'
 import type { Theme } from '@screen/runtime/theme-api'
 import { directionsOf } from './grammar'
 import { createCard } from './parts/layout'
@@ -10,7 +11,7 @@ export default function createEva(): Theme {
   let card: ReturnType<typeof createCard> | null = null
   let onAir: OnAir | null = null
   let shownIndex = -2
-  let shownText = ''
+  let shown = '' // what the card shows, so a repeated line holds and a changed status recuts
 
   return {
     mount(el) {
@@ -28,7 +29,7 @@ export default function createEva(): Theme {
     show(_slot, next) {
       onAir = next
       shownIndex = -2
-      shownText = ''
+      shown = ''
       card?.idle()
     },
     // Late directions only upgrade the cards that haven't been cut to yet.
@@ -37,11 +38,11 @@ export default function createEva(): Theme {
     },
     clear() {
       onAir = null
-      shownText = ''
+      shown = ''
       card?.idle()
     },
     idle() {
-      shownText = ''
+      shown = ''
       card?.idle()
     },
 
@@ -49,13 +50,28 @@ export default function createEva(): Theme {
       if (!onAir || !card) return
       const i = activeBlockIndex(onAir.presentation, clock.slots.main?.t)
       const block = onAir.presentation.blocks[i]
-      if (i === shownIndex || !block) return
+      if (!block) return
+      // Text changes with the index; a status changes in place, so compare what would show.
+      const signature = block.type === 'text' ? block.text.trim() : JSON.stringify(block)
+      if (i === shownIndex && signature === shown) return
       shownIndex = i
-      const text = toText(block).trim()
-      if (!text || text === shownText) return // a repeated line holds its card
-      shownText = text
-      const direction = directionsOf(onAir.directions)?.cards[i] ?? null
-      card.render(text, direction, block.type === 'text' ? block.emphasis : undefined)
+      if (!signature || signature === shown) return // a repeated line holds its card
+      shown = signature
+      const salience = salienceOf(onAir)
+      const lang = langOf(block)
+      switch (block.type) {
+        case 'text':
+          card.render(signature, directionsOf(onAir.directions)?.cards[i] ?? null, block.emphasis, salience, lang)
+          break
+        case 'value':
+          card.renderValue(valueParts(block), salience, lang)
+          break
+        case 'progress':
+          card.renderProgress(block.label, progressRatio(block), block.value, block.max, salience, lang)
+          break
+        case 'image':
+          card.renderImage(block.src, block.alt, salience, lang)
+      }
     },
   }
 }

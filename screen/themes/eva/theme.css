@@ -22,6 +22,12 @@
 .echo-theme-eva .ev-card .red { color: #e60012; }
 .echo-theme-eva .ev-card.ev-invert { background: #f2f0e8; color: #0a0a0a; }
 .echo-theme-eva .ev-card.ev-invert .red { color: #e60012; }
+/* Attention cuts to white through one frame of NERV red. */
+.echo-theme-eva .ev-card.alarm { animation: ev-slam 100ms steps(2, end), ev-alarm 160ms steps(1, end); }
+@keyframes ev-alarm { from { background: #e60012; color: #0a0a0a; } }
+
+/* Chinese in Songti; the Mincho would draw its kanji the Japanese way. */
+.echo-theme-eva .ev-card:lang(zh) { font-family: "Songti SC", "STSong", "Hiragino Mincho ProN", serif; }
 
 .echo-theme-eva .ev-row { white-space: nowrap; line-height: 1.02; letter-spacing: -0.015em; }
 /* Every template wrapper is absolutely placed and max-content sized, so
@@ -86,3 +92,53 @@
   font-size: 12px; letter-spacing: 5px;
   color: rgba(255,106,0,0.5);
 }
+
+/* — the corner readout every data card carries, in the standby card's voice — */
+.echo-theme-eva .ev-readout {
+  position: absolute; left: 8%; bottom: 10%;
+  font-family: "SF Mono", Menlo, monospace;
+  font-size: 12px; letter-spacing: 4px; font-weight: 500;
+  color: rgba(255, 106, 0, 0.78);
+  white-space: pre;
+}
+.echo-theme-eva .ev-invert .ev-readout { color: #c24d00; }
+
+/* — value: the number enormous — */
+.echo-theme-eva .ev-v-label,
+.echo-theme-eva .ev-v-num,
+.echo-theme-eva .ev-p-label,
+.echo-theme-eva .ev-p-pct { position: absolute; width: max-content; height: max-content; white-space: nowrap; }
+.echo-theme-eva .ev-v-label { left: 8%; top: 12%; letter-spacing: 0.3em; font-weight: 600; }
+.echo-theme-eva .ev-v-num {
+  left: 6%; top: 50%;
+  transform: translateY(-52%);
+  line-height: 0.9; letter-spacing: -0.04em;
+  font-variant-numeric: lining-nums;
+}
+.echo-theme-eva .ev-v-unit { display: inline; font-size: 0.26em; letter-spacing: 0.04em; margin-left: 0.14em; }
+
+/* — progress: 活動限界 — */
+.echo-theme-eva .ev-p-label { left: 8%; top: 13%; letter-spacing: 0.02em; line-height: 1; }
+.echo-theme-eva .ev-p-bar {
+  position: absolute; left: 8%; right: 8%; top: 54%;
+  height: 7%;
+  display: flex; gap: 0.6%;
+}
+.echo-theme-eva .ev-p-bar > div { flex: 1; }
+.echo-theme-eva .ev-p-bar .on { background: #ff6a00; }
+.echo-theme-eva .ev-p-bar .off { box-shadow: inset 0 0 0 1px rgba(255, 106, 0, 0.35); }
+.echo-theme-eva .ev-p-bar .head { animation: ev-blink 900ms steps(2, jump-none) infinite; }
+@keyframes ev-blink { 50% { background: transparent; box-shadow: inset 0 0 0 1px #ff6a00; } }
+.echo-theme-eva .ev-invert .ev-p-bar .on { background: #0a0a0a; }
+.echo-theme-eva .ev-invert .ev-p-bar .off { box-shadow: inset 0 0 0 1px rgba(10, 10, 10, 0.3); }
+.echo-theme-eva .ev-p-pct { right: 8%; top: 64%; line-height: 1; font-variant-numeric: tabular-nums lining-nums; }
+.echo-theme-eva .ev-p-sign { display: inline; font-size: 0.4em; margin-left: 0.06em; }
+
+/* — picture: hard cut, full frame, black and white — */
+.echo-theme-eva .ev-image {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.45) brightness(0.92);
+}
+.echo-theme-eva .ev-tpl-image .ev-readout { color: #ff6a00; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8); }

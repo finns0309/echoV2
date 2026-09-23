@@ -17,6 +17,12 @@ export interface TimedLine {
   time: number
   text: string
   units: { time: number; duration: number; text: string }[]
+  /** Picks the typeface: Japanese and Chinese draw the same kanji differently. */
+  lang?: string
+  /** 0..1: a progress line of light drawn under the text. */
+  bar?: number
+  /** Stays after it is spoken (a status): no wave comes to take it when it is the last line. */
+  hold?: boolean
 }
 
 /** When the last unit of a line finishes being spoken. */
@@ -31,6 +37,7 @@ export function scheduleWaves(lines: readonly TimedLine[]): number[] {
   let lastAt = -99
   lines.forEach((line, i) => {
     const next = lines[i + 1]
+    if (!next && line.hold) return
     const changeAt = next ? next.time : spokenEnd(line) + 0.6
     // the front clears the block by the change, but never touches it before the last unit is spoken
     const at = Math.min(Math.max(changeAt - ARRIVE_END, spokenEnd(line) - ARRIVE), changeAt + 0.25 - ARRIVE)

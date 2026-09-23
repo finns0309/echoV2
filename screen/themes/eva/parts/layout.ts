@@ -1,7 +1,9 @@
 // The 新世纪 layout engine: given one line of text and a template, set it well.
 // Word-safe breaks, measured fit, per-template composition. Ported from echo's
 // eva.js; the templates and their tuning are unchanged.
-import { hash, latinRatio, pickKeyword, segment, type Span } from '@screen/primitives/text'
+import type { Salience } from '@contract'
+import type { ValueParts } from '@screen/primitives/blocks'
+import { hash, latinRatio, pickKeyword, segment, setLang, type Span } from '@screen/primitives/text'
 import type { CardDirection } from '../grammar'
 
 export const TEMPLATES = ['whisper', 'stack', 'vert', 'corner', 'dual', 'giant', 'bleed'] as const
@@ -179,12 +181,14 @@ function markRed(scope: Element, kw: Span | null): void {
     if (i >= kw.start && i < kw.start + kw.len) s.classList.add('red')
   })
 }
-function el(cls: string, ...kids: Node[]): HTMLDivElement {
+function el(cls: string, ...kids: (Node | string)[]): HTMLDivElement {
   const d = document.createElement('div')
   d.className = cls
-  kids.forEach((k) => d.appendChild(k))
+  d.append(...kids)
   return d
 }
+const pad2 = (n: number) => String(Math.round(n)).padStart(2, '0')
+const SEGMENTS = 20
 // Measured fit: type scales linearly, so one measure at a probe size gives the
 // exact size that fills the box.
 function fit(node: HTMLElement, boxW: number, boxH: number, cap?: number): number {
@@ -381,13 +385,26 @@ export function createCard(card: HTMLElement) {
     card.classList.add('slam')
   }
 
+  /** Begin a card: its class, its language, its loudness. Attention cuts through one red frame to white. */
+  function begin(tpl: string, salience: Salience, lang: string | undefined, invert: boolean): void {
+    const inv = salience === 'attention' || invert
+    card.className = `ev-card ev-tpl-${tpl}${inv ? ' ev-invert' : ''}${salience === 'attention' ? ' alarm' : ''}`
+    setLang(card, lang)
+    card.replaceChildren()
+  }
+
+  const box = () => {
+    const root = card.parentElement ?? card
+    return { W: root.clientWidth || 1440, H: root.clientHeight || 900 }
+  }
+
   return {
-    render(text: string, direction: CardDirection | null, emphasis?: string): void {
-      const root = card.parentElement ?? card
+    render(text: string, direction: CardDirection | null, emphasis: string | undefined, salience: Salience, lang?: string): void {
+      const { W, H } = box()
       const ctx: Ctx = {
         text,
-        W: root.clientWidth || 1440,
-        H: root.clientHeight || 900,
+        W,
+        H,
         h: hash(text),
         us: units(text),
         kw: pickKeyword(text, direction?.kw ?? emphasis),
@@ -395,14 +412,64 @@ export function createCard(card: HTMLElement) {
         rep: detectRepeat(text),
         brk: direction?.brk,
       }
-      // repeat is structural (the engine sees it); otherwise the director, else the heuristic
+      // Quiet is always the whisper; otherwise repeat is structural (the engine sees
+      // it), then the director, else the heuristic.
       const directed = direction?.tpl && (TEMPLATES as readonly string[]).includes(direction.tpl) ? (direction.tpl as Template) : null
-      const want: Template = ctx.rep ? 'repeat' : (directed ?? heuristicTpl(ctx))
+      const want: Template = salience === 'quiet' ? 'whisper' : ctx.rep ? 'repeat' : (directed ?? heuristicTpl(ctx))
       for (const tpl of [want, 'stack'] as Template[]) {
-        card.className = `ev-card ev-tpl-${tpl}${direction?.inv ? ' ev-invert' : ''}`
-        card.replaceChildren()
+        begin(tpl, salience, lang, !!direction?.inv && salience !== 'quiet')
         if (T[tpl](ctx)) break
       }
+      slam()
+    },
+
+    /** A value: the number enormous, its label above, a readout in the corner. */
+    renderValue(v: ValueParts, salience: Salience, lang?: string): void {
+      const { W, H } = box()
+      begin('value', salience, lang, false)
+      if (v.label) {
+        const label = el('ev-v-label', v.label)
+        card.appendChild(label)
+        fit(label, W * 0.5, H * 0.1, H * 0.07)
+      }
+      const num = el('ev-v-num', v.number)
+      if (v.unit) num.append(el('ev-v-unit', v.unit))
+      card.appendChild(num)
+      fit(num, W * 0.88, H * 0.56, H * 0.56)
+      const delta = v.delta ? `   Δ ${v.delta.dir === 'down' ? '−' : '+'}${v.delta.text.slice(1)}` : ''
+      card.appendChild(el('ev-readout', `VALUE : ${v.number}${v.unit ? ` ${v.unit}` : ''}${delta}`))
+      slam()
+    },
+
+    /** Progress, 活動限界-style: a segmented bar, the last lit cell blinking. */
+    renderProgress(label: string | undefined, ratio: number, value: number, max: number, salience: Salience, lang?: string): void {
+      const { W, H } = box()
+      begin('progress', salience, lang, false)
+      if (label) {
+        const l = el('ev-p-label', label)
+        card.appendChild(l)
+        fit(l, W * 0.8, H * 0.26, H * 0.2)
+      }
+      const lit = Math.round(ratio * SEGMENTS)
+      const bar = el('ev-p-bar')
+      for (let i = 0; i < SEGMENTS; i++) bar.append(el(i < lit ? (i === lit - 1 && lit < SEGMENTS ? 'on head' : 'on') : 'off'))
+      card.appendChild(bar)
+      const pct = el('ev-p-pct', `${pad2(ratio * 100)}`, el('ev-p-sign', '%'))
+      card.appendChild(pct)
+      fit(pct, W * 0.4, H * 0.24, H * 0.24)
+      card.appendChild(el('ev-readout', `PROGRESS : ${pad2(value)} / ${pad2(max)}`))
+      slam()
+    },
+
+    /** A picture, hard cut, full frame, in black and white. */
+    renderImage(src: string, alt: string | undefined, salience: Salience, lang?: string): void {
+      begin('image', salience, lang, false)
+      const img = document.createElement('img')
+      img.className = 'ev-image'
+      img.src = src
+      img.alt = alt ?? ''
+      card.appendChild(img)
+      if (alt) card.appendChild(el('ev-readout', `IMAGE : ${alt}`))
       slam()
     },
 

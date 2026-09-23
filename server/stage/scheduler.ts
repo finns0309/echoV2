@@ -1,4 +1,4 @@
-import type { Content, OnAir, Presentation, Priority, SlotSpec, Surface, ThemeManifest } from '@contract'
+import type { Content, OnAir, Presentation, Priority, Salience, SlotSpec, Surface, ThemeManifest } from '@contract'
 import { createRouter, type SurfaceConfig } from './routing'
 
 // The scheduler: a pure function from (surfaces, contents, what's on air, now)
@@ -35,6 +35,10 @@ const RANK: Record<Priority, number> = { ambient: 0, normal: 1, urgent: 2 }
 
 /** The order waiting content goes on air in: highest priority first, then oldest first. */
 export const waitingOrder = (a: Content, b: Content): number => RANK[b.priority] - RANK[a.priority] || a.createdAt - b.createdAt
+/** A content's own salience hint wins; otherwise what it waited for says how loud it should be. */
+const SALIENCE_BY_PRIORITY: Record<Priority, Salience> = { ambient: 'quiet', normal: 'normal', urgent: 'attention' }
+export const salienceOf = (c: Content): Salience => c.presentation.hints?.salience ?? SALIENCE_BY_PRIORITY[c.priority]
+
 const ROLE_ORDER: Record<SlotSpec['role'], number> = { main: 0, side: 1, ambient: 2 }
 const MIN_DWELL_S = 6
 const TAIL_S = 6
@@ -218,7 +222,13 @@ export function schedule({ surfaces, manifests, contents, current, now }: Schedu
   for (const s of slots) {
     const h = s.holder
     out[s.surface.id]!.slots[s.slot] = h
-      ? { contentId: h.content.id, presentation: h.content.presentation, since: h.since, ...(h.directions === undefined ? {} : { directions: h.directions }) }
+      ? {
+          contentId: h.content.id,
+          presentation: h.content.presentation,
+          since: h.since,
+          salience: salienceOf(h.content),
+          ...(h.directions === undefined ? {} : { directions: h.directions }),
+        }
       : null
   }
   return { surfaces: out, finished }

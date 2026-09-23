@@ -13,7 +13,7 @@ export function toContent(raw: unknown, now: number, newId: () => string): Accep
     content: {
       id: `card:${input.id ?? newId()}`,
       pack: 'card',
-      kind: input.kind ?? (input.value ? 'status' : 'card'),
+      kind: input.kind ?? (input.value || input.progress ? 'status' : input.image ? 'image' : 'card'),
       // Something kept in rotation shouldn't hold back anything new, so it waits for quiet by default.
       priority: input.priority ?? (input.repeat ? 'ambient' : 'normal'),
       createdAt: now,

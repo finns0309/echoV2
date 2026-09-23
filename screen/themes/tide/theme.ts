@@ -1,25 +1,42 @@
 // 夜潮 · text written in light, carried away by waves. Design notes: ./README.md.
 import type { Block, OnAir, Presentation } from '@contract'
-import { toText } from '@screen/primitives/blocks'
+import { progressRatio, salienceOf, toText, valueParts } from '@screen/primitives/blocks'
 import { hexToRgb } from '@screen/primitives/color'
-import { timedUnits } from '@screen/primitives/text'
+import { langOf, timedUnits } from '@screen/primitives/text'
 import type { Theme } from '@screen/runtime/theme-api'
 import { createTideEngine } from './parts/engine'
 import type { TimedLine } from './parts/waves'
 import './theme.css'
 
-/** Every block becomes a timed line; non-text blocks read as text and start at 0. */
+/** A status as tide sets it: its label and its figure as two phrases (a space is a row break here). */
+function statusText(b: Block): string {
+  if (b.type === 'value') {
+    const { label, number, unit, delta } = valueParts(b)
+    return [label, `${number}${unit ?? ''}${delta ? delta.text : ''}`].filter(Boolean).join(' ')
+  }
+  if (b.type === 'progress') return [b.label, `${Math.round(progressRatio(b) * 100)}%`].filter(Boolean).join(' ')
+  return toText(b)
+}
+
+/**
+ * Every block becomes a timed line; non-text blocks read as text and start at 0.
+ * A progress block keeps its ratio, for the line of light under its text.
+ */
 function linesOf(p: Presentation): TimedLine[] {
-  const textual: Block[] = p.blocks
-    .map((b): Block => (b.type === 'text' ? b : { type: 'text', role: b.role, text: toText(b) || ' ' }))
-    .filter((b) => b.type === 'text' && b.text.trim())
-  return textual.map((b, i) => {
-    const next = textual[i + 1]
-    const nextAt = next?.type === 'text' ? next.at : undefined
+  // Untimed content is a status: it stays until it is taken off.
+  const hold = p.timeline.kind === 'none'
+  type TextBlock = Extract<Block, { type: 'text' }>
+  const asText = (b: Block): TextBlock => (b.type === 'text' ? b : { type: 'text', role: b.role, text: statusText(b) || ' ' })
+  const textual = p.blocks.map((b) => ({ source: b, text: asText(b) })).filter(({ text }) => text.text.trim())
+  return textual.map(({ source, text: b }, i) => {
+    const lang = langOf(source)
     return {
-      time: b.type === 'text' ? (b.at ?? 0) : 0,
-      text: b.type === 'text' ? b.text : '',
-      units: timedUnits(b, nextAt),
+      time: b.at ?? 0,
+      text: b.text,
+      units: timedUnits(b, textual[i + 1]?.text.at),
+      ...(lang ? { lang } : {}),
+      ...(source.type === 'progress' ? { bar: progressRatio(source) } : {}),
+      ...(hold ? { hold } : {}),
     }
   })
 }
@@ -35,6 +52,7 @@ export default function createTide(): Theme {
   function take(onAir: OnAir, fresh: boolean): void {
     if (!engine) return
     engine.setAccent(hexToRgb(onAir.presentation.context.palette?.[0]))
+    engine.setLoudness(salienceOf(onAir))
     const sig = signature(onAir.presentation)
     if (!fresh && sig === shownSignature) return // only the clock moved
     shownSignature = sig

@@ -35,9 +35,9 @@ export function createField(canvas: HTMLCanvasElement) {
       pass.draw()
     },
 
-    /** Every text change: the flow briefly speeds up. */
-    pulse(): void {
-      beat = Math.min(1, beat + 0.65)
+    /** Every new card: the flow briefly speeds up, harder for louder content. */
+    pulse(strength = 0.65): void {
+      beat = Math.min(1, beat + strength)
     },
 
     /** The mid-tone stop. Dark and bright stops stay fixed so contrast survives any color. */

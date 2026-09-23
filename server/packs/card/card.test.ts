@@ -59,6 +59,18 @@ describe('card pack', () => {
   it('rejects input with nothing to show, with a readable reason', () => {
     const r = toContent({ title: 'empty' }, 0, id)
     expect(r.ok).toBe(false)
-    expect(!r.ok && r.error).toMatch(/lines, value or presentation/)
+    expect(!r.ok && r.error).toMatch(/lines, value, progress, image or presentation/)
+  })
+
+  it('turns a progress bar into a status and a picture into a timed card, carrying salience', () => {
+    const bar = toContent({ progress: { value: 7, max: 10, label: '打包' }, salience: 'attention' }, 0, id)
+    expect(bar.ok && bar.content).toMatchObject({
+      kind: 'status',
+      presentation: { timeline: { kind: 'none' }, blocks: [{ type: 'progress', value: 7, max: 10 }], hints: { salience: 'attention' } },
+    })
+    const pic = toContent({ image: { src: 'https://example.com/a.png', alt: '夕焼け' } }, 0, id)
+    expect(pic.ok && pic.content).toMatchObject({ kind: 'image', presentation: { timeline: { kind: 'self' }, blocks: [{ type: 'image', alt: '夕焼け' }] } })
+    expect(pic.ok && pic.content.presentation.hints).toBeUndefined()
   })
 })
+

@@ -68,7 +68,7 @@ type Presentation = {
   blocks: Block[];
   hints?: {
     dwell?: number;           // 建议停留秒数（self 时间线用）
-    salience?: 'quiet' | 'normal' | 'attention';
+    salience?: 'quiet' | 'normal' | 'attention';  // 看起来有多响，和什么时候上台无关（见下）
     breaks?: { at: number; until: number }[];  // 可插播的空档（歌的前奏、长间奏），由内容包算好
   };
   ext?: Record<string, unknown>;  // 专属主题的扩展数据，键名带包前缀，比如 'music.songId'
@@ -115,7 +115,23 @@ type Block =
 - `reading` 是整块的读音（注音），主题决定画成 ruby 还是副行。
 - `timing` 可选。歌词有逐字时间轴就填；没有的话，需要逐字写出的主题由屏幕按打字速度合成。
 - `short` 可选。槽位放不下 `text` 时先用它；还放不下就只画 primary 块。
-- **文字是通用的兜底**：核心提供 `toText(block)`，只能画文字的主题可以把 value、progress 块降级成一行字。
+- `lang` 可选。不写时屏幕按文字判断：有假名就是 `ja`，有谚文是 `ko`，只有汉字是 `zh`。中日文共用汉字编码但字形不同（骨、直、今），主题按语言选字体。
+- **每个主题都画全四种块**，`toText(block)` 只是最后的兜底：
+
+  | | 流体 | 风铃 | 新世纪 | 夜潮 |
+  |---|---|---|---|---|
+  | value | 大号等宽数字，原地更新时数字滚动 | 竖排，短数字竖中横 | 巨大明朝数字 + 角落橙色读数 | 两行光字：标签 / 数字 |
+  | progress | 一条光带，头上一个亮点 | 短冊边缘的朱色墨线 | 活動限界式 20 格分段条 | 光字下面一条光带，由浪带来 |
+  | image | 带流体光晕的圆角图 | 贴在短冊顶上的小相片 | 满版黑白硬切 | 只写说明文字 |
+
+- **醒目程度（salience）**：内容可以在 `hints.salience` 自己写；没写就按优先级推导（ambient → quiet，normal → normal，urgent → attention）。舞台把结果写进 `OnAir.salience`，主题只看这个。它和调度无关，只管「看起来有多响」。每个主题用自己的方式表达：
+
+  | | quiet | attention |
+  |---|---|---|
+  | 流体 | 字小一号、墨更淡、显现更慢，流体几乎不动 | 字大一号、更亮，流体上闪过一道强调色 |
+  | 风铃 | 纸条轻轻翻面，不起风 | 先敲响铃再翻面，印章亮一下 |
+  | 新世纪 | 一律 whisper 小字 | 一律白底反色卡，切入时闪一帧红 |
+  | 夜潮 | 浪小、字暗 | 浪更高 |
 
 ### 3.5 Slot：槽位
 
@@ -260,7 +276,7 @@ type ShellCommand =
 ```
 
 - 托盘和面板都是它的视图：读状态，发命令。舞台也订阅它，窗口一隐藏、出现或关闭，内容就重新分配。
-- 面板通道（`contract/channels.ts`）：服务器推 `shell`、`stage`、`shown`；面板发 `ready`、`command`、`hide`。每条命令进主进程时都用 zod 重新校验，并核对发送方是面板窗口。
+- 面板通道（`contract/channels.ts`）：服务器推 `shell`、`stage`、`shown`；面板发 `ready`、`command`、`hide`、`resize`、`locate`。`locate` 是面板正指着的窗口（光标所在的窗口行，或打开的设置页）：主进程转成屏幕通道的 `highlight`，那个窗口描一圈蓝边、挂上名字，好把名字和屏幕上的位置对上。每条命令进主进程时都用 zod 重新校验，并核对发送方是面板窗口。
 - `main` 窗口始终存在、兜底、不能改名或关闭。可选的路由、窗口名是 `cmd/display/config.ts` 里的数据，控制服务只按数据执行，不认识任何内容包。
 
 ### 4.5 导演服务（主进程）

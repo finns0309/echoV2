@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pickKeyword, segment, synthUnits, timedUnits } from './index'
+import { detectLang, langOf, pickKeyword, segment, synthUnits, timedUnits } from './index'
 
 describe('segment', () => {
   it('keeps Japanese words whole', () => {
@@ -53,4 +53,17 @@ describe('timedUnits', () => {
       ['合う', 3, 2],
     ])
   })
+
+  it('tells Japanese from Chinese by kana, since they share Han', () => {
+    expect(detectLang('巡り合う')).toBe('ja')
+    expect(detectLang('今日もおつかれ (´･ω･`)')).toBe('ja')
+    expect(detectLang('ｶﾀｶﾅ')).toBe('ja')
+    expect(detectLang('从树叶间洒下的阳光')).toBe('zh')
+    expect(detectLang('사랑')).toBe('ko')
+    expect(detectLang('hello 42')).toBeUndefined()
+    expect(langOf({ type: 'text', role: 'primary', text: '木漏れ日' })).toBe('ja')
+    expect(langOf({ type: 'text', role: 'primary', text: '骨', reading: 'ほね' })).toBe('ja')
+    expect(langOf({ type: 'text', role: 'primary', text: '骨', lang: 'zh' })).toBe('zh')
+  })
 })
+

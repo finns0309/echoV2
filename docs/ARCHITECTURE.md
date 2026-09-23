@@ -80,7 +80,7 @@ screen/
 ├── runtime/         舞台宿主、四种时间线的时钟、信号总线、传输客户端（IPC，以后加 WebSocket）
 ├── primitives/      没有主题语义的工具，至少两个主题在用才放进来
 │   ├── blocks/        当前该显示哪一块、toText、按容量取短版本（M1）
-│   ├── text/          分词、强调词、合成逐字时间（新世纪和夜潮用）
+│   ├── text/          分词、强调词、合成逐字时间（新世纪和夜潮用）；按假名判断中日文（四个主题都用）
 │   ├── color/         从封面取色；由舞台宿主统一填进 context.palette，主题只读 palette；hexToRgb
 │   ├── gl/            全屏着色器的小框架（流体和夜潮共用）
 │   └── scale/         随窗口对角线放大（风铃和流体共用）
@@ -263,5 +263,5 @@ tsconfig.json  tsconfig.node.json  tsconfig.web.json  eslint.config.js  vitest.c
 ### 已知代价
 
 - 多了构建步骤。开发时用 `electron-vite dev`，发布前用 `electron-vite build`。
-- 主题的 `harness.html` 不能再直接双击打开，要作为 Vite 的多页面入口，用 dev server 打开。
+- 调试页不能直接双击打开，要用 dev server 打开：`/screen/harness.html` 用假的通道把示例内容（日文、中文、数值、进度、图片）按不同醒目程度喂给任意主题，还能模拟音乐信号和面板定位；`/panel/harness.html` 是面板的。两个都不进打包产物。
 - electron-vite 是第三方工具。它只负责构建，不侵入代码，以后要换成 tsc + esbuild 脚本也只改配置。

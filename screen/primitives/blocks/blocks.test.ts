@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Presentation } from '@contract'
-import { activeBlockIndex, fitText, toText } from './index'
+import { activeBlockIndex, fitText, progressRatio, salienceOf, toText, valueParts } from './index'
 
 const card: Presentation = {
   context: {},
@@ -36,4 +36,22 @@ describe('block primitives', () => {
     expect(fitText(card.blocks[1]!, 4)).toBe('邂逅')
     expect(fitText(card.blocks[1]!, 20)).toBe('偶然相遇；邂逅')
   })
+
+  it('reads values and progress as people write them', () => {
+    const v = { type: 'value' as const, role: 'primary' as const, value: 12345.678, unit: 'MB', label: '缓存', delta: -1.5 }
+    expect(valueParts(v)).toEqual({ label: '缓存', number: '12,345.68', unit: 'MB', delta: { dir: 'down', text: '↓1.5' } })
+    expect(toText(v)).toBe('缓存 · 12,345.68 MB ↓1.5')
+    const p = { type: 'progress' as const, role: 'primary' as const, value: 7, max: 10, label: '打包' }
+    expect(progressRatio(p)).toBe(0.7)
+    expect(progressRatio({ ...p, value: 12 })).toBe(1)
+    expect(toText(p)).toBe('打包 · 70%')
+  })
+
+  it('takes salience from the stage, then the hint, else normal', () => {
+    const onAir = { contentId: 'a', since: 0, presentation: card }
+    expect(salienceOf(onAir)).toBe('normal')
+    expect(salienceOf({ ...onAir, presentation: { ...card, hints: { salience: 'quiet' } } })).toBe('quiet')
+    expect(salienceOf({ ...onAir, salience: 'attention', presentation: { ...card, hints: { salience: 'quiet' } } })).toBe('attention')
+  })
 })
+

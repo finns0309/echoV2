@@ -26,4 +26,8 @@ describe('tide wave schedule', () => {
   it('sends one last wave after the final line', () => {
     expect(scheduleWaves([line(0, 2)])).toHaveLength(1)
   })
+
+  it('leaves a held status on the sand', () => {
+    expect(scheduleWaves([{ ...line(0, 2), hold: true }])).toHaveLength(0)
+  })
 })
