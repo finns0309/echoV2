@@ -133,6 +133,8 @@ const state = {
   sample: params.get('sample') ?? '单词（日）',
   salience: (params.get('salience') ?? 'normal') as Salience,
   music: params.get('music') === '1',
+  // Something playing, for themes with a slot for it (Duo's cover art, the gazette's poem).
+  playing: params.get('playing') !== '0',
 }
 let rev = 0
 let since = Date.now()
@@ -157,7 +159,7 @@ function publish(fresh: boolean): void {
   for (const [name, spec] of Object.entries(manifests[state.theme]?.slots ?? { main: null })) {
     if (spec && !spec.timelines.some((k) => k !== 'media')) {
       if (Date.now() - playedFrom > 30_000) playedFrom = Date.now()
-      slots[name] = { contentId: 'sample:verse', since: playedFrom, presentation: playing() }
+      slots[name] = state.playing ? { contentId: 'sample:verse', since: playedFrom, presentation: playing() } : null
     } else if (n++ === 0) slots[name] = onAir
     else {
       const i = (turn + n - 2) % MORNING.length
@@ -166,7 +168,7 @@ function publish(fresh: boolean): void {
   }
   const s: StageState = { rev: ++rev, surfaces: { h: { profile: 'x', theme: state.theme, slots } } }
   emit('stage', s)
-  history.replaceState(null, '', `?${new URLSearchParams({ theme: state.theme, sample: state.sample, salience: state.salience, music: state.music ? '1' : '0' })}`)
+  history.replaceState(null, '', `?${new URLSearchParams({ theme: state.theme, sample: state.sample, salience: state.salience, music: state.music ? '1' : '0', playing: state.playing ? '1' : '0' })}`)
 }
 
 function select(label: string, options: string[], key: 'theme' | 'sample' | 'salience'): HTMLElement {
@@ -217,7 +219,16 @@ box.type = 'checkbox'
 box.checked = state.music
 box.onchange = () => (state.music = box.checked)
 music.append(box, '音乐信号')
-bar.append(music)
+const play = document.createElement('label')
+const playBox = document.createElement('input')
+playBox.type = 'checkbox'
+playBox.checked = state.playing
+playBox.onchange = () => {
+  state.playing = playBox.checked
+  publish(false)
+}
+play.append(playBox, '在放歌')
+bar.append(music, play)
 
 // A pretend song: a slow swell with a beat every ~0.5s.
 setInterval(() => {

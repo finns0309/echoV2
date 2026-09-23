@@ -81,22 +81,14 @@
 .du-cover { transform: rotateY(180deg); border-radius: var(--r); }
 .du-inner-left { border-radius: var(--r) 0 0 var(--r); }
 .du-inner-right { border-radius: 0 var(--r) var(--r) 0; }
-/* The half turning away darkens as it goes. */
-.du-inner-left::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: #000;
-  opacity: 0.7;
-  pointer-events: none;
-  transition: opacity 1.1s var(--ease);
-}
-.is-open .du-inner-left::after { opacity: 0; }
+/* The half turning away darkens as it goes: its own brightness, not an overlay, which
+   would be a layer of its own and could show round the cover on a Retina screen. */
+.du-inner-left { filter: brightness(0.3); }
+.is-open .du-inner-left { filter: none; }
 /* backface-visibility doesn't reach everything inside a face (blurs, glass and animated
    layers get their own), so the face turned away is also hidden once the swing is over. */
-.du-inner-left { visibility: hidden; transition: visibility 0s linear 1.1s; }
-.is-open .du-inner-left { visibility: visible; transition-delay: 0s; }
+.du-inner-left { visibility: hidden; transition: visibility 0s linear 1.1s, filter 1.1s var(--ease); }
+.is-open .du-inner-left { visibility: visible; transition-delay: 0s, 0s; }
 .is-open .du-cover { visibility: hidden; transition: visibility 0s linear 1.1s; }
 /* Folded, the back half is covered whole by the cover; its screen, square at the hinge, would
    show around the cover's rounded corners, so it too goes once the leaf has landed. */
