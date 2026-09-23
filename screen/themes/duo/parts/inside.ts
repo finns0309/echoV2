@@ -1,8 +1,8 @@
-// The inside display, open: two apps in Split View, the hinge between them. On the
-// left, the player: the cover blurred behind, the current line bright and the ones
-// either side dim (or, with nothing playing, a clock widget). On the right, a chat:
-// each card is a message thread from its sender, bubbles arriving at their `at`
-// times with the typing dots just before each.
+// The inside display, open: two apps in Split View, the hinge between them, as in
+// Apple's own pictures of it. On the left, Messages, light: each card is a thread
+// from its sender, bubbles arriving at their `at` times with the typing dots just
+// before each. On the right, the player: the cover blurred behind, the current
+// line bright and the ones either side dim (or, with nothing playing, a clock).
 import type { Block, OnAir } from '@contract'
 import { progressRatio, valueParts } from '@screen/primitives/blocks'
 import { setLang, detectLang } from '@screen/primitives/text'
@@ -54,7 +54,10 @@ function bubble(b: Block): HTMLElement {
   return e
 }
 
-export function createInside(left: HTMLElement, right: HTMLElement) {
+export function createInside(player: HTMLElement, chatApp: HTMLElement) {
+  player.classList.add('du-music')
+  chatApp.classList.add('du-messages')
+
   // — the player —
   const bg = el('img', 'du-player-bg')
   bg.alt = ''
@@ -71,18 +74,20 @@ export function createInside(left: HTMLElement, right: HTMLElement) {
   const wTime = el('div', 'du-widget-time')
   const wDate = el('div', 'du-widget-date')
   widget.append(wDate, wTime)
-  left.append(bg, head, lines, widget)
+  player.append(bg, head, lines, widget)
 
   // — the chat —
   const bar = el('div', 'du-chat-bar')
   const avatar = el('i', 'du-app-icon')
   const who = el('b', '', 'メッセージ')
-  bar.append(avatar, who)
+  bar.append(el('span', 'du-chat-back', '‹'), avatar, who)
   const thread = el('div', 'du-thread')
   const typing = el('div', 'du-bubble du-typing')
   typing.append(el('i', ''), el('i', ''), el('i', ''))
   const empty = el('div', 'du-chat-empty', 'メッセージはありません')
-  right.append(bar, thread, empty)
+  const compose = el('div', 'du-compose')
+  compose.append(el('i', 'du-compose-plus', '+'), el('span', 'du-compose-field', 'iMessage'))
+  chatApp.append(bar, thread, empty, compose)
 
   let chat: { id: string; blocks: readonly Block[]; group: HTMLElement; shown: number } | null = null
 
@@ -101,10 +106,10 @@ export function createInside(left: HTMLElement, right: HTMLElement) {
     },
 
     playing(onAir: OnAir | null): void {
-      left.classList.toggle('has-player', !!onAir)
+      player.classList.toggle('has-player', !!onAir)
       if (!onAir) return
       const ctx = onAir.presentation.context
-      left.classList.toggle('has-art', !!ctx.art)
+      player.classList.toggle('has-art', !!ctx.art)
       if (ctx.art && art.getAttribute('src') !== ctx.art) art.src = bg.src = ctx.art
       title.textContent = ctx.title ?? ''
       by.textContent = ctx.byline ?? ctx.speaker?.name ?? ''
@@ -123,7 +128,7 @@ export function createInside(left: HTMLElement, right: HTMLElement) {
       avatar.textContent = s.mark
       avatar.style.setProperty('--app', s.color)
       who.textContent = s.app
-      right.classList.add('has-chat')
+      chatApp.classList.add('has-chat')
       const blocks = onAir.presentation.blocks
       if (chat?.id === onAir.contentId) {
         // Same thread. A status that changed is set again; lines added arrive as they come.

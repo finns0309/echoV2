@@ -1,6 +1,7 @@
-// The Dynamic Island, standing upright along the side as it does on the Duo. A card
-// arriving opens it into a Live Activity (the app's icon, what it is, its first
-// line) for a few seconds; loud ones shake it first.
+// The camera in the cover's top-right corner, and the Dynamic Island that grows out
+// of it: at rest just the lens; for a card it becomes a black capsule running down
+// the side, then opens into a Live Activity (icon, name, first line) for a few
+// seconds, the lens still at its corner. Loud ones get a red ring and a shake.
 import type { Salience } from '@contract'
 import type { Summary } from './card'
 import { el } from './dom'
@@ -9,12 +10,13 @@ const OPEN_MS = 3800
 
 export function createIsland(screen: HTMLElement) {
   const island = el('div', 'du-island')
+  const lens = el('i', 'du-lens')
   const icon = el('i', 'du-app-icon')
   const text = el('div', 'du-island-text')
   const app = el('b', '')
   const line = el('span', '')
   text.append(app, line)
-  island.append(icon, text)
+  island.append(icon, text, lens)
   screen.append(island)
   let timer: ReturnType<typeof setTimeout> | undefined
 

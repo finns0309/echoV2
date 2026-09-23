@@ -48,7 +48,8 @@ export default function createDuo(): Theme {
       phone = createPhone(el)
       cover = createCover(phone.cover)
       island = createIsland(phone.cover)
-      inside = createInside(phone.left, phone.right)
+      // Messages on the left, the player on the right, as Apple shows Split View.
+      inside = createInside(phone.right, phone.left)
       // A tap folds or opens it, as a hand would.
       phone.device.addEventListener('click', () => {
         opened = !opened

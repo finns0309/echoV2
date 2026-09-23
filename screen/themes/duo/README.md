@@ -6,7 +6,7 @@ New in echoV2, not ported. It is a mock for fun, not an adaptation for the real 
 
 ## The phone
 
-- **Body**: titanium in Night Sky, a thin bezel, and a large corner radius. Each half is 0.69 as wide as it is tall (the cover's shape), so open it is about 1.4 wide, as the inside display is.
+- **Body**, after Apple's product shots: a rim of grade 5 titanium polished to a mirror, drawn as bands of reflected light in Night Sky navy rather than a flat colour. Inside it is a hairline black bezel, then the glass. Each half is 0.69 as wide as it is tall (the cover's shape), so open it is about 1.4 wide, as the inside display is. No crease shows.
 - **Folding**: the left half (the leaf) swings on the hinge with CSS 3D. Its back is the cover display. Folded, it lies over the right half showing the cover; open, it shows the left half of the inside display. The half turning away darkens as it goes. The whole phone shifts so that what you see, folded or open, stays centred.
 - **Window**: the `device` profile, 760×560 at the bottom right of the screen, with room to open to the left.
 - **Tap**: a tap on the phone folds or opens it. The phone is `no-drag`; drag the window by the space around it.
@@ -17,14 +17,15 @@ Two slots: `card` (anything that arrives) and `media` (whatever plays, on a medi
 
 | | Folded (cover) | Open (inside) |
 |---|---|---|
-| a card | a notification on the Lock Screen, newest on top of a stack of three | a message thread from its sender: bubbles arrive at their `at` times, with the typing dots just before each |
-| the Dynamic Island | upright along the left side, as on the Duo; a card opens it into a Live Activity (icon, name, first line) for a few seconds | |
-| what plays | a Now Playing widget with the current line, the cover art blurred into the wallpaper | the player on the left: art, the current line bright and its neighbours dim, ♪ in a break |
-| nothing on air | StandBy: black, the date in orange, a very large clock | a clock widget on the left, an empty chat on the right |
+| the screen | Lock Screen over the Duo's own wallpaper (dunes under hazy hills, drawn in SVG): the date and a clock in pale glass, centred; flashlight and camera as glass buttons at the bottom right | Split View: two rounded app windows with a black gap down the hinge, Messages (light) on the left, the player on the right, as in Apple's pictures |
+| a card | a notification, newest on top of a stack of three | a Messages thread from its sender: grey bubbles arrive at their `at` times, with the typing dots just before each; an iMessage field at the bottom |
+| the camera and the island | a lens in the top-right corner. For a card, a black capsule grows out of it down the side, then widens into a Live Activity (icon, name, first line) for a few seconds | |
+| what plays | a Now Playing widget with the current line, the cover art blurred into the wallpaper | the player: art, the current line bright and its neighbours dim, ♪ in a break |
+| nothing on air | StandBy: black, the date in orange, a very large clock | a clock where the player would be, an empty chat |
 
 A card is read the way a phone reads one (`parts/card.ts`). The "app" is the speaker, else the title. The icon is the first character in the content's own colour, and the body is every block as text except the credit.
 
-Inside the chat, a value is a bubble with a large rounded number and a green or red delta. Progress is a thin bar in the app's colour, a picture is an image bubble, an annotation is an outlined bubble, and a credit is a caption under the thread.
+Inside the chat, a value is a bubble with a large rounded number and a green or red delta (iOS system colours). Progress is a thin bar in the app's colour, a picture is an image bubble, an annotation is a paler bubble, and a credit is a caption under the thread.
 
 ## Salience
 
@@ -40,7 +41,7 @@ Inside the chat, a value is a bubble with a large rounded number and a green or 
 - `manifest.ts`: the two slots, and the `device` profile.
 - `parts/phone.ts`: the body, the leaf, the three screens.
 - `parts/cover.ts`: Lock Screen, Now Playing, notifications, StandBy.
-- `parts/island.ts`: the upright Dynamic Island.
-- `parts/inside.ts`: Split View, with the player and the chat.
+- `parts/island.ts`: the camera, and the Dynamic Island that grows out of it.
+- `parts/inside.ts`: Split View, with Messages and the player.
 - `parts/card.ts`: a card as a notification (pure, tested).
 - `theme.ts`: which slot goes where, the fold, the clock.

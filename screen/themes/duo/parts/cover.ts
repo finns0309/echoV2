@@ -8,6 +8,10 @@ import { clock, dateLine, el } from './dom'
 
 const STACK = 3
 
+// The Lock Screen's two quick actions, bottom right: the flashlight and the camera.
+const FLASHLIGHT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8v3l-2 4v10a2 2 0 0 1-4 0V10L8 6z"/><path d="M12 13v2"/></svg>`
+const CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2.5h6L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>`
+
 export function notification(s: Summary): HTMLElement {
   const n = el('div', 'du-note')
   const icon = el('i', 'du-app-icon', s.mark)
@@ -41,7 +45,13 @@ export function createCover(screen: HTMLElement) {
   npText.append(npTitle, npBy)
   np.append(npArt, npText, npLine)
   const notes = el('div', 'du-notes')
-  lock.append(date, time, np, notes)
+  const actions = el('div', 'du-actions')
+  for (const icon of [FLASHLIGHT, CAMERA]) {
+    const b = el('i', 'du-action')
+    b.innerHTML = icon
+    actions.append(b)
+  }
+  lock.append(date, time, np, notes, actions)
   const standby = el('div', 'du-standby')
   const bigTime = el('div', 'du-standby-time')
   const bigDate = el('div', 'du-standby-date')
