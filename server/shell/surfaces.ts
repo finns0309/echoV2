@@ -18,15 +18,12 @@ export interface SurfaceOptions {
   others?: () => Bounds[]
 }
 
-// Programmatic setBounds fires moved/resized too; ignore those for this long
-// so our own changes aren't saved as the user's preference.
-const QUIET_MS = 400
-
 const intersects = (a: Rectangle, b: Bounds) =>
   a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
 const inside = (b: Bounds, area: Rectangle) =>
   b.x >= area.x && b.y >= area.y && b.x + b.width <= area.x + area.width && b.y + b.height <= area.y + area.height
 const GAP = 20
+const same = (a: Bounds, b: Bounds) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 
 /** Slide `b` left, a window's width at a time, until it clears `taken` or runs out of room. */
 function clear(b: Bounds, taken: Bounds[], area: Rectangle): Bounds {
@@ -71,14 +68,15 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   let profile = ''
   let clickThrough = false
   let beforeFill: Bounds | null = null
-  let quietUntil = 0
+  /** Where we last put the window ourselves. Our own setBounds fires moved/resized too, sometimes late. */
+  let placed: Bounds | null = null
   const listeners = new Set<() => void>()
   const changed = () => {
     for (const listener of listeners) listener()
   }
 
   function place(bounds: Bounds): void {
-    quietUntil = Date.now() + QUIET_MS
+    placed = { ...bounds }
     win.setBounds(bounds)
   }
   function setClickThrough(value: boolean): void {
@@ -92,9 +90,12 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     return b.x === wa.x && b.y === wa.y && b.width === wa.width && b.height === wa.height
   }
 
-  // The user moved or resized the window: remember it for this theme.
+  // The user moved or resized the window: remember it for this theme. Only where the
+  // user put it, never where we did: a fill saved as the user's place would come back
+  // after a restart as a full-screen window with no way back.
   const remember = () => {
-    if (Date.now() < quietUntil || !theme) return
+    if (!theme || (placed && same(win.getBounds(), placed))) return
+    placed = null
     beforeFill = null
     prefs.setOverride(id, theme, { bounds: win.getBounds() })
     changed()
@@ -114,9 +115,14 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     const area = workAreaHere()
     const base = resolveProfile(profile, area)
     const saved = prefs.override(id, theme)
-    // A saved position on a display that is no longer there falls back to the profile.
-    const onScreen = saved.bounds && screen.getAllDisplays().some((d) => intersects(d.workArea, saved.bounds!))
-    place(onScreen ? saved.bounds! : clear(base, others(), area))
+    const displays = screen.getAllDisplays()
+    // A saved position on a display that is no longer there falls back to the profile. So does
+    // one that is exactly a whole screen for a theme that isn't full-screen: a fill that older
+    // builds saved as the user's place by mistake.
+    const onScreen = !!saved.bounds && displays.some((d) => intersects(d.workArea, saved.bounds!))
+    const strayFill = !!saved.bounds && !same(base, area) && displays.some((d) => same(d.workArea, saved.bounds!))
+    if (strayFill) prefs.setOverride(id, theme, { bounds: undefined })
+    place(onScreen && !strayFill ? saved.bounds! : clear(base, others(), area))
     setClickThrough(saved.clickThrough ?? base.clickThrough)
     changed()
   }
