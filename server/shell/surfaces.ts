@@ -155,10 +155,11 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     const saved = prefs.override(id, theme)
     const displays = screen.getAllDisplays()
     // A saved position on a display that is no longer there falls back to the profile. So does
-    // one that is exactly a whole screen for a theme that isn't full-screen: a fill that older
-    // builds saved as the user's place by mistake.
+    // one the size of a whole screen for a theme that isn't full-screen: a fill that older builds
+    // saved as the user's place by mistake (by size: displays get rearranged, positions move).
     const onScreen = !!saved.bounds && displays.some((d) => intersects(d.workArea, saved.bounds!))
-    const strayFill = !!saved.bounds && !same(base, area) && displays.some((d) => same(d.workArea, saved.bounds!))
+    const whole = (b: Bounds) => displays.some((d) => d.workArea.width === b.width && d.workArea.height === b.height)
+    const strayFill = !!saved.bounds && !same(base, area) && whole(saved.bounds)
     if (strayFill) prefs.setOverride(id, theme, { bounds: undefined })
     // In full screen the Space decides its size; it is placed when it comes back.
     if (!full) place(onScreen && !strayFill ? saved.bounds! : clear(base, others(), area))
