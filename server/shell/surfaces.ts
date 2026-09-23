@@ -57,13 +57,16 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     show: false,
     webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true },
   })
-  // Floating on every desktop, over other windows: 'floating' rather than 'screen-saver' so
-  // menu-bar popovers still draw above us. Not over full-screen Spaces: a window put into
-  // full screen gets a Space of its own, and the others would pile on top of it there.
-  // (skipTransformProcessType: otherwise Electron turns echo into a Dock app to do this.)
+  // Floating on every desktop and over full-screen apps: 'floating' rather than 'screen-saver'
+  // so menu-bar popovers still draw above us. While another echo window is full screen, this
+  // one is pinned to the desktop it is on instead; echo being a menu-bar app, a window on every
+  // desktop would also show in that window's Space, on top of it.
+  let pinned = false
+  const everywhere = (on: boolean) =>
+    win.setVisibleOnAllWorkspaces(on, on ? { visibleOnFullScreen: true } : { skipTransformProcessType: true })
   const float = () => {
     win.setAlwaysOnTop(true, 'floating')
-    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: false, skipTransformProcessType: true })
+    everywhere(!pinned)
   }
   float()
   // What the user wants, which is not the same as isVisible() while the page is still loading.
@@ -111,6 +114,17 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   // In its Space it is an ordinary window; back on the desktop it floats again, where the
   // current theme wants it (the theme may have changed while it was full screen).
   const afterLeaving: (() => void)[] = []
+  const settle = () => {
+    win.setAlwaysOnTop(false)
+    everywhere(false)
+  }
+  // Full screen asked for some other way (macOS's own menu or gestures): catch up.
+  win.on('enter-full-screen', () => {
+    if (full) return
+    full = true
+    settle()
+    changed()
+  })
   win.on('leave-full-screen', () => {
     full = false
     float()
@@ -120,10 +134,7 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   function setFullScreen(on: boolean): void {
     if (on === full) return
     full = on
-    if (on) {
-      win.setAlwaysOnTop(false)
-      win.setVisibleOnAllWorkspaces(false, { skipTransformProcessType: true })
-    }
+    if (on) settle()
     win.setFullScreen(on)
     changed()
     // macOS may decline (it does for some borderless windows): don't sit in a full screen that never came.
@@ -179,6 +190,17 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
 
     /** Full screen in a Space of its own, as a Chrome window goes; not remembered across restarts. */
     setFullScreen,
+
+    /** Stay on the desktop it is on (while another window is full screen), or float on every one again. */
+    pin(on: boolean): void {
+      if (pinned === on) return
+      pinned = on
+      if (!full) everywhere(!on)
+    },
+
+    focused(): boolean {
+      return win.isFocused()
+    },
 
     /** Forget what the user changed for the current theme and go back to its profile. */
     reset(): void {

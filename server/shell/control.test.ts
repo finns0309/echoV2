@@ -9,6 +9,7 @@ function fakeSurface(log: string[], id: string): ShellSurface {
   const s: SurfaceState = { theme: '', clickThrough: false, visible: true, fullScreen: false }
   const listeners = new Set<() => void>()
   const changed = () => listeners.forEach((l) => l())
+  let pinned = false
   return {
     wear: (theme) => {
       s.theme = theme
@@ -18,7 +19,9 @@ function fakeSurface(log: string[], id: string): ShellSurface {
     bounds: () => ({ x: 0, y: 0, width: 300, height: 470 }),
     onChange: (l) => (listeners.add(l), () => listeners.delete(l)),
     toggleClickThrough: () => ((s.clickThrough = !s.clickThrough), changed()),
-    setFullScreen: (on) => ((s.fullScreen = on), changed()),
+    setFullScreen: (on) => ((s.fullScreen = on), log.push(`full ${id} ${on}`), changed()),
+    pin: (on) => void (pinned !== on && ((pinned = on), log.push(`pin ${id} ${on}`))),
+    focused: () => false,
     toggleVisible: () => ((s.visible = !s.visible), changed()),
     reset: () => log.push(`reset ${id}`),
     destroy: () => log.push(`destroy ${id}`),
@@ -121,6 +124,20 @@ describe('shell control', () => {
     expect(shell.state().windows[0]?.clickThrough).toBe(false)
     shell.dispatch({ type: 'setFullScreen', window: 'main', on: true })
     expect(shell.state().windows[0]?.fullScreen).toBe(true)
+  })
+
+  it('keeps the other windows on the desktop while one is full screen, so its Space is its own', () => {
+    const { shell, log } = setup([
+      { id: 'main', theme: 'furin' },
+      { id: 'side', theme: 'plasma' },
+    ])
+    log.length = 0
+    shell.dispatch({ type: 'setFullScreen', window: 'main', on: true })
+    // pinned first: pinned while the Space shows, it would land in it
+    expect(log).toEqual(['pin side true', 'full main true'])
+    log.length = 0
+    shell.dispatch({ type: 'setFullScreen', window: 'main', on: false })
+    expect(log).toEqual(['full main false', 'pin side false'])
   })
 
   it('caps a window\'s loudness, and tells the stage', () => {

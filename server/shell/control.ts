@@ -11,6 +11,9 @@ export interface ShellSurface {
   onChange(listener: () => void): () => void
   toggleClickThrough(): void
   setFullScreen(on: boolean): void
+  /** Stay on the current desktop instead of every one, so a full-screen window's Space stays its own. */
+  pin(on: boolean): void
+  focused(): boolean
   toggleVisible(): void
   reset(): void
   destroy(): void
@@ -94,6 +97,12 @@ export function createShellControl(o: ShellControlOptions) {
     const s = state()
     for (const listener of listeners) listener(s)
   }
+  // Once no window is full screen, the others float on every desktop again. (They are pinned
+  // before one goes full screen, in dispatch: pinned while its Space shows, they would land in it.)
+  const windowChanged = () => {
+    if (![...windows.values()].some((w) => w.state().fullScreen)) for (const w of windows.values()) w.pin(false)
+    changed()
+  }
 
   /** What the scheduler sees: each window's theme, route, and whether it is showing. */
   function surfaces(): SurfaceConfig[] {
@@ -124,7 +133,7 @@ export function createShellControl(o: ShellControlOptions) {
         const id = s.id
         w = o.open(id, () => [...windows].flatMap(([other, x]) => (other === id ? [] : [x.bounds()])))
         windows.set(id, w)
-        w.onChange(changed)
+        w.onChange(windowChanged)
         w.wear(s.theme, s.profile)
       } else if (w.state().theme !== s.theme) {
         w.wear(s.theme, s.profile)
@@ -176,6 +185,7 @@ export function createShellControl(o: ShellControlOptions) {
         return { ok: true }
       }
       case 'setFullScreen':
+        if (command.on) for (const [id, w] of windows) if (id !== command.window) w.pin(true)
         surface(command.window)?.setFullScreen(command.on)
         return { ok: true }
       case 'resetWindow':
@@ -196,6 +206,10 @@ export function createShellControl(o: ShellControlOptions) {
     state,
     surfaces,
     dispatch,
+    /** The window with the keyboard, if one of echo's has it. */
+    focused(): string | null {
+      return [...windows].find(([, w]) => w.focused())?.[0] ?? null
+    },
     subscribe(listener: (state: ShellState) => void): () => void {
       listeners.add(listener)
       return () => listeners.delete(listener)

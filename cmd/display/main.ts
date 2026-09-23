@@ -22,6 +22,7 @@ import { startHotkey } from '@server/shell/hotkey'
 import { createPanelWindow } from '@server/shell/panel'
 import { createShellPrefs } from '@server/shell/prefs'
 import { createSurface } from '@server/shell/surfaces'
+import { installAppMenu } from '@server/shell/menu'
 import { createTray } from '@server/shell/tray'
 import { createContentStore } from '@server/stage/contents'
 import { createStageService } from '@server/stage/service'
@@ -159,6 +160,7 @@ app.whenReady().then(async () => {
     app.on('before-quit', () => hotkey.stop())
   }
 
+  installAppMenu({ state: shell.state, dispatch: shell.dispatch, focused: shell.focused })
   createTray({
     icon: join(app.getAppPath(), 'assets/trayTemplate.png'),
     state: shell.state,
