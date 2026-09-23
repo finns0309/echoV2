@@ -66,10 +66,11 @@ pnpm icon       # 改了 scripts/make-icon.swift 里的几何参数后，重新�
 ```
 
 - 常驻菜单栏，没有 Dock 图标（`LSUIElement`）。
-- ⌥ + 右⌘ 靠 app 里的一个小程序（`native/hotkey`）监听修饰键，需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 Echo。只有打包版会申请这个权限；dev 版要试的话用 `ECHO_HOTKEY=1 pnpm dev`，会以「Electron」的名义申请。ad-hoc 签名每次打包都会变，重新打包后可能需要重新勾一次。同一时间只跑一个：装好的 app 开着时，`pnpm dev` 会直接退出，因为两者共用 agent 端口和状态目录。
+- ⌥ + 右⌘ 靠 app 里的一个小程序（`native/hotkey`）监听修饰键，需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 Echo。只有打包版会申请这个权限；dev 版要试的话用 `ECHO_HOTKEY=1 pnpm dev`，会以「Electron」的名义申请。同一时间只跑一个：装好的 app 开着时，`pnpm dev` 会直接退出，因为两者共用 agent 端口和状态目录。
 - 状态目录固定为 `~/Library/Application Support/echo-v2/`，不跟着 productName 走。
 - 打包产物不带 node_modules：main 和 mcp 都把依赖打进单文件，所以 `package.json` 里只有 devDependencies。
 - app 自带一份 MCP 脚本，不依赖仓库：`node /Applications/Echo.app/Contents/Resources/mcp.js`。
-- 只做了 ad-hoc 签名，没有公证。在别的机器上首次打开需要右键 → 打开，或者跑一次 `xattr -cr /Applications/Echo.app`。
+- **签名**：先跑一次 `scripts/make-signing-cert.sh`，它在独立的钥匙串 `~/Library/Keychains/echo-signing.keychain-db` 里生成自签名证书「Echo Local Signing」，不动登录钥匙串和系统信任设置。之后 `pnpm package` 会自动用它重签（`scripts/sign.cjs`），app 的签名身份固定为「com.finn.echo + 这张证书」，所以快捷键的输入监控授权在重新打包后依然有效。没有这张证书时退回 ad-hoc 签名，每次打包都要重新授权。
+- 没有公证。在别的机器上首次打开需要右键 → 打开，或者跑一次 `xattr -cr /Applications/Echo.app`。
 
 图标和 muse、Caller 是一套：同样的渐变底、70px 圆头描边、`#6eb5ff` 的点。蓝点是声源，右边两道弧是它的回声，外圈更淡。

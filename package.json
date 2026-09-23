@@ -81,6 +81,7 @@
     },
     "dmg": {
       "title": "Echo"
-    }
+    },
+    "afterSign": "scripts/sign.cjs"
   }
 }

@@ -12,7 +12,13 @@ export default defineConfig(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ['screen/**', 'cmd/screen/**'],
+    files: ['screen/**', 'cmd/screen/**', 'panel/**', 'cmd/panel/**'],
     languageOptions: { globals: globals.browser },
+  },
+  // Build hooks electron-builder loads with require().
+  {
+    files: ['scripts/**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: globals.node },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
 )
