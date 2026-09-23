@@ -293,6 +293,32 @@ describe('scheduler', () => {
   })
 })
 
+describe('a page of several slots', () => {
+  const page: ThemeManifest = {
+    id: 'page',
+    label: 'page',
+    profile: 'ambient',
+    slots: {
+      lead: { accepts: ['text'], timelines: ['self', 'none'], role: 'main' },
+      col: { accepts: ['text'], timelines: ['self', 'none'], role: 'side' },
+      verse: { accepts: ['text'], timelines: ['media'], role: 'ambient' },
+    },
+  }
+  const song = card('song', 'normal', 0, { timeline: { kind: 'media', position: 0, sampledAt: 0, rate: 1, version: 0 } })
+  const onPage = (contents: Content[]) => {
+    const out = schedule({ surfaces: [{ id: 'p', profile: 'ambient', theme: 'page' }], manifests: { page }, contents, current: {}, now: 1000 })
+    return Object.fromEntries(Object.entries(out.surfaces.p!.slots).map(([k, v]) => [k, v?.contentId ?? null]))
+  }
+
+  it('shows quieter stories beside an important one', () => {
+    expect(onPage([song, card('news', 'normal', 1), card('murmur', 'ambient', 2)])).toEqual({ lead: 'news', col: 'murmur', verse: 'song' })
+  })
+
+  it('still keeps a slot for what is more important and waiting for it', () => {
+    expect(onPage([card('a', 'normal', 1), card('b', 'normal', 2), card('murmur', 'ambient', 0)])).toEqual({ lead: 'a', col: 'b', verse: null })
+  })
+})
+
 describe('a window\'s loudness', () => {
   it('is a ceiling: louder content is shown at that level, quieter content as it is', () => {
     expect(capSalience('attention', 'normal')).toBe('normal')

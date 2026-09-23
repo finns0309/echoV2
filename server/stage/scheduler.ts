@@ -130,12 +130,12 @@ export function schedule({ surfaces, manifests, contents, current, now, paused, 
     waiting.sort(waitingOrder)
   }
 
-  // Ambient content only takes a slot while nothing more important is on air on
-  // that surface, or waiting for that slot.
+  // Ambient content only takes a free slot while nothing more important is waiting
+  // for that slot. It is decided per slot, not per window: a page of several slots
+  // (a newspaper) shows its quieter stories beside an important one. A window with
+  // one slot is the same as before, since the slot is only free when nothing holds it.
   const important = (c: Content) => c.priority !== 'ambient'
-  const quiet = (s: SlotRef) =>
-    !slots.some((o) => o.surface === s.surface && o.holder && important(o.holder.content)) &&
-    !waiting.some((c) => important(c) && takes(s, c))
+  const quiet = (s: SlotRef) => !waiting.some((c) => important(c) && takes(s, c))
 
   // Free slots an ensemble is waiting to fill: content behind it in line may not take them.
   const reserved = new Map<SlotRef, Content>()

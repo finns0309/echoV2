@@ -75,6 +75,11 @@ describe('entry points', () => {
     ok('cmd/display/main.ts', '@server/packs/card/pack')
     bad('cmd/display/main.ts', '@server/packs/card/model')
   })
+  it('lets only the harness, standing in for the display server, read theme manifests', () => {
+    ok('cmd/screen/harness.ts', '../../screen/themes/*/manifest.ts')
+    bad('cmd/screen/boot.ts', '../../screen/themes/*/manifest.ts')
+    bad('cmd/screen/harness.ts', '../../screen/themes/furin/parts/chime.ts')
+  })
   it('keeps the screen entry away from the server', () => {
     bad('cmd/screen/boot.ts', '@server/stage/state')
     ok('cmd/screen/boot.ts', '../../screen/themes/*/theme.ts')

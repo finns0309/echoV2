@@ -1,0 +1,393 @@
+/* 晨报 · a front page on newsprint. One ink, one spot of vermilion, a fold. */
+
+.gz {
+  --gz-paper: #f1ece0;
+  --gz-ink: #1c1a17;
+  --gz-ink-2: #5d584e;
+  --gz-ink-3: #8d877b;
+  --gz-red: #b5301b;
+  --gz-mincho: "Hiragino Mincho ProN", "YuMincho", "Songti SC", "Noto Serif CJK JP", serif;
+  --gz-gothic: "Hiragino Sans", "PingFang SC", "Noto Sans CJK JP", sans-serif;
+  --gz-didone: "Didot", "Bodoni 72", "Bodoni MT", "Playfair Display", var(--gz-mincho);
+  container-type: size;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: var(--gz-ink);
+  background: var(--gz-paper);
+  font-family: var(--gz-mincho);
+  font-feature-settings: "palt";
+}
+.gz :lang(zh) { --gz-mincho: "Songti SC", "Hiragino Mincho ProN", serif; --gz-gothic: "PingFang SC", "Hiragino Sans", sans-serif; }
+
+/* The paper: grain, edges a shade older than the middle, and the fold across it. */
+.gz-paper {
+  --u: clamp(11px, calc(0.9cqw + 0.75cqh), 30px);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--u) * 1.4) calc(var(--u) * 2) calc(var(--u) * 1.2);
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .22 0 0 0 0 .19 0 0 0 0 .14 0 0 0 .11 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    radial-gradient(ellipse 80% 75% at 50% 45%, transparent 55%, rgb(150 115 60 / 0.13) 100%),
+    var(--gz-paper);
+}
+.gz-paper::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: calc(var(--u) * 0.9);
+  transform: translateY(-50%);
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgb(60 45 20 / 0.06) 48%, rgb(255 255 255 / 0.35) 52%, transparent);
+}
+
+/* — Masthead: ears either side of the name, a heavy and a hairline rule under it — */
+.gz-mast {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  padding-bottom: calc(var(--u) * 0.5);
+  border-bottom: calc(var(--u) * 0.28) solid var(--gz-ink);
+  box-shadow: 0 calc(var(--u) * 0.2) 0 var(--gz-paper), 0 calc(var(--u) * 0.28) 0 var(--gz-ink);
+}
+.gz-name {
+  margin: 0;
+  font: 700 calc(var(--u) * 5.4) / 0.86 var(--gz-didone);
+  letter-spacing: 0.06em;
+  padding-left: 0.06em;
+}
+.gz-ear {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.15);
+  font: 400 calc(var(--u) * 0.8) / 1.3 var(--gz-gothic);
+  color: var(--gz-ink-2);
+  letter-spacing: 0.08em;
+}
+.gz-ear-l { align-items: flex-start; }
+.gz-ear-l b { font: 600 calc(var(--u) * 1.05) / 1.1 var(--gz-mincho); color: var(--gz-ink); letter-spacing: 0.04em; }
+.gz-ear-r { flex-direction: row; align-items: flex-end; justify-content: flex-end; gap: calc(var(--u) * 0.6); }
+.gz-seal {
+  writing-mode: vertical-rl;
+  padding: 0.35em 0.2em;
+  background: var(--gz-red);
+  color: var(--gz-paper);
+  font: 600 calc(var(--u) * 1.05) / 1 var(--gz-mincho);
+  letter-spacing: 0.15em;
+}
+.gz-dateline {
+  display: flex;
+  justify-content: space-between;
+  margin-top: calc(var(--u) * 0.55);
+  padding: calc(var(--u) * 0.3) 0 calc(var(--u) * 0.35);
+  border-bottom: 1px solid var(--gz-ink);
+  font: 400 calc(var(--u) * 0.78) / 1.2 var(--gz-mincho);
+  color: var(--gz-ink-2);
+  letter-spacing: 0.1em;
+}
+
+/* — The page: the lead and a rail of columns, a rule between them — */
+.gz-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 calc(var(--u) * 1.6);
+  padding-top: calc(var(--u) * 1.1);
+}
+/* Front-page tiers: the lead with two stories under it on the left, a rail on the right. */
+.gz-body { grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "lead" "lower"; }
+.gz.has-rail .gz-body { grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr); grid-template-areas: "lead rail" "lower rail"; }
+.gz-slot { position: relative; min-height: 0; }
+.gz-lead { grid-area: lead; overflow: hidden; }
+.gz:not(.has-lead) .gz-lead { display: none; }
+.gz-lower {
+  grid-area: lower;
+  display: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0 calc(var(--u) * 1.6);
+  align-content: start;
+  min-height: 0;
+  overflow: hidden;
+  margin-top: calc(var(--u) * 1.1);
+  padding-top: calc(var(--u) * 1.1);
+  border-top: 1px solid var(--gz-ink);
+}
+.gz.has-lower .gz-lower { display: grid; }
+.gz:not(.has-lead) .gz-lower { margin-top: 0; padding-top: 0; border-top: 0; }
+.gz-lower .gz-col:not(.is-empty) ~ .gz-col:not(.is-empty) { border-left: 1px solid var(--gz-ink); padding-left: calc(var(--u) * 1.6); margin-left: calc(var(--u) * -0.8); }
+.gz-rail {
+  grid-area: rail;
+  display: none;
+  flex-direction: column;
+  row-gap: calc(var(--u) * 0.9);
+  min-height: 0;
+  overflow: hidden;
+}
+.gz.has-rail .gz-rail { display: flex; }
+.gz.has-rail:is(.has-lead, .has-lower) .gz-rail { border-left: 1px solid var(--gz-ink); padding-left: calc(var(--u) * 1.6); }
+.gz-col { flex: 0 1 auto; overflow: hidden; }
+.gz-slot.is-empty { display: none; }
+
+/* — A story — */
+.gz-story { position: relative; }
+.gz-kicker {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.55em;
+  font: 600 calc(var(--u) * 0.78) / 1.2 var(--gz-gothic);
+  letter-spacing: 0.18em;
+  color: var(--gz-ink);
+}
+.gz-mark {
+  width: 0.8em;
+  height: 0.8em;
+  background: color-mix(in srgb, var(--gz-spot, var(--gz-red)) 70%, var(--gz-ink));
+}
+.gz-head {
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-wrap: balance;
+}
+.gz-dots { font-style: normal; text-emphasis: filled sesame var(--gz-red); -webkit-text-emphasis: filled sesame var(--gz-red); }
+.gz-head rt { font: 400 0.34em / 1 var(--gz-gothic); letter-spacing: 0.1em; color: var(--gz-ink-2); }
+.gz-dek {
+  margin: 0.8em 0 0;
+  text-indent: 1em;
+  line-height: 1.8;
+  text-align: justify;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gz-aside {
+  margin: 0.9em 0 0;
+  color: var(--gz-ink-2);
+  line-height: 1.7;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.gz-aside::before { content: "◇ "; color: var(--gz-ink); }
+.gz-credit {
+  margin: 0.8em 0 0;
+  text-align: right;
+  font: 400 calc(var(--u) * 0.72) / 1.2 var(--gz-gothic);
+  letter-spacing: 0.06em;
+  color: var(--gz-ink-2);
+}
+
+/* Figures: a number set big in a didone, a chart printed with a hatch. */
+.gz-fig { margin: 0.9em 0 0; }
+.gz-fig figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  font: 400 calc(var(--u) * 0.74) / 1.4 var(--gz-gothic);
+  letter-spacing: 0.06em;
+  color: var(--gz-ink-2);
+  border-bottom: 1px solid var(--gz-ink);
+  padding-bottom: 0.25em;
+}
+.gz-num { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 0.25em; margin-top: 0.1em; }
+.gz-num .n { font: 700 2.1em / 1.05 var(--gz-didone); font-variant-numeric: lining-nums tabular-nums; letter-spacing: -0.01em; }
+.gz-num .u { font: 400 0.95em / 1 var(--gz-mincho); }
+.gz-num .d { font: 400 0.8em / 1 var(--gz-gothic); margin-left: 0.4em; }
+.gz-num .d.up { color: var(--gz-red); }
+.gz-struck .gz-num { animation: gz-strike 520ms cubic-bezier(0.3, 1.5, 0.5, 1); }
+@keyframes gz-strike { 0% { transform: scale(1.06); filter: blur(0.6px); } 100% { transform: none; filter: none; } }
+
+.gz-pct { font: 700 1.15em / 1 var(--gz-didone); color: var(--gz-ink); letter-spacing: 0; }
+.gz-bar {
+  position: relative;
+  height: 1.1em;
+  margin-top: 0.45em;
+  border: 1px solid var(--gz-ink);
+  /* a scale every tenth */
+  background: repeating-linear-gradient(to right, transparent 0 calc(10% - 1px), rgb(28 26 23 / 0.35) calc(10% - 1px) 10%);
+}
+.gz-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--p, 0) * 100%);
+  background: repeating-linear-gradient(135deg, var(--gz-ink) 0 1.5px, transparent 1.5px 4.5px);
+  border-right: 1.5px solid var(--gz-ink);
+  transition: width 900ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* A halftone: blur the picture, multiply a dot screen over it, and threshold the
+   sum; dots swell where the picture is dark. Multiplied onto the paper, white is paper. */
+.gz-photo {
+  --dot: calc(var(--u) * 0.36);
+  position: relative;
+  margin: 0 0 0.8em;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  background: #fff;
+  filter: grayscale(1) contrast(16);
+  mix-blend-mode: multiply;
+}
+.gz-photo img { display: block; width: 100%; height: 100%; object-fit: cover; filter: blur(calc(var(--dot) * 0.22)) brightness(1.08); }
+.gz-photo::after {
+  content: "";
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(closest-side, #777, #fff) 0 0 / var(--dot) var(--dot);
+  mix-blend-mode: multiply;
+  transform: rotate(45deg);
+}
+
+/* The lead: large type. A column: smaller. */
+.gz-lead .gz-story { font-size: calc(var(--u) * 1.18); }
+.gz-lead .gz-head { font-size: calc(var(--u) * 3.1); line-height: 1.24; }
+.gz-lead .gz-short .gz-head { font-size: calc(var(--u) * 4.3); line-height: 1.15; letter-spacing: 0.02em; }
+.gz-lead .gz-dek { -webkit-line-clamp: 4; }
+.gz-lead .gz-num { font-size: calc(var(--u) * 1.9); }
+.gz-lead .gz-photo { float: right; width: 42%; margin: 0 0 0.6em 1.2em; }
+.gz-col .gz-story { font-size: calc(var(--u) * 0.95); }
+.gz-col .gz-head { font-size: calc(var(--u) * 1.45); line-height: 1.32; }
+.gz-col .gz-dek { -webkit-line-clamp: 3; margin-top: 0.55em; }
+.gz-col .gz-aside { -webkit-line-clamp: 1; }
+.gz-col .gz-num { font-size: calc(var(--u) * 1.15); }
+.gz-col .gz-fig { margin-top: 0.6em; }
+.gz-col .gz-photo { width: 100%; }
+
+
+/* Salience. Quiet: grey ink, a lighter cut. Attention: the headline reversed out
+   of a black band (黒ベタ白抜き), a 速報 tag, and 号外 stamped on the masthead. */
+.gz-story[data-salience="quiet"] { color: var(--gz-ink-2); }
+.gz-story[data-salience="quiet"] .gz-head { font-weight: 300; }
+.gz-story[data-salience="attention"] .gz-head { -webkit-line-clamp: unset; display: block; }
+.gz-story[data-salience="attention"] .gz-head {
+  background: var(--gz-ink);
+  color: var(--gz-paper);
+  display: inline;
+  padding: 0.06em 0.3em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  line-height: 1.45;
+}
+.gz-story[data-salience="attention"] .gz-head rt { color: var(--gz-paper); }
+.gz-story[data-salience="attention"] .gz-kicker::before {
+  content: "速報";
+  padding: 0.2em 0.5em;
+  margin-right: 0.2em;
+  background: var(--gz-red);
+  color: var(--gz-paper);
+  letter-spacing: 0.2em;
+}
+.gz-stamp {
+  position: absolute;
+  top: calc(var(--u) * 0.7);
+  left: calc(var(--u) * 8.6);
+  writing-mode: vertical-rl;
+  padding: 0.3em 0.15em;
+  border: 0.12em solid var(--gz-red);
+  border-radius: 0.1em;
+  color: var(--gz-red);
+  font: 600 calc(var(--u) * 2.1) / 1 var(--gz-mincho);
+  letter-spacing: 0.2em;
+  opacity: 0;
+  transform: rotate(-9deg) scale(1.6);
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2'/><feComponentTransfer><feFuncA type='discrete' tableValues='0 1 1 1 1 1'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='m'><feTurbulence type='fractalNoise' baseFrequency='1.3' numOctaves='2'/><feComponentTransfer><feFuncA type='discrete' tableValues='0 1 1 1 1 1'/></feComponentTransfer></filter><rect width='100%' height='100%' filter='url(%23m)'/></svg>");
+}
+.gz.extra .gz-stamp { animation: gz-stamp 420ms cubic-bezier(0.3, 1.4, 0.55, 1) 250ms forwards; }
+@keyframes gz-stamp { to { opacity: 0.92; transform: rotate(-9deg) scale(1); } }
+
+/* — The literary box: a double rule, the cover in halftone, the poem set line by line — */
+.gz-verse:not(.is-empty) {
+  flex: none;
+  margin-top: auto;
+  border: calc(var(--u) * 0.24) double var(--gz-ink);
+  padding: calc(var(--u) * 0.8);
+  font-size: calc(var(--u) * 0.95);
+}
+.gz-verse-head { display: flex; gap: 0.8em; align-items: center; padding-bottom: 0.6em; border-bottom: 1px solid var(--gz-ink); }
+.gz-verse-head .gz-photo { width: 3.6em; height: 3.6em; aspect-ratio: auto; margin: 0; flex: none; --dot: calc(var(--u) * 0.26); }
+.gz-verse-head .gz-kicker { margin-bottom: 0.3em; }
+.gz-verse-title { font-weight: 600; font-size: 1.15em; line-height: 1.3; }
+.gz-verse-by { font: 400 0.78em / 1.4 var(--gz-gothic); color: var(--gz-ink-2); letter-spacing: 0.08em; }
+.gz-verse-lines { padding-top: 0.6em; min-height: 4.6em; display: flex; flex-direction: column; justify-content: flex-end; }
+.gz-verse-past { margin: 0 0 0.2em; color: var(--gz-ink-3); font-size: 0.86em; line-height: 1.5; }
+.gz-verse-now {
+  margin: 0.15em 0 0;
+  font-weight: 600;
+  font-size: 1.35em;
+  line-height: 1.45;
+  animation: gz-ink 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.gz-verse-rest { color: var(--gz-ink-3); font-weight: 400; letter-spacing: 0.3em; }
+@keyframes gz-ink { from { opacity: 0; filter: blur(1.2px); letter-spacing: 0.12em; } to { opacity: 1; filter: none; } }
+
+/* Only the poem on the page: it takes the page, set large in the middle. */
+.gz.verse-only .gz-body { grid-template-columns: minmax(0, 1fr); }
+.gz.verse-only .gz-rail { justify-content: center; align-items: center; }
+.gz.verse-only .gz-verse:not(.is-empty) { margin: 0; width: min(100%, 34em); font-size: calc(var(--u) * 1.5); }
+
+/* Nothing to print. */
+.gz-idle {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--u) * 1.4);
+  writing-mode: vertical-rl;
+  color: var(--gz-ink-3);
+}
+.gz.is-idle .gz-idle { display: flex; }
+.gz-idle span { font: 600 calc(var(--u) * 3.2) / 1 var(--gz-mincho); letter-spacing: 0.5em; }
+.gz-idle small { font: 400 calc(var(--u) * 0.85) / 1 var(--gz-gothic); letter-spacing: 0.3em; }
+
+/* — The press: a story comes off the roller top to bottom, the ink a touch soft at
+   first, the red plate a hair out of register until it settles. The one it
+   replaces lifts off. — */
+.gz-print { animation: gz-press 1100ms cubic-bezier(0.25, 0.7, 0.2, 1) both; }
+.gz-print::after {
+  content: "";
+  position: absolute;
+  left: -1%;
+  right: -1%;
+  height: 1.6em;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgb(28 26 23 / 0.1) 60%, transparent);
+  animation: gz-roller 1100ms cubic-bezier(0.25, 0.7, 0.2, 1) both;
+}
+.gz-print .gz-dots,
+.gz-print .gz-mark,
+.gz-print .d.up { animation: gz-register 1400ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes gz-press {
+  from { clip-path: inset(0 0 100% 0); filter: blur(0.9px); opacity: 0.75; }
+  70% { filter: blur(0.25px); opacity: 1; }
+  to { clip-path: inset(0 0 0 0); filter: none; opacity: 1; }
+}
+@keyframes gz-roller { from { top: -1.6em; opacity: 1; } 85% { opacity: 1; } to { top: 100%; opacity: 0; } }
+@keyframes gz-register { from { translate: 0.16em -0.1em; opacity: 0.6; } to { translate: 0 0; opacity: 1; } }
+.gz-leaving { position: absolute; inset: 0 0 auto 0; animation: gz-lift 500ms ease both; pointer-events: none; }
+@keyframes gz-lift { to { opacity: 0; filter: blur(1.6px); } }
+
+/* A tall narrow window: one column, the rail under the lead. */
+@container (max-aspect-ratio: 1 / 1) {
+  .gz.has-rail .gz-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "lead" "lower" "rail"; }
+  .gz.has-rail:is(.has-lead, .has-lower) .gz-rail { border-left: 0; padding-left: 0; border-top: 1px solid var(--gz-ink); margin-top: calc(var(--u) * 1.1); padding-top: calc(var(--u) * 1.1); }
+  .gz-col[data-slot="col3"] { display: none; }
+  .gz-lead .gz-photo { float: none; width: 100%; margin: 0 0 0.8em; }
+  .gz-ear { display: none; }
+  .gz-mast { grid-template-columns: 1fr; justify-items: center; }
+}

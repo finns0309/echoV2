@@ -2,7 +2,7 @@
 // stage, for working on themes in a browser (served by `pnpm dev` at
 // /screen/harness.html). Not part of the build.
 import '@screen/tokens/base.css'
-import type { Block, OnAir, Presentation, Salience, ScreenBridge, ServerToScreen, SignalFrame, StageState } from '@contract'
+import type { Block, OnAir, Presentation, Salience, ScreenBridge, ServerToScreen, SignalFrame, StageState, ThemeManifest } from '@contract'
 import { createStageHost } from '@screen/runtime/host'
 import type { ThemeFactory } from '@screen/runtime/theme-api'
 
@@ -10,6 +10,11 @@ const themes: Record<string, () => Promise<{ default: ThemeFactory }>> = {}
 for (const [path, load] of Object.entries(import.meta.glob<{ default: ThemeFactory }>('../../screen/themes/*/theme.ts'))) {
   const id = path.split('/').at(-2)
   if (id) themes[id] = load
+}
+const manifests: Record<string, ThemeManifest> = {}
+for (const [path, mod] of Object.entries(import.meta.glob<{ default: ThemeManifest }>('../../screen/themes/*/manifest.ts', { eager: true }))) {
+  const id = path.split('/').at(-2)
+  if (id) manifests[id] = mod.default
 }
 // The size each theme's window profile gives it (hanging 300×470; ambient, a laptop-ish screen).
 const SIZE: Record<string, [number, number]> = { furin: [300, 470] }
@@ -51,6 +56,65 @@ const SAMPLES: Record<string, () => Presentation> = {
   图片: () => ({ context: { palette: ['#f08a5d'] }, timeline: { kind: 'self' }, blocks: [{ type: 'image', role: 'primary', src: picture(), alt: '夕焼け' }] }),
 }
 
+// A morning's worth of stories, for themes with a page of slots.
+const MORNING: Presentation[] = [
+  {
+    context: { title: 'モデル', palette: ['#D97757'] },
+    timeline: { kind: 'self' },
+    blocks: [
+      text('Anthropic、Claude Opus 5.5 を公開', 0),
+      { type: 'value', role: 'secondary', value: '$4 / $20', label: '入力 / 出力（100万トークン）・約40% 安く' },
+      text('……このカードを書いてるのも、それ (´∀｀)ゞ', 5, { role: 'annotation', emphasis: 'それ' }),
+      text('AI Weekly ・ 9/23', 5, { role: 'attribution' }),
+    ],
+  },
+  {
+    context: { title: 'セキュリティ', palette: ['#AB47BC'] },
+    timeline: { kind: 'self' },
+    blocks: [
+      text('初の「完全自律型AIマルウェア」を報告', 0, { emphasis: '完全自律型' }),
+      text('Cisco Talos が CLOSEDQUORUM を公表。複数モデルで動く遠隔操作のインプラント', 3),
+      text('検知ツール CAIRN も同時公開', 7, { role: 'annotation' }),
+      text('AI Weekly ・ 9/23', 7, { role: 'attribution' }),
+    ],
+  },
+  {
+    context: { title: '2026年', palette: ['#FF7043'] },
+    timeline: { kind: 'self' },
+    blocks: [
+      { type: 'progress', role: 'primary', value: 265.4, max: 365, label: '今年も 72.7% 過ぎた' },
+      { type: 'value', role: 'secondary', value: 89, unit: '日', label: '冬至まで' },
+      text('水曜日。週の真ん中 (˘ω˘)', 4, { role: 'annotation' }),
+    ],
+  },
+  {
+    context: { title: '今日の言葉', palette: ['#C0392B'] },
+    timeline: { kind: 'self' },
+    blocks: [text('暑さ寒さも彼岸まで', 0, { reading: 'あつささむさもひがんまで' }), text('秋分を挟む七日間が「秋のお彼岸」', 4), text('残暑も、そろそろおしまい', 8, { role: 'annotation' })],
+  },
+  {
+    context: { title: '国際', palette: ['#42A5F5'] },
+    timeline: { kind: 'self' },
+    blocks: [
+      text('国連安保理で、AIと国際安全保障を議論', 0),
+      text('OpenAI・Anthropic・DeepSeek・Moonshot が同じ席に', 3),
+      text('フランスが主催', 6, { role: 'annotation' }),
+      text('AI Weekly ・ 9/23', 6, { role: 'attribution' }),
+    ],
+  },
+]
+const VERSE = ['まだ知らないよ', '向き合っているこの寂しさに', '意味はあるの？', '生きているそれだけでさ', '風に吹かれるままゆらゆらり', 'これからの時間の煌めきに']
+function playing(): Presentation {
+  return {
+    context: { title: '空中散歩', byline: 'CIEL', art: picture() },
+    timeline: { kind: 'media', position: 0, sampledAt: playedFrom, rate: 1, version: 1 },
+    blocks: VERSE.map((t, i) => ({ type: 'text', role: 'primary', text: t, at: 1 + i * 3.5 })),
+    hints: { breaks: [{ at: 1 + VERSE.length * 3.5, until: 1 + VERSE.length * 3.5 + 4 }] },
+  }
+}
+let playedFrom = Date.now()
+let turn = 0 // which morning story each column starts from
+
 // — the fake bridge —
 const listeners: { [K in keyof ServerToScreen]?: ((p: ServerToScreen[K]) => void)[] } = {}
 const bridge: ScreenBridge = {
@@ -86,7 +150,21 @@ function publish(fresh: boolean): void {
   frame.style.width = `${w}px`
   frame.style.height = `${h}px`
   const onAir: OnAir = { contentId: `sample:${state.sample}`, since, salience: state.salience, presentation: SAMPLES[state.sample]!() }
-  const s: StageState = { rev: ++rev, surfaces: { h: { profile: 'x', theme: state.theme, slots: { main: onAir } } } }
+  // A page of slots: the sample leads, the morning fills the rest, and anything that
+  // plays along with media gets a song that keeps going round.
+  const slots: Record<string, OnAir | null> = {}
+  let n = 0
+  for (const [name, spec] of Object.entries(manifests[state.theme]?.slots ?? { main: null })) {
+    if (spec && !spec.timelines.some((k) => k !== 'media')) {
+      if (Date.now() - playedFrom > 30_000) playedFrom = Date.now()
+      slots[name] = { contentId: 'sample:verse', since: playedFrom, presentation: playing() }
+    } else if (n++ === 0) slots[name] = onAir
+    else {
+      const i = (turn + n - 2) % MORNING.length
+      slots[name] = { contentId: `morning:${i}`, since, salience: 'normal', presentation: MORNING[i]! }
+    }
+  }
+  const s: StageState = { rev: ++rev, surfaces: { h: { profile: 'x', theme: state.theme, slots } } }
   emit('stage', s)
   history.replaceState(null, '', `?${new URLSearchParams({ theme: state.theme, sample: state.sample, salience: state.salience, music: state.music ? '1' : '0' })}`)
 }
@@ -123,7 +201,11 @@ bar.append(
     progress = progress >= 10 ? 0 : progress + 1
     publish(false)
   }),
-  button('清空', () => emit('stage', { rev: ++rev, surfaces: { h: { profile: 'x', theme: state.theme, slots: { main: null } } } })),
+  button('换稿', () => {
+    turn++
+    publish(false)
+  }),
+  button('清空', () => emit('stage', { rev: ++rev, surfaces: { h: { profile: 'x', theme: state.theme, slots: Object.fromEntries(Object.keys(manifests[state.theme]?.slots ?? { main: 0 }).map((k) => [k, null])) } } })),
   button('定位', () => {
     located = !located
     emit('highlight', located ? { surface: 'h', name: 'top' } : null)

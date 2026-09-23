@@ -136,7 +136,9 @@ function checkEntryImport(from: string, fromZone: string, to: string, toZone: st
   if (toLayer === 'server/packs' && !/^server\/packs\/[^/]+\/pack(\.ts)?$/.test(to)) {
     return `${from}: use a pack through its pack.ts, not ${to}`
   }
-  if (fromZone === 'cmd/screen' && toLayer === 'screen/themes' && !/^screen\/themes\/[^/]+\/theme(\.ts)?$/.test(to)) {
+  // The harness stands in for the display server, so, like it, it may read manifests (to fill each slot).
+  const harnessManifest = from === 'cmd/screen/harness.ts' && /^screen\/themes\/[^/]+\/manifest(\.ts)?$/.test(to)
+  if (fromZone === 'cmd/screen' && toLayer === 'screen/themes' && !harnessManifest && !/^screen\/themes\/[^/]+\/theme(\.ts)?$/.test(to)) {
     return `${from}: load a theme through its theme.ts, not ${to}`
   }
   return null
