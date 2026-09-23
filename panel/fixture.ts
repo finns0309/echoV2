@@ -1,12 +1,12 @@
 // A small scene for the panel's tests: main (风铃, lyrics only, showing a song) and
-// top (流体, agent cards, hidden, click-through, a full-screen theme).
+// top (流体, agent cards, hidden, click-through).
 import type { OnAir, ShellState, StageState, Timeline } from '@contract'
 import type { Scene } from './vocabulary'
 
 export const shell: ShellState = {
   windows: [
-    { id: 'main', name: 'main', theme: 'furin', route: 'music', visible: true, clickThrough: false, fill: 'normal', loudness: 'attention', main: true },
-    { id: 'w2', name: 'top', theme: 'plasma', route: 'card', visible: false, clickThrough: true, fill: 'full', loudness: 'attention', main: false },
+    { id: 'main', name: 'main', theme: 'furin', route: 'music', visible: true, clickThrough: false, fullScreen: false, loudness: 'attention', main: true },
+    { id: 'w2', name: 'top', theme: 'plasma', route: 'card', visible: false, clickThrough: true, fullScreen: false, loudness: 'attention', main: false },
   ],
   themes: [
     { id: 'furin', label: '风铃' },

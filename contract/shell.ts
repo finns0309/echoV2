@@ -13,8 +13,8 @@ export const ShellWindow = z.object({
   route: z.string(),
   visible: z.boolean(),
   clickThrough: z.boolean(),
-  /** normal; restorable: filled by the user and can go back; full: its theme is full-screen anyway. */
-  fill: z.enum(['normal', 'restorable', 'full']),
+  /** In macOS full screen, a Space of its own, as a Chrome window can be; the other windows stay put. */
+  fullScreen: z.boolean(),
   /** The loudest this window lets content look; louder content is shown at this level. attention: no limit. */
   loudness: Salience,
   /** The fallback window: can't be closed or renamed, takes what no visible window does. */
@@ -45,8 +45,8 @@ export const ShellCommand = z.discriminatedUnion('type', [
   z.object({ type: z.literal('closeWindow'), ...onWindow }),
   z.object({ type: z.literal('setVisible'), ...onOff }),
   z.object({ type: z.literal('setClickThrough'), ...onOff }),
-  /** Fill the screen, or go back to the size before. A theme that is full-screen anyway can't. */
-  z.object({ type: z.literal('setFill'), ...onOff }),
+  /** Into or out of full screen, in a Space of its own. */
+  z.object({ type: z.literal('setFullScreen'), ...onOff }),
   z.object({ type: z.literal('resetWindow'), ...onWindow }),
   z.object({ type: z.literal('setLoudness'), ...onWindow, loudness: Salience }),
 ])

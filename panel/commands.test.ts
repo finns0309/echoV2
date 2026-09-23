@@ -39,7 +39,7 @@ describe('panel commands', () => {
     const main = windowItems(scene, 'main')
     expect(find(main, 'visible')).toMatchObject({ on: true, run: { type: 'setVisible', window: 'main', on: false } })
     const top = windowItems(scene, 'w2')
-    expect(find(top, 'fill')).toMatchObject({ value: '主题本身就是全屏' })
+    expect(find(top, 'full')).toMatchObject({ on: false, run: { type: 'setFullScreen', window: 'w2', on: true } })
     const name = find(top, 'name')
     expect(name?.kind === 'action' && name.step?.(1)).toEqual({ type: 'rename', window: 'w2', name: 'left' })
     expect(find(top, 'close')).toMatchObject({ danger: true, run: { type: 'closeWindow', window: 'w2' } })

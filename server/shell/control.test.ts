@@ -6,7 +6,7 @@ import type { SurfaceState } from './surfaces'
 
 // A window that only remembers what was done to it.
 function fakeSurface(log: string[], id: string): ShellSurface {
-  const s: SurfaceState = { theme: '', clickThrough: false, visible: true, fill: 'normal' }
+  const s: SurfaceState = { theme: '', clickThrough: false, visible: true, fullScreen: false }
   const listeners = new Set<() => void>()
   const changed = () => listeners.forEach((l) => l())
   return {
@@ -18,7 +18,7 @@ function fakeSurface(log: string[], id: string): ShellSurface {
     bounds: () => ({ x: 0, y: 0, width: 300, height: 470 }),
     onChange: (l) => (listeners.add(l), () => listeners.delete(l)),
     toggleClickThrough: () => ((s.clickThrough = !s.clickThrough), changed()),
-    toggleFill: () => {},
+    setFullScreen: (on) => ((s.fullScreen = on), changed()),
     toggleVisible: () => ((s.visible = !s.visible), changed()),
     reset: () => log.push(`reset ${id}`),
     destroy: () => log.push(`destroy ${id}`),
@@ -60,7 +60,7 @@ describe('shell control', () => {
     const { shell, log } = setup()
     expect(log).toEqual(['open main', 'wear main furin'])
     expect(shell.state().windows).toEqual([
-      { id: 'main', name: 'main', theme: 'furin', route: 'all', visible: true, clickThrough: false, fill: 'normal', loudness: 'attention', main: true },
+      { id: 'main', name: 'main', theme: 'furin', route: 'all', visible: true, clickThrough: false, fullScreen: false, loudness: 'attention', main: true },
     ])
   })
 
@@ -112,13 +112,15 @@ describe('shell control', () => {
     expect(shell.state().windows.map((w) => w.name)).toEqual(['main', 'win2'])
   })
 
-  it('sets switches to what was asked, and refuses to fill a full-screen theme', () => {
+  it('sets switches to what was asked', () => {
     const { shell } = setup()
     shell.dispatch({ type: 'setClickThrough', window: 'main', on: true })
     shell.dispatch({ type: 'setClickThrough', window: 'main', on: true })
     expect(shell.state().windows[0]?.clickThrough).toBe(true)
     shell.dispatch({ type: 'setClickThrough', window: 'main', on: false })
     expect(shell.state().windows[0]?.clickThrough).toBe(false)
+    shell.dispatch({ type: 'setFullScreen', window: 'main', on: true })
+    expect(shell.state().windows[0]?.fullScreen).toBe(true)
   })
 
   it('caps a window\'s loudness, and tells the stage', () => {

@@ -54,7 +54,7 @@ server/
 ├── shell/           Electron 壳：窗口、面板、托盘、快捷键、显示偏好
 │   ├── control.ts     外壳的唯一写入方：让窗口跟着偏好走，执行 ShellCommand；托盘、面板、舞台都订阅它
 │   ├── prefs.ts       偏好：有哪些窗口、名字、主题、路由，每个窗口每个主题的位置和穿透
-│   ├── surfaces.ts    一个显示窗口能做的事：换主题、穿透、铺满、重置、隐藏
+│   ├── surfaces.ts    一个显示窗口能做的事：换主题、穿透、全屏（原生，独立空间）、重置、隐藏
 │   ├── panel.ts       面板窗口：不激活 echo 就能接管键盘的 NSPanel
 │   ├── hotkey.ts      运行 native/hotkey，把它的输出变成调用
 │   └── tray.ts        菜单栏：打开面板，逐个窗口显示或隐藏
@@ -135,7 +135,7 @@ const themes = import.meta.glob('../../screen/themes/*/theme.ts')
 
 ```text
 panel/
-├── vocabulary.ts    面板能做的每件事只写一次：新增窗口，加上窗口的动词（主题、内容、名字、显示、穿透、铺满、重置、关闭）
+├── vocabulary.ts    面板能做的每件事只写一次：新增窗口，加上窗口的动词（主题、内容、醒目上限、跳过、撤下、名字、显示、穿透、全屏、重置、关闭）
 ├── commands.ts      词表的三种视图之二：首页和窗口设置的行、模糊搜索；纯函数，有测试
 ├── slash.ts         词表的第三种视图：斜杠命令，/动词 → 窗口 → 值，逐步补全；纯函数，有测试
 ├── fixture.ts       测试用的一份小 ShellState

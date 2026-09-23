@@ -10,7 +10,7 @@ const slash = (input: string, opened: string | null = null, s = scene) => slashI
 
 describe('slash commands', () => {
   it('lists every command after /, and narrows by prefix or by the Chinese name', () => {
-    expect(picks(slash('/'))).toEqual(['/new ', '/open ', '/theme ', '/route ', '/loud ', '/skip ', '/clear ', '/name ', '/show ', '/hide ', '/click ', '/fill ', '/reset ', '/close ', '/pause ', '/resume '])
+    expect(picks(slash('/'))).toEqual(['/new ', '/open ', '/theme ', '/route ', '/loud ', '/skip ', '/clear ', '/name ', '/show ', '/hide ', '/click ', '/full ', '/reset ', '/close ', '/pause ', '/resume '])
     expect(picks(slash('/th'))).toEqual(['/theme '])
     expect(picks(slash('/隐藏'))).toEqual(['/hide '])
     expect(note(slash('/zzz'))).toMatch(/没有以 \/zzz 开头/)
@@ -35,9 +35,10 @@ describe('slash commands', () => {
     // /hide only offers windows that are showing; /show the hidden ones
     expect(picks(slash('/hide '))).toEqual([{ type: 'setVisible', window: 'main', on: false }])
     expect(picks(slash('/show '))).toEqual([{ type: 'setVisible', window: 'w2', on: true }])
-    // main can't be closed; a full-screen theme can't fill
+    // main can't be closed
     expect(picks(slash('/close '))).toEqual([{ type: 'closeWindow', window: 'w2' }])
-    expect(picks(slash('/fill '))).toEqual(['/fill main '])
+    expect(picks(slash('/full '))).toEqual(['/full main ', '/full top ', '/full 全部 '])
+    expect(picks(slash('/full top '))).toEqual([{ type: 'setFullScreen', window: 'w2', on: true }, '当前'])
   })
 
   it('caps how loud a window may look', () => {
@@ -80,7 +81,6 @@ describe('slash commands', () => {
   it('offers the flip first for a switch, and says when a window cannot', () => {
     expect(picks(slash('/click main '))).toEqual([{ type: 'setClickThrough', window: 'main', on: true }, '当前'])
     expect(picks(slash('/click main 关'))).toEqual(['当前'])
-    expect(note(slash('/fill top '))).toBe('top 不能铺满屏幕')
     expect(note(slash('/name main '))).toBe('main 不能名字')
   })
 

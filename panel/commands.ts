@@ -96,9 +96,7 @@ function settingRow(scene: Scene, w: ShellWindow, v: WindowVerb): Action {
     }
     case 'switch': {
       const on = v.value(w)
-      return on === null
-        ? { kind: 'action', key, label: v.label, value: v.fixed }
-        : { kind: 'action', key, label: v.label, on, run: v.set(w, !on) }
+      return { kind: 'action', key, label: v.label, on, run: v.set(w, !on) }
     }
     case 'action':
       return { kind: 'action', key, label: v.label, run: v.run(w), ...(v.danger ? { danger: true } : {}) }
@@ -125,10 +123,8 @@ function commandsFor(scene: Scene, w: ShellWindow, v: WindowVerb): Action[] {
         .choices(scene, w)
         .filter((c) => c.id !== v.current(w))
         .map((c) => ({ kind: 'action', key: `${key}:${c.id}`, label: `${w.name} · ${v.label}换成${c.label}`, run: v.set(w, c.id), words: `${words} ${c.id}` }))
-    case 'switch': {
-      const on = v.value(w)
-      return on === null ? [] : [{ kind: 'action', key, label: switchLine(v, w, !on), run: v.set(w, !on), words }]
-    }
+    case 'switch':
+      return [{ kind: 'action', key, label: switchLine(v, w, !v.value(w)), run: v.set(w, !v.value(w)), words }]
     case 'action':
       return [{ kind: 'action', key, label: `${w.name} · ${v.label}`, run: v.run(w), words, ...(v.danger ? { danger: true } : {}) }]
   }

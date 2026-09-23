@@ -10,10 +10,10 @@ import { createPanelState } from '@panel/state'
 
 const shell: ShellState = {
   windows: [
-    { id: 'main', name: 'main', theme: 'furin', route: 'music', visible: true, clickThrough: true, fill: 'normal', loudness: 'attention', main: true },
-    { id: 'w2', name: 'top', theme: 'plasma', route: 'card', visible: true, clickThrough: true, fill: 'full', loudness: 'attention', main: false },
-    { id: 'w3', name: 'left', theme: 'plasma', route: 'all', visible: true, clickThrough: false, fill: 'full', loudness: 'attention', main: false },
-    { id: 'w4', name: 'stage', theme: 'tide', route: 'card', visible: false, clickThrough: false, fill: 'full', loudness: 'attention', main: false },
+    { id: 'main', name: 'main', theme: 'furin', route: 'music', visible: true, clickThrough: true, fullScreen: false, loudness: 'attention', main: true },
+    { id: 'w2', name: 'top', theme: 'plasma', route: 'card', visible: true, clickThrough: true, fullScreen: false, loudness: 'attention', main: false },
+    { id: 'w3', name: 'left', theme: 'plasma', route: 'all', visible: true, clickThrough: false, fullScreen: false, loudness: 'attention', main: false },
+    { id: 'w4', name: 'stage', theme: 'tide', route: 'card', visible: false, clickThrough: false, fullScreen: false, loudness: 'attention', main: false },
   ],
   themes: [
     { id: 'eva', label: '新世纪' },
@@ -62,10 +62,10 @@ function apply(c: PanelCommand): void {
   if (c.type === 'setVisible' && w) w.visible = c.on
   if (c.type === 'setClickThrough' && w) w.clickThrough = c.on
   if (c.type === 'setLoudness' && w) w.loudness = c.loudness
-  if (c.type === 'setFill' && w && w.fill !== 'full') w.fill = c.on ? 'restorable' : 'normal'
+  if (c.type === 'setFullScreen' && w) w.fullScreen = c.on
   if (c.type === 'addWindow') {
     const n = shell.windows.length + 1
-    shell.windows.push({ id: `w${n}`, name: `win${n}`, theme: c.theme ?? 'furin', route: 'all', visible: true, clickThrough: false, fill: 'normal', loudness: 'attention', main: false })
+    shell.windows.push({ id: `w${n}`, name: `win${n}`, theme: c.theme ?? 'furin', route: 'all', visible: true, clickThrough: false, fullScreen: false, loudness: 'attention', main: false })
   }
   if (c.type === 'closeWindow') shell.windows = shell.windows.filter((x) => x.id !== c.window)
   console.log('[harness] command', c)

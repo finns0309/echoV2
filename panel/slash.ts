@@ -6,7 +6,7 @@
 //   /theme <窗口> <主题>        /route <窗口> <内容>        /name <窗口> <名字>
 //   /loud <窗口> <醒目|正常|安静>
 //   /skip <窗口>                /clear <窗口>
-//   /show <窗口>  /hide <窗口>  /click <窗口> [开|关]       /fill <窗口> [开|关]
+//   /show <窗口>  /hide <窗口>  /click <窗口> [开|关]       /full <窗口> [开|关]
 //   /reset <窗口>               /close <窗口>
 //   /pause  /resume
 //
@@ -137,11 +137,7 @@ function fitsWindow(scene: Scene, word: Word, w: ShellWindow): boolean {
   if (word.kind !== 'verb') return true
   const { verb } = word
   if (!verb.applies(scene, w)) return false
-  if (verb.kind === 'switch') {
-    const on = verb.value(w)
-    return on !== null && (word.set === undefined || on !== word.set)
-  }
-  return true
+  return verb.kind !== 'switch' || word.set === undefined || verb.value(w) !== word.set
 }
 
 /** The finished command for a word that needs nothing after the window, else null. */
@@ -180,7 +176,6 @@ function valueItems(scene: Scene, word: Word, w: ShellWindow, partial: string): 
 /** /click left [开|关]: the flip first, then the other state. */
 function switchItems(verb: SwitchVerb, w: ShellWindow, partial: string): Item[] {
   const on = verb.value(w)
-  if (on === null) return [note(`${w.name}：${verb.fixed ?? `不能${verb.label}`}`)]
   const options = [!on, on]
     .map((to) => ({ to, word: to ? '开' : '关', alias: to ? 'on' : 'off' }))
     .filter((o) => hits(partial, o.word, o.alias))

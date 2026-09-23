@@ -40,9 +40,7 @@ export interface ChoiceVerb extends VerbBase {
 /** An on/off property. `spell` gives it two slash words that set it outright (/show, /hide). */
 export interface SwitchVerb extends VerbBase {
   kind: 'switch'
-  /** Null when it can't change for this window; `fixed` says why. */
-  value(w: ShellWindow): boolean | null
-  fixed?: string
+  value(w: ShellWindow): boolean
   set(w: ShellWindow, on: boolean): PanelCommand
   spell?: { on: { slash: string; label: string }; off: { slash: string; label: string } }
 }
@@ -178,13 +176,13 @@ export const WINDOW_VERBS: readonly WindowVerb[] = [
   },
   {
     kind: 'switch',
-    slash: 'fill',
-    label: '铺满屏幕',
-    words: 'pumang fullscreen',
+    slash: 'full',
+    label: '全屏',
+    // A Space of its own, as a Chrome window goes full screen; the other windows stay put.
+    words: 'quanping fullscreen fill 铺满 pumang 独立空间',
     applies: always,
-    value: (w) => (w.fill === 'full' ? null : w.fill === 'restorable'),
-    fixed: '主题本身就是全屏',
-    set: (w, on) => ({ type: 'setFill', window: w.id, on }),
+    value: (w) => w.fullScreen,
+    set: (w, on) => ({ type: 'setFullScreen', window: w.id, on }),
   },
   {
     kind: 'action',

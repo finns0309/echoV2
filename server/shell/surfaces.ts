@@ -7,7 +7,7 @@ export interface SurfaceState {
   theme: string
   clickThrough: boolean
   visible: boolean
-  fill: ShellWindow['fill']
+  fullScreen: ShellWindow['fullScreen']
 }
 
 export interface SurfaceOptions {
@@ -23,6 +23,8 @@ const intersects = (a: Rectangle, b: Bounds) =>
 const inside = (b: Bounds, area: Rectangle) =>
   b.x >= area.x && b.y >= area.y && b.x + b.width <= area.x + area.width && b.y + b.height <= area.y + area.height
 const GAP = 20
+/** How long macOS gets to take a window into full screen before we assume it won't. */
+const ENTER_MS = 1500
 const same = (a: Bounds, b: Bounds) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 
 /** Slide `b` left, a window's width at a time, until it clears `taken` or runs out of room. */
@@ -39,8 +41,8 @@ function clear(b: Bounds, taken: Bounds[], area: Rectangle): Bounds {
 /**
  * One transparent, frameless, always-on-top window hosting a screen, plus
  * everything the user can do to it: wear a theme (profile bounds, or where the
- * user last left it for that theme), click-through, fill the screen, reset,
- * hide. Per-theme choices are persisted through ShellPrefs.
+ * user last left it for that theme), click-through, full screen, reset, hide.
+ * Per-theme choices are persisted through ShellPrefs.
  */
 export function createSurface({ id, preload, prefs, others = () => [] }: SurfaceOptions) {
   const win = new BrowserWindow({
@@ -55,9 +57,15 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     show: false,
     webPreferences: { preload, contextIsolation: true, nodeIntegration: false, sandbox: true },
   })
-  // 'floating' rather than 'screen-saver' so menu-bar popovers still draw above us.
-  win.setAlwaysOnTop(true, 'floating')
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  // Floating on every desktop, over other windows: 'floating' rather than 'screen-saver' so
+  // menu-bar popovers still draw above us. Not over full-screen Spaces: a window put into
+  // full screen gets a Space of its own, and the others would pile on top of it there.
+  // (skipTransformProcessType: otherwise Electron turns echo into a Dock app to do this.)
+  const float = () => {
+    win.setAlwaysOnTop(true, 'floating')
+    win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: false, skipTransformProcessType: true })
+  }
+  float()
   // What the user wants, which is not the same as isVisible() while the page is still loading.
   let shown = true
   win.once('ready-to-show', () => {
@@ -67,9 +75,10 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   let theme = ''
   let profile = ''
   let clickThrough = false
-  let beforeFill: Bounds | null = null
   /** Where we last put the window ourselves. Our own setBounds fires moved/resized too, sometimes late. */
   let placed: Bounds | null = null
+  /** From asking for full screen until it has been left: its bounds are macOS's, not a place to keep. */
+  let full = false
   const listeners = new Set<() => void>()
   const changed = () => {
     for (const listener of listeners) listener()
@@ -84,19 +93,13 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     win.setIgnoreMouseEvents(value, { forward: true })
   }
   const workAreaHere = () => screen.getDisplayMatching(win.getBounds()).workArea
-  const isFull = () => {
-    const b = win.getBounds()
-    const wa = workAreaHere()
-    return b.x === wa.x && b.y === wa.y && b.width === wa.width && b.height === wa.height
-  }
 
   // The user moved or resized the window: remember it for this theme. Only where the
   // user put it, never where we did: a fill saved as the user's place would come back
   // after a restart as a full-screen window with no way back.
   const remember = () => {
-    if (!theme || (placed && same(win.getBounds(), placed))) return
+    if (!theme || full || (placed && same(win.getBounds(), placed))) return
     placed = null
-    beforeFill = null
     prefs.setOverride(id, theme, { bounds: win.getBounds() })
     changed()
   }
@@ -105,11 +108,46 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   win.on('show', changed)
   win.on('hide', changed)
 
+  // In its Space it is an ordinary window; back on the desktop it floats again, where the
+  // current theme wants it (the theme may have changed while it was full screen).
+  const afterLeaving: (() => void)[] = []
+  win.on('leave-full-screen', () => {
+    full = false
+    float()
+    wear(theme, profile)
+    for (const then of afterLeaving.splice(0)) then()
+  })
+  function setFullScreen(on: boolean): void {
+    if (on === full) return
+    full = on
+    if (on) {
+      win.setAlwaysOnTop(false)
+      win.setVisibleOnAllWorkspaces(false, { skipTransformProcessType: true })
+    }
+    win.setFullScreen(on)
+    changed()
+    // macOS may decline (it does for some borderless windows): don't sit in a full screen that never came.
+    if (on) {
+      setTimeout(() => {
+        if (!full || win.isDestroyed() || win.isFullScreen()) return
+        console.warn(`[shell] ${id} did not go full screen`)
+        full = false
+        float()
+        changed()
+      }, ENTER_MS)
+    }
+  }
+  /** Out of full screen first, if it is, then do this. */
+  function onDesktop(then: () => void): void {
+    if (!full) return then()
+    afterLeaving.push(then)
+    setFullScreen(false)
+  }
+
   /** Put on a theme: its profile, unless the user left this window somewhere else for it. */
   function wear(nextTheme: string, nextProfile: string): void {
     theme = nextTheme
     profile = nextProfile
-    beforeFill = null
     // The profile is laid out on the display the window is on (the primary one, for a new window),
     // so re-theming or resetting a window on a second monitor keeps it there.
     const area = workAreaHere()
@@ -122,7 +160,8 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     const onScreen = !!saved.bounds && displays.some((d) => intersects(d.workArea, saved.bounds!))
     const strayFill = !!saved.bounds && !same(base, area) && displays.some((d) => same(d.workArea, saved.bounds!))
     if (strayFill) prefs.setOverride(id, theme, { bounds: undefined })
-    place(onScreen && !strayFill ? saved.bounds! : clear(base, others(), area))
+    // In full screen the Space decides its size; it is placed when it comes back.
+    if (!full) place(onScreen && !strayFill ? saved.bounds! : clear(base, others(), area))
     setClickThrough(saved.clickThrough ?? base.clickThrough)
     changed()
   }
@@ -137,28 +176,19 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
       changed()
     },
 
-    /** Fill the work area of the display the window is on; again to restore. Not remembered. */
-    toggleFill(): void {
-      if (beforeFill) {
-        place(beforeFill)
-        beforeFill = null
-      } else if (!isFull()) {
-        beforeFill = win.getBounds()
-        place(workAreaHere())
-      }
-      changed()
-    },
+    /** Full screen in a Space of its own, as a Chrome window goes; not remembered across restarts. */
+    setFullScreen,
 
     /** Forget what the user changed for the current theme and go back to its profile. */
     reset(): void {
       prefs.clearOverride(id, theme)
-      wear(theme, profile)
+      onDesktop(() => wear(theme, profile))
     },
 
     toggleVisible(): void {
       shown = !shown
       if (shown) win.showInactive()
-      else win.hide()
+      else onDesktop(() => win.hide())
     },
 
     bounds(): Bounds {
@@ -166,7 +196,7 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     },
 
     state(): SurfaceState {
-      return { theme, clickThrough, visible: shown, fill: beforeFill ? 'restorable' : isFull() ? 'full' : 'normal' }
+      return { theme, clickThrough, visible: shown, fullScreen: full }
     },
 
     destroy(): void {

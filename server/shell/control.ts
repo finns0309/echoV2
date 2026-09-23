@@ -10,7 +10,7 @@ export interface ShellSurface {
   bounds(): Bounds
   onChange(listener: () => void): () => void
   toggleClickThrough(): void
-  toggleFill(): void
+  setFullScreen(on: boolean): void
   toggleVisible(): void
   reset(): void
   destroy(): void
@@ -78,7 +78,7 @@ export function createShellControl(o: ShellControlOptions) {
             route: routeOf(p.accepts),
             visible: s.visible,
             clickThrough: s.clickThrough,
-            fill: s.fill,
+            fullScreen: s.fullScreen,
             loudness: p.loudness ?? 'attention',
             main: p.id === o.main,
           },
@@ -175,13 +175,9 @@ export function createShellControl(o: ShellControlOptions) {
         if (w && w.state().clickThrough !== command.on) w.toggleClickThrough()
         return { ok: true }
       }
-      case 'setFill': {
-        const w = surface(command.window)
-        const fill = w?.state().fill
-        if (fill === 'full') return { ok: false, error: 'this theme is full-screen already' }
-        if (w && (fill === 'restorable') !== command.on) w.toggleFill()
+      case 'setFullScreen':
+        surface(command.window)?.setFullScreen(command.on)
         return { ok: true }
-      }
       case 'resetWindow':
         surface(command.window)?.reset()
         return { ok: true }

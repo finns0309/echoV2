@@ -267,12 +267,12 @@ MCP 是一层薄薄的 stdio 适配器（`cmd/mcp`），三个工具分别转发
 
 ```ts
 type ShellState = {
-  windows: { id; name; theme; route; visible; clickThrough; fill: 'normal' | 'restorable' | 'full'; loudness: Salience; main }[];
+  windows: { id; name; theme; route; visible; clickThrough; fullScreen: boolean; loudness: Salience; main }[];
   themes: { id; label }[];  routes: { id; label }[];  names: string[];
 };
 type ShellCommand =
   | { type: 'setTheme'; window; theme } | { type: 'setRoute'; window; route } | { type: 'rename'; window; name }
-  | { type: 'setVisible' | 'setClickThrough' | 'setFill'; window; on: boolean }   // 写目标状态，不是"翻转"，重复发也无害
+  | { type: 'setVisible' | 'setClickThrough' | 'setFullScreen'; window; on: boolean }   // 写目标状态，不是"翻转"，重复发也无害
   | { type: 'setLoudness'; window; loudness: Salience }                           // 醒目上限，attention = 不限
   | { type: 'resetWindow' | 'closeWindow'; window } | { type: 'addWindow'; theme? };
 
@@ -287,6 +287,7 @@ type PanelCommand = ShellCommand | StageCommand;   // 面板的 command 频道�
 
 - 托盘和面板都是它的视图：读状态，发命令。舞台也订阅它，窗口一隐藏、出现或关闭，内容就重新分配。
 - 面板通道（`contract/channels.ts`）：服务器推 `shell`、`stage`、`shown`；面板发 `ready`、`command`（`PanelCommand`，主进程按类型交给外壳或舞台）、`hide`、`resize`、`locate`。`locate` 是面板正指着的窗口（光标所在的窗口行，或打开的设置页），只在面板显示时有效：主进程转成屏幕通道的 `highlight`，那个窗口描一圈蓝边、挂上名字，好把名字和屏幕上的位置对上。每条命令进主进程时都用 zod 重新校验，并核对发送方是面板窗口。
+- 全屏是 macOS 原生全屏：窗口单独占一个桌面空间，其他 echo 窗口留在原来的桌面。所以 echo 的窗口平时浮在所有普通桌面上，但不进入全屏空间（包括别的 App 的全屏）。全屏不跨重启保存。窗口只记住用户亲手放的位置，程序自己挪的（换主题、全屏进出）不算。
 - `main` 窗口始终存在、兜底、不能改名或关闭。可选的路由、窗口名是 `cmd/display/config.ts` 里的数据，控制服务只按数据执行，不认识任何内容包。
 
 ### 4.5 导演服务（主进程）
