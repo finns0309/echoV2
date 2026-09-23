@@ -25,7 +25,7 @@ const inside = (b: Bounds, area: Rectangle) =>
 const GAP = 20
 /** How long macOS gets to take a window into full screen before we assume it won't. */
 const ENTER_MS = 1500
-/** How soon after a window shows a move is macOS's, not the user's. */
+/** How soon after a window shows, or changes desktops, a move is macOS's, not the user's. */
 const PUSH_MS = 1000
 const same = (a: Bounds, b: Bounds) => a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
 
@@ -71,15 +71,17 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     everywhere(!pinned)
   }
   float()
-  // Showing a window that hangs off the screen, macOS pushes it back on; the user left it
-  // half off on purpose (a big chime at the edge), so put it back where it was meant to be.
-  // Placed, not remembered: the push isn't the user's.
-  let revealedAt = 0
-  function reveal(): void {
-    revealedAt = Date.now()
-    win.showInactive()
+  // Showing a window, or changing which desktops it is on, macOS answers by pushing a window
+  // that hangs off the screen back on. The user left it half off on purpose (a big chime at
+  // the edge), so after any such change it goes back where it was meant to be, and a move
+  // that follows within PUSH_MS is taken as macOS's too. Placed, not remembered.
+  let pushedAt = 0
+  function holdPlace(change: () => void): void {
+    pushedAt = Date.now()
+    change()
     if (settled && !full) place(settled)
   }
+  const reveal = () => holdPlace(() => win.showInactive())
   // What the user wants, which is not the same as isVisible() while the page is still loading.
   let shown = true
   win.once('ready-to-show', () => {
@@ -116,8 +118,8 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
   // after a restart as a full-screen window with no way back.
   const remember = () => {
     if (!theme || full || (placed && same(win.getBounds(), placed))) return
-    // macOS may push a window back on screen a moment after it shows: that isn't the user either.
-    if (settled && Date.now() - revealedAt < PUSH_MS) return place(settled)
+    // macOS may push a window back on screen a moment after the change: that isn't the user either.
+    if (settled && Date.now() - pushedAt < PUSH_MS) return place(settled)
     placed = null
     settled = win.getBounds()
     prefs.setOverride(id, theme, { bounds: settled })
@@ -206,7 +208,7 @@ export function createSurface({ id, preload, prefs, others = () => [] }: Surface
     pin(on: boolean): void {
       if (pinned === on) return
       pinned = on
-      if (!full) everywhere(!on)
+      if (!full) holdPlace(() => everywhere(!on))
     },
 
     focused(): boolean {
