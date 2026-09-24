@@ -17,13 +17,31 @@ const OUT = new URL('../screen/themes/mochi/parts/strokes/', import.meta.url)
 const xml = readFileSync(input, 'utf8')
 const kana = (c) => c >= 0x3041 && c <= 0x30ff
 const kanji = (c) => (c >= 0x3400 && c <= 0x4dbf) || (c >= 0x4e00 && c <= 0x9fff) || c === 0x3005 // 々
-/** A path with its numbers to a tenth: far finer than a stroke's width in a 109 box. */
-const tenths = (d) =>
-  d
-    .replace(/-?\d*\.\d+/g, (n) => String(Math.round(Number(n) * 10) / 10))
-    .replace(/\s+/g, ' ')
-    .replace(/,?\s*-/g, (m) => (m.includes(',') ? ',-' : '-'))
-    .trim()
+/** A path's commands and numbers, as they come. */
+const TOKEN = /[MmCcSsLlHhVvQqTtZz]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?/g
+const numbers = (d) => d.match(TOKEN).filter((t) => !/^[a-z]$/i.test(t)).length
+
+/**
+ * A path with its numbers to a tenth: far finer than a stroke's width in a 109 box.
+ * Written back with explicit commas: KanjiVG lets a minus sign separate two numbers
+ * ("22.68-0.03"), and a number rounded to 0 would lose it and run into the next.
+ */
+function tenths(d) {
+  let out = ''
+  let first = true
+  for (const t of d.match(TOKEN)) {
+    if (/^[a-z]$/i.test(t)) {
+      out += t
+      first = true
+      continue
+    }
+    const n = Math.round(Number(t) * 10) / 10
+    out += (first ? '' : ',') + String(n === 0 ? 0 : n)
+    first = false
+  }
+  if (numbers(out) !== numbers(d)) throw new Error(`lost a number rounding ${d}`)
+  return out
+}
 const strokes = {} // block → character → paths
 for (const [, hex, body] of xml.matchAll(/<kanji id="kvg:kanji_([0-9a-f]+)">([\s\S]*?)<\/kanji>/g)) {
   const code = parseInt(hex, 16)
