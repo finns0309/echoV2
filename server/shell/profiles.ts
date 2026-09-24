@@ -15,6 +15,8 @@ const PROFILES: Record<string, Resolver> = {
   hanging: (wa) => ({ x: wa.x + wa.width - 330, y: wa.y, width: 300, height: 470, clickThrough: false }),
   // An object standing on the desk, bottom right, with room to unfold to its left (Duo).
   device: (wa) => ({ x: wa.x + wa.width - 790, y: wa.y + wa.height - 590, width: 760, height: 560, clickThrough: false }),
+  // The whole screen, clicks passing through: something living on the desktop (もち).
+  overlay: (wa) => ({ ...wa, clickThrough: true }),
 }
 
 export function resolveProfile(name: string, workArea: Bounds): ResolvedProfile {

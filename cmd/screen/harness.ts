@@ -146,7 +146,11 @@ bridge.on('stage', (s) => host.render(s))
 bridge.on('highlight', (t) => host.highlight(t))
 let located = false
 
-function publish(fresh: boolean): void {
+/** 清空 takes the cards off; what plays stays, as the 在放歌 switch says. Anything else puts them back. */
+let cleared = false
+
+function publish(fresh: boolean, clear = false): void {
+  cleared = clear
   if (fresh) since = Date.now()
   const [w, h] = SIZE[state.theme] ?? AMBIENT
   frame.style.width = `${w}px`
@@ -160,7 +164,8 @@ function publish(fresh: boolean): void {
     if (spec && !spec.timelines.some((k) => k !== 'media')) {
       if (Date.now() - playedFrom > 30_000) playedFrom = Date.now()
       slots[name] = state.playing ? { contentId: 'sample:verse', since: playedFrom, presentation: playing() } : null
-    } else if (n++ === 0) slots[name] = onAir
+    } else if (cleared) slots[name] = null
+    else if (n++ === 0) slots[name] = onAir
     else {
       const i = (turn + n - 2) % MORNING.length
       slots[name] = { contentId: `morning:${i}`, since, salience: 'normal', presentation: MORNING[i]! }
@@ -207,7 +212,7 @@ bar.append(
     turn++
     publish(false)
   }),
-  button('清空', () => emit('stage', { rev: ++rev, surfaces: { h: { profile: 'x', theme: state.theme, slots: Object.fromEntries(Object.keys(manifests[state.theme]?.slots ?? { main: 0 }).map((k) => [k, null])) } } })),
+  button('清空', () => publish(false, true)),
   button('定位', () => {
     located = !located
     emit('highlight', located ? { surface: 'h', name: 'top' } : null)
@@ -225,7 +230,7 @@ playBox.type = 'checkbox'
 playBox.checked = state.playing
 playBox.onchange = () => {
   state.playing = playBox.checked
-  publish(false)
+  publish(false, cleared)
 }
 play.append(playBox, '在放歌')
 bar.append(music, play)

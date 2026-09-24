@@ -1,0 +1,123 @@
+/* もち · a rice-cake creature along the bottom of the screen. Soft white, pink
+   cheeks, and speech bubbles in a rounded face. The window is see-through and
+   lets clicks pass: only the mochi and what it says are drawn. */
+
+.mc {
+  --mc-round: "Hiragino Maru Gothic ProN", "SF Pro Rounded", ui-rounded, "PingFang SC", sans-serif;
+  --mc-ink: #4a3f3a;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mc-stage { position: absolute; inset: 0; }
+
+.mc-body {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: auto;
+  aspect-ratio: 200 / 160;
+  overflow: visible;
+  filter: drop-shadow(0 2px 3px rgb(90 60 40 / 0.12));
+}
+.mc-skin { stroke: #e6dccd; stroke-width: 1.2; }
+.mc-sheen { fill: #fff; opacity: 0.75; }
+.mc-shadow { fill: rgb(60 40 30 / 0.14); }
+.mc-cheek { fill: #f6b9b3; opacity: 0.75; }
+.mc-eye,
+.mc-mouth { fill: #3a302b; stroke: #3a302b; stroke-width: 0; stroke-linecap: round; }
+.mc-eye.is-line,
+.mc-mouth.is-line { fill: none; stroke-width: 1.9; }
+
+/* — What it says — */
+.mc-bubble,
+.mc-hum {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  max-width: 340px;
+  padding: 10px 14px 11px;
+  border-radius: 18px;
+  background: #fffdfa;
+  color: var(--mc-ink);
+  font: 500 15px / 1.45 var(--mc-round);
+  box-shadow: 0 6px 18px rgb(80 50 40 / 0.14), 0 1px 3px rgb(80 50 40 / 0.1);
+  opacity: 0;
+  translate: 0 8px;
+  scale: 0.9;
+  transform-origin: var(--tail, 50%) 100%;
+  transition: opacity 220ms ease, translate 260ms cubic-bezier(0.3, 1.4, 0.5, 1), scale 260ms cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+/* the tail, pointing down at the mochi */
+.mc-bubble::after,
+.mc-hum::after {
+  content: "";
+  position: absolute;
+  left: calc(var(--tail, 50%) - 7px);
+  bottom: -6px;
+  width: 14px;
+  height: 14px;
+  background: inherit;
+  border-radius: 0 0 4px 0;
+  transform: rotate(45deg);
+}
+.mc-bubble.is-on,
+.mc-hum.is-on { opacity: 1; translate: 0 0; scale: 1; }
+.mc-bubble.is-on { animation: mc-pop 320ms cubic-bezier(0.3, 1.5, 0.5, 1); }
+@keyframes mc-pop { from { scale: 0.7; } }
+
+.mc-who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--mc-ink) 60%, transparent);
+}
+.mc-who::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--tint); }
+.mc-line { margin: 0; }
+.mc-line strong { color: color-mix(in srgb, var(--tint) 70%, var(--mc-ink)); font-weight: 700; }
+.mc-line rt { font-size: 0.55em; color: color-mix(in srgb, var(--mc-ink) 55%, transparent); }
+.mc-sign { margin: 2px 0 4px; }
+.mc-sign small,
+.mc-meter small { display: flex; justify-content: space-between; gap: 1em; font-size: 11px; color: color-mix(in srgb, var(--mc-ink) 60%, transparent); }
+.mc-sign b { display: block; font: 700 30px / 1.1 var(--mc-round); letter-spacing: -0.01em; }
+.mc-sign b span { font-size: 0.45em; margin-left: 0.2em; }
+.mc-sign b em { font-style: normal; font-size: 0.42em; margin-left: 0.4em; }
+.mc-sign em.is-up { color: #3fae6a; }
+.mc-sign em.is-down { color: #e0584f; }
+.mc-meter { min-width: 190px; margin: 2px 0 6px; }
+.mc-meter-bar { height: 9px; margin-top: 4px; border-radius: 99px; background: #f1e7dc; overflow: hidden; }
+.mc-meter-bar i { display: block; height: 100%; width: calc(var(--p) * 100%); border-radius: inherit; background: var(--tint); transition: width 600ms ease; }
+.mc-photo { display: block; max-width: 220px; border-radius: 10px; margin: 2px 0 4px; }
+
+/* Quiet: a whisper. Attention: a coloured edge and a shake. */
+.mc-bubble[data-salience="quiet"] { font-size: 13px; color: color-mix(in srgb, var(--mc-ink) 70%, transparent); background: rgb(255 253 250 / 0.9); }
+.mc-bubble[data-salience="attention"] { box-shadow: 0 0 0 2.5px var(--tint), 0 6px 18px rgb(80 50 40 / 0.18); }
+.mc-bubble[data-salience="attention"].is-on { animation: mc-pop 320ms cubic-bezier(0.3, 1.5, 0.5, 1), mc-shake 420ms ease 320ms; }
+@keyframes mc-shake { 25% { rotate: -2deg; } 50% { rotate: 2deg; } 75% { rotate: -1deg; } }
+
+/* What plays, hummed: lighter, smaller. */
+.mc-hum {
+  font-size: 13px;
+  font-weight: 400;
+  color: color-mix(in srgb, var(--mc-ink) 75%, transparent);
+  background: rgb(255 253 250 / 0.82);
+  padding: 7px 12px 8px;
+}
+
+/* A mark by its head. */
+.mc-mark {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  font: 700 22px / 1 var(--mc-round);
+  color: var(--mc-ink);
+  pointer-events: none;
+}
+.mc-mark[data-mark="!"] { color: #e0584f; font-size: 28px; animation: mc-pop 300ms cubic-bezier(0.3, 1.6, 0.5, 1); }
+.mc-mark[data-mark="zzz"] { font-size: 15px; opacity: 0.6; letter-spacing: 0.1em; animation: mc-float 2.8s ease-in-out infinite; }
+.mc-mark[data-mark="♪"] { color: #e08a9b; animation: mc-float 1.2s ease-in-out infinite; }
+@keyframes mc-float { 50% { translate: 4px -8px; } }

@@ -124,6 +124,8 @@ type Block =
   | progress | 一条光带，头上一个亮点 | 短冊边缘的朱色墨线 | 活動限界式 20 格分段条 | 光字下面一条光带，由浪带来 | 带十等分刻度的斜线条形图 |
   | image | 带流体光晕的圆角图 | 贴在短冊顶上的小相片 | 满版黑白硬切 | 只写说明文字 | 45° 网点的半色调照片 |
 
+  もち 把卡片说出来：数值是举着的小牌子，进度是卡片颜色的进度条，图片放在对话气泡里。
+
   Duo 把卡片当成手机上的一条消息：合上时是锁屏通知，打开时是聊天气泡（数值是带涨跌的大号圆体数字，进度是 App 颜色的细条，图片是图片气泡）。
 
 - **醒目程度（salience）**：内容可以在 `hints.salience` 自己写；没写就按优先级推导（ambient → quiet，normal → normal，urgent → attention）。窗口还有用户设的醒目上限（`ShellWindow.loudness`，`/loud`）：比上限响的内容在那个窗口按上限显示，比如把一个窗口设成「安静」就是勿扰。舞台把两者合起来的结果写进 `OnAir.salience`，主题只看这个。它和调度无关，只管「看起来有多响」。每个主题用自己的方式表达：
@@ -136,6 +138,7 @@ type Block =
   | 夜潮 | 浪小、字暗 | 浪更高 |
   | 晨报 | 灰墨、细体标题 | 标题黑底反白，栏目加红色「速報」，报头盖「号外」章 |
   | Duo | 不展开灵动岛，通知悄悄进来 | 灵动岛带红圈展开并抖一下，手机自己打开 |
+  | もち | 小声嘀咕，气泡更小更淡 | 大跳两下，旁边冒红色「!」，气泡带彩边并抖一下 |
 
 ### 3.5 Slot：槽位
 
@@ -160,7 +163,7 @@ type StageState = {
   rev: number;                               // 每次变化加一，屏幕只认比自己新的
   surfaces: Record<string, {                 // 窗口 id → 窗口
     name?: string;                           // 用户起的窗口名（main、left、right……），agent 按名字表达偏好
-    profile: string;                         // 窗口配置：ambient（铺满）| hanging（右上角挂着）| device（右下角立着一台设备）
+    profile: string;                         // 窗口配置：ambient（铺满）| hanging（右上角挂着）| device（右下角立着一台设备）| overlay（整块屏幕，鼠标穿透）
     theme: string;
     accepts?: { packs?: string[]; kinds?: string[] };  // 这个窗口收什么；不写就是全收（§5）
     fallback?: boolean;                      // 兜底窗口：也收「没有任何可见窗口收」的内容
@@ -213,7 +216,7 @@ type PackContext = {
 type ThemeManifest = {
   id: string;
   label: string;
-  profile: string;                         // 穿哪种窗口配置：ambient（铺满）| hanging（右上角挂着）| device（右下角立着一台设备）
+  profile: string;                         // 穿哪种窗口配置：ambient（铺满）| hanging（右上角挂着）| device（右下角立着一台设备）| overlay（整块屏幕，鼠标穿透）
   slots: Record<string, SlotSpec>;
   signals?: ('energy' | 'onset' | 'daylight' | 'palette')[];
 };
