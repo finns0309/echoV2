@@ -50,6 +50,12 @@ A speech bubble over its head (`parts/bubble.ts`), kept on screen, its tail poin
 
 What plays it only hums, in a lighter bubble: "♪" and the current line. It stops humming while it talks.
 
+### Writing a word
+
+A word card (a primary line with a reading, at most four characters, all kana and kanji) is also written out. A practice sheet appears beside the mochi, on whichever side has room: washi paper with the red guide lines of a calligraphy sheet. The mochi turns to it and sets the word down stroke by stroke in ink, in the right order. Each stroke takes as long as it is long, and the brush lifts between strokes and between characters (`parts/board.ts`).
+
+The strokes come from [KanjiVG](https://kanjivg.tagaini.net) (CC BY-SA 3.0, © Ulrich Apel; see `parts/strokes/NOTICE.md`). `scripts/make-strokes.mjs` turns its XML into `parts/strokes/*.json`: 6,600 kana and kanji, coordinates to a tenth, one file per Unicode block of 256. A word loads only the blocks its characters are in, from the app itself (`parts/strokes.ts`). The XML isn't kept; to remake the data, download `kanjivg-<date>.xml.gz` from KanjiVG's releases, unzip it, and run `node scripts/make-strokes.mjs <file>`.
+
 ## Salience
 
 - **Quiet**: a whisper; the bubble is smaller and paler.
@@ -62,4 +68,6 @@ What plays it only hums, in a lighter bubble: "♪" and the current line. It sto
 - `parts/flavor.ts`: the wagashi calendar (pure, tested).
 - `parts/body.ts`: the drawing.
 - `parts/bubble.ts`: the speech bubble, the hum, the mark.
+- `parts/board.ts`: the practice sheet, and the writing.
+- `parts/strokes.ts`: which cards are words (tested), and their strokes, loaded by block from `parts/strokes/`.
 - `theme.ts`: slots, signals, the clock, and where it all goes each frame.

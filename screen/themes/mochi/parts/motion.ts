@@ -39,6 +39,8 @@ export interface World {
   energy: number
   /** Late at night it sleeps when there is nothing to do. */
   night: boolean
+  /** While talking, where to look (-1..1): at what it is writing, say. Absent: at you. */
+  lookAt?: number
 }
 
 const HOP_S = 0.5
@@ -178,7 +180,7 @@ export function createMochi(start: number, random: () => number = Math.random) {
         mode === 'sleep' ? 'sleep' : alert ? 'wow' : blinking ? 'blink' : mode === 'dance' ? 'happy' : 'open'
       const mouth: Mouth = mode === 'sleep' ? 'flat' : alert ? 'o' : t < speakUntil ? (Math.floor(t * 8) % 2 ? 'o' : 'smile') : 'smile'
       const look =
-        mode === 'walk' ? dir * 0.8 : mode === 'talk' ? 0 : mode === 'dance' ? Math.sin(t * 1.5) * 0.6 : Math.sin(t * 0.37) * 0.5
+        mode === 'walk' ? dir * 0.8 : mode === 'talk' ? (w.lookAt ?? 0) : mode === 'dance' ? Math.sin(t * 1.5) * 0.6 : Math.sin(t * 0.37) * 0.5
       const mark: Mark = alert ? '!' : mode === 'sleep' ? 'zzz' : mode === 'dance' && t < beatUntil + 0.6 ? '♪' : ''
       return { x, lift, squash, lean, look, eyes, mouth, mark, mode }
     },

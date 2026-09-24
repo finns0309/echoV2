@@ -2,10 +2,12 @@
 import type { Block, OnAir } from '@contract'
 import { activeBlockIndex, salienceOf } from '@screen/primitives/blocks'
 import type { Theme } from '@screen/runtime/theme-api'
+import { createBoard } from './parts/board'
 import { createBody } from './parts/body'
 import { createBubble } from './parts/bubble'
 import { flavorFor } from './parts/flavor'
 import { createMochi, type World } from './parts/motion'
+import { strokesOf, wordOf } from './parts/strokes'
 import './theme.css'
 
 type Text = Extract<Block, { type: 'text' }>
@@ -21,9 +23,25 @@ const sizeFor = (height: number) => Math.min(1.6, Math.max(0.85, height / 950))
 const isNight = (d: Date) => d.getHours() >= 23 || d.getHours() < 6
 
 export default function createMochiTheme(): Theme {
+  /** A word card: fetch its strokes and write it on the sheet, if it is still on by then. */
+  async function write(next: OnAir): Promise<void> {
+    board?.clear()
+    sheet = 0
+    const word = wordOf(next.presentation.blocks)
+    if (!word) return
+    const chars = [...word]
+    const strokes = await Promise.all(chars.map(strokesOf))
+    if (card?.contentId !== next.contentId || strokes.some((s) => !s)) return
+    board?.write(chars, strokes as string[][])
+    sheet = 1
+  }
+
   let root: HTMLElement | null = null
   let body: ReturnType<typeof createBody> | null = null
   let bubble: ReturnType<typeof createBubble> | null = null
+  let board: ReturnType<typeof createBoard> | null = null
+  /** Which side its practice sheet is on while it writes, else 0. */
+  let sheet = 0
   let mochi: ReturnType<typeof createMochi> | null = null
   let offSignal: (() => void) | null = null
   let card: OnAir | null = null
@@ -43,6 +61,7 @@ export default function createMochiTheme(): Theme {
       el.append(stage)
       body = createBody(stage)
       bubble = createBubble(stage)
+      board = createBoard(stage)
       mochi = createMochi(el.clientWidth * (0.3 + Math.random() * 0.4))
       offSignal = ctx.onSignal((f) => {
         if (f.energy !== undefined) energy = energy * 0.7 + f.energy * 0.3
@@ -53,7 +72,7 @@ export default function createMochiTheme(): Theme {
     unmount() {
       offSignal?.()
       root?.classList.remove('mc')
-      root = body = bubble = mochi = offSignal = null
+      root = body = bubble = board = mochi = offSignal = null
     },
 
     show(slot, next) {
@@ -65,6 +84,7 @@ export default function createMochiTheme(): Theme {
       card = next
       said = ''
       mochi?.notice(salienceOf(next) === 'attention')
+      write(next)
     },
     update(slot, next) {
       if (slot === 'media') media = next
@@ -80,6 +100,8 @@ export default function createMochiTheme(): Theme {
       } else {
         card = null
         bubble?.hush()
+        board?.clear()
+        sheet = 0
       }
     },
 
@@ -88,7 +110,7 @@ export default function createMochiTheme(): Theme {
       const dt = last ? Math.min(0.05, (clock.now - last) / 1000) : 0
       last = clock.now
       const width = root.clientWidth
-      const world: World = { width, talking: !!card, playing: !!media, energy, night: isNight(new Date()) }
+      const world: World = { width, talking: !!card, playing: !!media, energy, night: isNight(new Date()), ...(sheet ? { lookAt: sheet * 0.7 } : {}) }
       const pose = mochi.step(dt, world)
       // Today's wagashi; it changes at midnight.
       const today = flavorFor(new Date())
@@ -102,6 +124,8 @@ export default function createMochiTheme(): Theme {
       const size = sizeFor(root.clientHeight)
       body.draw(pose)
       body.svg.style.width = `${DRAWING * size}px`
+      root.style.setProperty('--mc-size', size.toFixed(3))
+      if (sheet && board) sheet = board.place(pose.x, (SIDE * (1 + pose.squash) + 14) * size, width, FLOOR)
       body.svg.style.transform = `translate(${(pose.x - (DRAWING / 2) * size).toFixed(1)}px, ${-FLOOR}px)`
 
       // What it says: the card's figures and the text line it has reached.
