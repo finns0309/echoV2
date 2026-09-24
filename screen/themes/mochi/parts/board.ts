@@ -72,13 +72,13 @@ export function createBoard(stage: HTMLElement) {
       writing++
       sheet.classList.remove('is-on')
     },
-    /** Beside the mochi, on whichever side has room, on the floor. Returns that side. */
-    place(x: number, reach: number, width: number, floor: number): -1 | 1 {
+    /** Beside the mochi, on whichever side has room, on the floor. Returns that side, and where it is. */
+    place(x: number, reach: number, width: number, floor: number): { side: -1 | 1; area: { left: number; right: number; top: number } } {
       const w = sheet.offsetWidth
       const right = x + reach + w + 12 < width
       const left = right ? x + reach : Math.max(8, x - reach - w)
       sheet.style.transform = `translate(${left.toFixed(1)}px, ${-floor}px)`
-      return right ? 1 : -1
+      return { side: right ? 1 : -1, area: { left, right: left + w, top: floor + sheet.offsetHeight } }
     },
   }
 }

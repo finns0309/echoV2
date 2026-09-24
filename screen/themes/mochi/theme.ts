@@ -4,7 +4,7 @@ import { activeBlockIndex, salienceOf } from '@screen/primitives/blocks'
 import type { Theme } from '@screen/runtime/theme-api'
 import { createBoard } from './parts/board'
 import { createBody } from './parts/body'
-import { createBubble } from './parts/bubble'
+import { createBubble, type Area } from './parts/bubble'
 import { flavorFor } from './parts/flavor'
 import { createMochi, type World } from './parts/motion'
 import { strokesOf, wordOf } from './parts/strokes'
@@ -125,7 +125,12 @@ export default function createMochiTheme(): Theme {
       body.draw(pose)
       body.svg.style.width = `${DRAWING * size}px`
       root.style.setProperty('--mc-size', size.toFixed(3))
-      if (sheet && board) sheet = board.place(pose.x, (SIDE * (1 + pose.squash) + 14) * size, width, FLOOR)
+      let area: Area | undefined
+      if (sheet && board) {
+        const at = board.place(pose.x, (SIDE * (1 + pose.squash) + 14) * size, width, FLOOR)
+        sheet = at.side
+        area = at.area
+      }
       body.svg.style.transform = `translate(${(pose.x - (DRAWING / 2) * size).toFixed(1)}px, ${-FLOOR}px)`
 
       // What it says: the card's figures and the text line it has reached.
@@ -152,7 +157,7 @@ export default function createMochiTheme(): Theme {
       }
       bubble.mark(pose.mark)
       const top = (BODY * (1 - pose.squash) + pose.lift) * size + FLOOR
-      bubble.place(pose.x, top + GAP * size, width, { x: pose.x + (SIDE * (1 + pose.squash) + 6) * size, y: top * 0.8 })
+      bubble.place(pose.x, top + GAP * size, width, { x: pose.x + (SIDE * (1 + pose.squash) + 6) * size, y: top * 0.8 }, area)
     },
   }
 }

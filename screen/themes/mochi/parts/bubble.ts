@@ -59,6 +59,30 @@ function figure(b: Block): HTMLElement | null {
   return null
 }
 
+/** Somewhere on the floor, in px: left and right from the window's left edge, top above the floor. */
+export interface Area {
+  left: number
+  right: number
+  top: number
+}
+
+const TAIL_IN = 18 // the tail stays this far in from a bubble's ends
+const CLEAR = 10 // room kept between a bubble and what it avoids
+
+/** Where a bubble `w` wide goes over a head at `x`, `head` px up, keeping clear of `avoid`. */
+export function spot(x: number, w: number, head: number, width: number, avoid?: Area): { left: number; rise: number } {
+  const centred = x - w / 2
+  if (!avoid || head >= avoid.top + CLEAR) return { left: centred, rise: head }
+  const overlaps = (l: number) => l < avoid.right + CLEAR && l + w > avoid.left - CLEAR
+  if (!overlaps(centred)) return { left: centred, rise: head }
+  // Slide to the far side of the mochi, as far as the tail can still reach it.
+  const toRight = avoid.left > x
+  const left = toRight ? avoid.left - CLEAR - w : avoid.right + CLEAR
+  const reaches = x - left >= TAIL_IN && x - left <= w - TAIL_IN
+  if (reaches && left >= 12 && left + w <= width - 12) return { left, rise: head }
+  return { left: centred, rise: avoid.top + CLEAR * 2 }
+}
+
 export function createBubble(stage: HTMLElement) {
   const bubble = el('div', 'mc-bubble')
   const hum = el('div', 'mc-hum')
@@ -100,13 +124,19 @@ export function createBubble(stage: HTMLElement) {
         mark.dataset.mark = m
       }
     },
-    /** Hang the bubbles over its head, kept on screen, the tail pointing at it; the mark beside it. */
-    place(x: number, head: number, width: number, side: { x: number; y: number }): void {
+    /**
+     * Hang the bubbles over its head, kept on screen, the tail pointing at it; the mark
+     * beside it. Something else on the floor (the practice sheet) is kept clear of:
+     * the bubble moves to the other side of the mochi, or, with no room there, rises above it.
+     */
+    place(x: number, head: number, width: number, side: { x: number; y: number }, avoid?: Area): void {
       for (const b of [bubble, hum]) {
         const w = b.offsetWidth
-        const left = Math.min(width - w - 12, Math.max(12, x - w / 2))
-        b.style.transform = `translate(${left.toFixed(1)}px, ${(-head).toFixed(1)}px)`
-        b.style.setProperty('--tail', `${(x - left).toFixed(1)}px`)
+        const at = spot(x, w, head, width, avoid)
+        const left = Math.min(width - w - 12, Math.max(12, at.left))
+        const rise = at.rise
+        b.style.transform = `translate(${left.toFixed(1)}px, ${(-rise).toFixed(1)}px)`
+        b.style.setProperty('--tail', `${Math.min(w - TAIL_IN, Math.max(TAIL_IN, x - left)).toFixed(1)}px`)
       }
       mark.style.transform = `translate(${side.x.toFixed(1)}px, ${(-side.y).toFixed(1)}px)`
     },
