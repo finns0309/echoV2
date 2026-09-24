@@ -4,6 +4,7 @@ import { activeBlockIndex, salienceOf } from '@screen/primitives/blocks'
 import type { Theme } from '@screen/runtime/theme-api'
 import { createBody } from './parts/body'
 import { createBubble } from './parts/bubble'
+import { flavorFor } from './parts/flavor'
 import { createMochi, type World } from './parts/motion'
 import './theme.css'
 
@@ -31,6 +32,7 @@ export default function createMochiTheme(): Theme {
   let last = 0
   let said = ''
   let hummed = -2
+  let flavor = ''
 
   return {
     mount(el, ctx) {
@@ -88,6 +90,12 @@ export default function createMochiTheme(): Theme {
       const width = root.clientWidth
       const world: World = { width, talking: !!card, playing: !!media, energy, night: isNight(new Date()) }
       const pose = mochi.step(dt, world)
+      // Today's wagashi; it changes at midnight.
+      const today = flavorFor(new Date())
+      if (today.id !== flavor) {
+        flavor = today.id
+        body.setFlavor(today)
+      }
       energy *= 0.98
 
       // Where it stands, and how big.

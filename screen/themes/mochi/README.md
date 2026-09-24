@@ -12,6 +12,23 @@ The `overlay` profile: the whole screen, clicks passing through. Only the mochi 
 
 Drawn in SVG (`parts/body.ts`): a soft dome with a flat underside, a warm sheen on top, dot eyes, blush and a small mouth, and a shadow on the floor. Everything it feels is squash and stretch. It widens as it lowers, stretches in the air, and its shadow shrinks as it rises.
 
+### Today's flavour
+
+It is dressed as the season's wagashi (`parts/flavor.ts`, tested). Only its colours and a garnish change: the garnish is drawn at rest size and squashes with the body.
+
+| When | Flavour |
+|---|---|
+| January | つきたて, fresh and white |
+| February | うぐいす餅, pale green with a dusting |
+| March to 10 April | 桜餅, pink, wrapped in a cherry leaf |
+| 11 April to May | 草餅, green; 柏餅 (white, in an oak leaf) for Children's Day, 1–7 May |
+| June to August | 水信玄餅, see-through |
+| 1–18 September | お月見団子 |
+| 19–27 September (autumn higan) | おはぎ, red bean, with light eyes |
+| 28 September to 15 November | きなこ餅, dusted |
+| 16–30 November | 栗餅, a piece of chestnut on top |
+| December | いちご大福, a strawberry peeking out |
+
 Its habits are plain numbers in `parts/motion.ts` (tested):
 
 | | What it does |
@@ -42,6 +59,7 @@ What plays it only hums, in a lighter bubble: "♪" and the current line. It sto
 
 - `manifest.ts`: `card` and `media` slots, the `overlay` profile, and the energy and onset signals.
 - `parts/motion.ts`: its habits (pure, tested).
+- `parts/flavor.ts`: the wagashi calendar (pure, tested).
 - `parts/body.ts`: the drawing.
 - `parts/bubble.ts`: the speech bubble, the hum, the mark.
 - `theme.ts`: slots, signals, the clock, and where it all goes each frame.

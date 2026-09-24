@@ -21,12 +21,16 @@
   overflow: visible;
   filter: drop-shadow(0 2px 3px rgb(90 60 40 / 0.12));
 }
-.mc-skin { stroke: #e6dccd; stroke-width: 1.2; }
+.mc-skin { stroke: var(--mc-skin-edge, #e6dccd); stroke-width: 1.2; }
 .mc-sheen { fill: #fff; opacity: 0.75; }
 .mc-shadow { fill: rgb(60 40 30 / 0.14); }
-.mc-cheek { fill: #f6b9b3; opacity: 0.75; }
+.mc-cheek { fill: var(--mc-cheeks, #f6b9b3); opacity: 0.75; }
+.mc-speck { fill: var(--mc-skin-edge); opacity: 0.55; }
 .mc-eye,
-.mc-mouth { fill: #3a302b; stroke: #3a302b; stroke-width: 0; stroke-linecap: round; }
+.mc-mouth { fill: var(--mc-eyes, #3a302b); stroke: var(--mc-eyes, #3a302b); stroke-width: 0; stroke-linecap: round; }
+/* Summer's mizu shingen mochi: see-through, a drop of water. */
+.mc-body.is-clear .mc-skin { fill-opacity: 0.55; }
+.mc-body.is-clear .mc-sheen { opacity: 0.95; }
 .mc-eye.is-line,
 .mc-mouth.is-line { fill: none; stroke-width: 1.9; }
 
