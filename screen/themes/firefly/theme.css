@@ -1,0 +1,13 @@
+/* 流萤 · the window is see-through and lets clicks pass: only the fireflies are drawn. */
+.ff {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ff-sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
