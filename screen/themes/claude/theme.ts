@@ -189,6 +189,8 @@ export default function createClaudeTheme(): Theme {
         if (!rest && b?.type === 'text') line = b.text
       }
       const about = media ? [media.presentation.context.title, media.presentation.context.byline].filter(Boolean).join(' — ') : ''
+      const ctx = media?.presentation.context
+      page.playing(ctx ? { title: ctx.title ?? '♪', byline: ctx.byline ?? ctx.speaker?.name ?? '', ...(ctx.art ? { art: ctx.art } : {}) } : null)
 
       if (card && message) {
         const was = phase
@@ -199,20 +201,16 @@ export default function createClaudeTheme(): Theme {
         const quiet = salienceOf(card) === 'quiet'
         page.spark.mood(phase === 'done' ? (media ? 'listen' : 'rest') : quiet ? 'listen' : 'think')
       } else if (media) {
-        const title = media.presentation.context.title ?? '♪'
-        if (line) {
-          page.homeLine(`${media.contentId}:${line}`, line, clock.now, false)
-          page.homeSub(about, false)
-        } else {
-          page.homeLine(`${media.contentId}:rest`, title, clock.now, false)
-          page.homeSub(pick(LISTENING, media.contentId) + '…', true)
-        }
+        // Listening along: the spark over the line, what plays as a card under it.
+        page.home('listening')
+        if (line) page.homeLine(`${media.contentId}:${line}`, line, clock.now, 'line')
+        else page.homeLine(`${media.contentId}:rest`, pick(LISTENING, media.contentId) + '…', clock.now, 'verb')
         page.status(null, '')
         page.spark.mood('listen')
       } else {
         const hello = greeting(new Date(nowMs))
-        page.homeLine(`hello:${hello}`, hello, clock.now, true)
-        page.homeSub('', false)
+        page.home('greeting')
+        page.homeLine(`hello:${hello}`, hello, clock.now, 'greeting')
         page.status(null, '')
         page.spark.mood('rest')
         if (clock.now - stirred > STIR_S * 1000) {

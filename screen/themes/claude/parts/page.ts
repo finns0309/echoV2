@@ -1,6 +1,7 @@
 // The page: an ivory sheet with nothing on it but words and the spark. At home
-// it is Claude's empty page, the spark beside a serif greeting (or the line of
-// what plays) and today's conversations under it. In a conversation the newest
+// it is Claude's empty page, the spark beside a serif greeting and today's
+// conversations under it; while something plays, the spark over its line and
+// what plays as an attachment card under it. In a conversation the newest
 // reply is written below the earlier ones, the spark moving along with the
 // words like a pen. An artifact opens beside the conversation; on a wide page
 // the Recents stand in a rail down the left. There is one spark, and it glides.
@@ -30,6 +31,21 @@ const PEN_KEEP = 0.62
 const HOME_RECENTS = 4
 /** Replies shown in a conversation, the newest last. */
 const KEEP_TURNS = 5
+
+/** What plays, as the attachment card shows it. */
+export interface Playing {
+  title: string
+  byline: string
+  art?: string
+}
+
+/** How the empty page is laid out: Claude's greeting, or listening along. */
+export type HomeMode = 'greeting' | 'listening'
+/** What the big line at home is: the greeting, a line of what plays, or a verb between lines. */
+export type LineKind = 'greeting' | 'line' | 'verb'
+
+/** Lines longer than this are set a size down, and again past twice it. */
+const LONG_LINE = 44
 
 /** A line on the home page, written in, and faded out when the next one comes. */
 interface HomeLine {
@@ -65,10 +81,11 @@ export interface Page {
    * replies already there settle into the past where they stand.
    */
   converse(reply: HTMLElement, past?: readonly HTMLElement[]): void
-  /** The big line at home; `key` decides whether it is new. `greeting`: the page is empty, so the Recents show under it. */
-  homeLine(key: string, text: string, now: number, greeting: boolean): void
-  /** The small line under it; `shimmer` for a verb that is still going. */
-  homeSub(text: string, shimmer: boolean): void
+  home(mode: HomeMode): void
+  /** The big line at home; `key` decides whether it is new. */
+  homeLine(key: string, text: string, now: number, kind: LineKind): void
+  /** What plays: the card under its line at home, the cover in the status line (null: nothing). */
+  playing(what: Playing | null): void
   recents(list: readonly Recent[]): void
   /** An artifact open beside the conversation, or not. */
   artifact(open: boolean): void
@@ -100,7 +117,7 @@ export function createPage(root: HTMLElement): Page {
 
   const rail = el('nav', 'cl-rail')
   const railList = el('ol', 'cl-recents')
-  rail.append(el('div', 'cl-rail-label', 'Recents'), railList)
+  rail.append(el('div', 'cl-rail-mark', 'Claude'), el('div', 'cl-rail-label', 'Recents'), railList)
 
   const head = el('header', 'cl-head')
   const headTitle = el('span', 'cl-head-title')
@@ -112,11 +129,19 @@ export function createPage(root: HTMLElement): Page {
   const homeAnchor = el('i', 'cl-anchor cl-anchor-home')
   const lines = el('div', 'cl-lines')
   hello.append(homeAnchor, lines)
-  const sub = el('div', 'cl-sub')
+  const card = el('div', 'cl-playing')
+  const cardArt = el('span', 'cl-playing-art')
+  const cardNames = el('span', 'cl-playing-names')
+  const cardTitle = el('b', '')
+  const cardBy = el('small', '')
+  cardNames.append(cardTitle, cardBy)
+  const bars = el('span', 'cl-bars')
+  bars.append(el('i', ''), el('i', ''), el('i', ''))
+  card.append(cardArt, cardNames, bars)
   const homeRecents = el('div', 'cl-home-recents')
   const homeList = el('ol', 'cl-recents')
   homeRecents.append(el('div', 'cl-rail-label', 'Recents'), homeList)
-  home.append(hello, sub, homeRecents)
+  home.append(hello, card, homeRecents)
 
   const chat = el('section', 'cl-chat')
   const scroller = el('div', 'cl-scroll')
@@ -132,9 +157,10 @@ export function createPage(root: HTMLElement): Page {
   const pane = el('aside', 'cl-pane')
 
   const foot = el('footer', 'cl-status')
+  const footArt = el('span', 'cl-status-art')
   const footLine = el('span', 'cl-status-line')
   const footAbout = el('span', 'cl-status-about')
-  foot.append(footLine, footAbout)
+  foot.append(footArt, footLine, footAbout)
 
   const verbEl = el('span', 'cl-verb cl-shimmer')
   const ring = el('div', 'cl-ring')
@@ -146,6 +172,7 @@ export function createPage(root: HTMLElement): Page {
   let current: HomeLine | null = null
   let reply: HTMLElement | null = null
   let listed = ''
+  let played = ''
   const pos = { x: 0, y: 0, s: 0, placed: false }
   let scrollY = 0
 
@@ -181,17 +208,24 @@ export function createPage(root: HTMLElement): Page {
       while (column.children.length > KEEP_TURNS) column.firstElementChild!.remove()
     },
 
-    homeLine(key, text, now, greeting) {
-      page.classList.toggle('is-greeting', greeting)
+    home(mode) {
+      page.classList.toggle('is-greeting', mode === 'greeting')
+      page.classList.toggle('is-listening', mode === 'listening')
+    },
+
+    homeLine(key, text, now, kind) {
       if (current?.key === key) return
-      // The old line clears before the new one is written over it.
+      // The old line clears before the new one is written over it. It is lifted
+      // out of the flow where it stands, so the new one is laid out on its own.
       const wait = current ? LINE_CLEAR_MS : 0
       if (current) {
         const old = current.el
+        Object.assign(old.style, { left: `${old.offsetLeft}px`, top: `${old.offsetTop}px`, width: `${old.offsetWidth}px` })
         old.classList.add('is-leaving')
         setTimeout(() => old.remove(), 700)
       }
-      const e = el('div', 'cl-line')
+      const chars = [...text].length
+      const e = el('div', `cl-line is-${kind}${chars > LONG_LINE * 2 ? ' is-longer' : chars > LONG_LINE ? ' is-long' : ''}`)
       setLang(e, detectLang(text))
       const units = unitsOf(text)
       const spans = units.map((u) => el('span', 'cl-u', u.text))
@@ -200,10 +234,24 @@ export function createPage(root: HTMLElement): Page {
       current = { key, el: e, units, spans, born: now + wait, shown: 0 }
     },
 
-    homeSub(text, shimmer) {
-      if (sub.textContent !== text) sub.textContent = text
-      sub.classList.toggle('cl-shimmer', shimmer)
-      setLang(sub, detectLang(text))
+    playing(what) {
+      const key = what ? JSON.stringify(what) : ''
+      if (key === played) return
+      played = key
+      page.classList.toggle('has-playing', !!what)
+      if (!what) return
+      const art = () => {
+        if (!what.art) return el('span', 'cl-playing-note', '♪')
+        const img = el('img', '')
+        img.src = what.art
+        img.alt = ''
+        return img
+      }
+      cardArt.replaceChildren(art())
+      footArt.replaceChildren(art())
+      cardTitle.textContent = what.title
+      cardBy.textContent = what.byline
+      setLang(card, detectLang(what.title + what.byline))
     },
 
     recents(list) {

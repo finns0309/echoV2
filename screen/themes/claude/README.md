@@ -8,17 +8,20 @@ New in echoV2, not ported. MuseV2's `claude` theme is the reference for the pale
 
 The `device` profile: 760×560 at the bottom right of the screen. The page fills the window, rounded and hairline-edged, and everything on it grows with the window (`--cl-scale`). It is light or dark with the system, as Claude is:
 
+The values are Claude's own, read off its pages: ink `#141413` on `#faf9f5`, warm greys for what is secondary, hairlines half a pixel wide, shadows you feel more than see.
+
 | | Light | Dark |
 |---|---|---|
 | paper | `#faf9f5` | `#262624` |
-| ink | near-black at 92% | ivory at 93% |
+| ink, secondary, tertiary | `#141413`, `#5e5d59`, `#8a8983` | `#faf9f5`, `#c2c0b6`, `#9a9890` |
+| raised (artifact, attachment card) | `#ffffff` | `#30302e` |
 | the spark, the progress bar, the glint | clay `#d97757` | clay `#d97757` |
 
-Latin is set in Charter, Han and kana in the serif of their own language (Hiragino Mincho for Japanese, Songti for Chinese), the small print in the system face.
+Claude's serif is Anthropic's own and isn't on the Mac, and none of the serifs that are has a light weight, so the theme carries [Newsreader](https://github.com/productiontype/Newsreader) (OFL 1.1, `parts/fonts/`, Latin, variable weight and optical size, 132 KB) to stand in: display lines at weight 330 with tight tracking, as Claude sets its headlines. Han and kana fall to the serif of their own language (Hiragino Mincho for Japanese, Songti Light for Chinese); the small print is the system face.
 
 ## The spark
 
-Eleven rays round a hub, uneven in length and spacing, as if cut by hand (`parts/spark.ts`, tested). It is one element that glides from place to place and grows or shrinks to fit each one, so the page never jumps. How it moves says what it is doing:
+Twelve rays round a small hub, each a long wedge from a narrow root to a square tip with its corners cut, uneven in length and angle and none quite aimed at the middle, as if cut from paper (`parts/spark.ts`, tested). It is one element that glides from place to place and grows or shrinks to fit each one, so the page never jumps. How it moves says what it is doing:
 
 | | |
 |---|---|
@@ -46,7 +49,7 @@ So a status and a message can be on the page at once, as a conversation goes on 
 - The next card in the conversation on the page is written under the last one, which settles smaller and paler where it stands, its time above it. Up to five replies show; the page brings the newest up to about a quarter of the way down, the earlier ones fading under the top edge.
 - A card from another conversation turns the page to that one: its last few replies already written, the new one written in under them.
 - A card in rotation (said again with the same id) moves down to be the newest rather than repeating.
-- On a page 1000 px wide or more, the Recents stand in a rail down the left, as Claude's sidebar does, the conversation on the page highlighted, the one being written turning the CLI's spinner (`· ✢ ✳ ✶ ✻ ✽`).
+- On a page 1000 px wide or more, the Recents stand in a rail down the left under the wordmark, as Claude's sidebar does, the conversation on the page highlighted, the one being written turning the CLI's spinner (`· ✢ ✳ ✶ ✻ ✽`). With nothing said yet (a window that only takes what plays, say) there is no rail.
 
 **A card.** It is a reply. The header carries the card's title, with the byline (and a speaker who isn't Claude) beside it. Then:
 
@@ -70,7 +73,7 @@ A reply of a few words is set large, a longer one smaller, a page of them at rea
 
 **An artifact.** A status (`none` timeline: a figure, a bar, a few lines) opens in a pane that slides in from the right, as Claude opens an artifact, and the conversation, or the empty page, makes room for it. A card on a raised sheet: a document icon, the title, the byline, a version, and when it last changed. Each change to it is the next version (v1, v2, v3…), the change time glints clay for a moment, a figure that moved flashes and a bar slides to its new length. When the status is taken down the pane closes. (`parts/artifact.ts`)
 
-**What plays.** With no card on, its line takes the greeting's place, in the same large serif, each line written in as the last fades up and away. The title and byline sit under it. In a break (before the first line, an intro, a long interlude) the title stands there instead and a listening verb glints under it (*Humming…*, *Vibing…*). Under a reply it drops to a status line at the foot of the page: ♪ and the line on the left, the title on the right.
+**What plays.** With no card on, the page listens along: the spark over the line, the line centred in the light serif in a space two lines tall (so a short line and a long one sit in the same place; a long one is set a size down), and under it what plays as Claude shows an attachment: a raised card with the cover, the title and the artist, and three clay bars moving. Each line is written in as the last is lifted out where it stood and fades up. In a break (before the first line, an intro, a long interlude) a listening verb glints in the line's place (*Humming…*, *Vibing…*). Under a reply it drops to a status line at the foot of the page: the cover and the line in the serif on the left, the title on the right.
 
 ## Salience
 
@@ -87,4 +90,5 @@ A reply of a few words is set large, a longer one smaller, a page of them at rea
 - `parts/artifact.ts`: the artifact pane, and its versions.
 - `parts/page.ts`: the page, its rail and pane, the thread, the home line, the status line, and the spark's glide.
 - `parts/words.ts`: the greeting and the verbs (pure, tested).
+- `parts/fonts/`: Newsreader, Latin, and its licence.
 - `theme.ts`: slots, signals, which conversation is on the page, and which place the page is in each frame.

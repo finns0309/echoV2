@@ -1,65 +1,93 @@
-/* Claude · warm ivory, clay, a serif voice, and the spark.
-   Light or dark with the system, as Claude is. Sizes grow with the window (--cl-scale). */
+/* Claude · warm ivory, clay, a light serif voice, and the spark. Values taken
+   from Claude's own pages: ink #141413 over #faf9f5, warm greys for what is
+   secondary, hairlines half a pixel wide, shadows you feel more than see.
+   Light or dark with the system. Sizes grow with the window (--cl-scale). */
+
+/* Newsreader (OFL, parts/fonts/OFL.txt) stands in for Anthropic's serif: light,
+   compact, with optical sizes. Latin only; Han and kana fall to the system's. */
+@font-face {
+  font-family: "cl-newsreader";
+  src: url("./parts/fonts/newsreader-latin.woff2") format("woff2-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: block;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 .cl {
   --cl-scale: 1;
+  --s: var(--cl-scale);
   --cl-paper: #faf9f5;
-  --cl-ink: rgb(20 20 19 / 0.92);
-  --cl-muted: rgb(31 30 29 / 0.6);
-  --cl-dim: rgb(31 30 29 / 0.38);
-  --cl-line: rgb(31 30 29 / 0.09);
-  --cl-line-strong: rgb(31 30 29 / 0.15);
-  --cl-chip: #f0eee6;
+  --cl-ink: #141413;
+  --cl-ink-2: #5e5d59;
+  --cl-ink-3: #8a8983;
+  --cl-hair: rgb(31 30 29 / 0.16);
+  --cl-hair-soft: rgb(31 30 29 / 0.08);
   --cl-raised: #ffffff;
-  --cl-sunk: #f4f3ee;
+  --cl-sunk: #f5f4ed;
+  --cl-chip: #f0eee6;
   --cl-clay: #d97757;
-  --cl-up: #5e7a3e;
-  --cl-down: #bf4d43;
-  --cl-serif: Charter, "Iowan Old Style", Georgia, "Hiragino Mincho ProN", serif;
+  --cl-clay-ink: #c6613f;
+  --cl-up: #5f7a3e;
+  --cl-down: #b8463c;
+  --cl-lift:
+    0 0 0 0.5px var(--cl-hair),
+    0 1px 2px rgb(0 0 0 / 0.03),
+    0 4px 24px rgb(0 0 0 / 0.035),
+    0 16px 32px rgb(0 0 0 / 0.02);
+  --cl-serif: "cl-newsreader", "Hiragino Mincho ProN", "Songti SC", Georgia, serif;
   --cl-sans: -apple-system, "SF Pro Text", "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
 
   position: absolute;
   inset: 0;
   font-family: var(--cl-sans);
   color: var(--cl-ink);
+  -webkit-font-smoothing: antialiased;
 }
 @media (prefers-color-scheme: dark) {
   .cl {
     --cl-paper: #262624;
-    --cl-ink: rgb(250 249 245 / 0.93);
-    --cl-muted: rgb(250 249 245 / 0.6);
-    --cl-dim: rgb(250 249 245 / 0.36);
-    --cl-line: rgb(250 249 245 / 0.08);
-    --cl-line-strong: rgb(250 249 245 / 0.13);
-    --cl-chip: #30302e;
+    --cl-ink: #faf9f5;
+    --cl-ink-2: #c2c0b6;
+    --cl-ink-3: #9a9890;
+    --cl-hair: rgb(250 249 245 / 0.15);
+    --cl-hair-soft: rgb(250 249 245 / 0.07);
     --cl-raised: #30302e;
     --cl-sunk: #1f1e1d;
+    --cl-chip: #35342f;
+    --cl-clay-ink: #e08a6b;
     --cl-up: #a3bb84;
     --cl-down: #e58a7e;
+    --cl-lift:
+      0 0 0 0.5px var(--cl-hair),
+      0 1px 2px rgb(0 0 0 / 0.2),
+      0 8px 28px rgb(0 0 0 / 0.25);
   }
 }
-/* Latin in Charter; Han and kana in the serif of their own language. */
+/* Latin in Newsreader; Han and kana in the serif of their own language. */
 .cl [lang|="ja"] {
-  --cl-serif: Charter, "Hiragino Mincho ProN", serif;
+  --cl-serif: "cl-newsreader", "Hiragino Mincho ProN", serif;
   --cl-sans: -apple-system, "Hiragino Sans", sans-serif;
 }
 .cl [lang|="zh"] {
-  --cl-serif: Charter, "Songti SC", serif;
+  --cl-serif: "cl-newsreader", "Songti SC", serif;
   --cl-sans: -apple-system, "PingFang SC", sans-serif;
 }
 
 /* The conversation fills what the rail (on a wide page) and an open artifact leave. */
 .cl-page {
-  --cl-rail-w: calc(212px * var(--cl-scale));
-  --cl-pane-w: min(44%, calc(360px * var(--cl-scale)));
+  --cl-rail-w: calc(232px * var(--s));
+  --cl-pane-w: min(44%, calc(380px * var(--s)));
   --cl-left: 0px;
   --cl-right: 0px;
+  --cl-glide: 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
   position: absolute;
   inset: 0;
   overflow: hidden;
   container-type: inline-size;
   border-radius: 12px;
   background: var(--cl-paper);
-  box-shadow: inset 0 0 0 1px var(--cl-line-strong);
+  box-shadow: inset 0 0 0 0.5px var(--cl-hair);
 }
 .cl-page.has-artifact {
   --cl-right: var(--cl-pane-w);
@@ -99,18 +127,19 @@
 @keyframes cl-rise {
   from {
     opacity: 0;
-    transform: translateY(calc(5px * var(--cl-scale)));
+    transform: translateY(calc(6px * var(--s)));
   }
 }
 
 /* A verb still going, as the CLI draws it: a clay glint sweeping across. */
-.cl-shimmer {
-  background: linear-gradient(90deg, var(--cl-muted) 0 38%, var(--cl-clay) 50%, var(--cl-muted) 62% 100%);
+.cl-shimmer,
+.cl-line.is-verb {
+  background: linear-gradient(90deg, var(--cl-ink-3) 0 36%, var(--cl-clay) 50%, var(--cl-ink-3) 64% 100%);
   background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: cl-shimmer 2.2s linear infinite;
+  animation: cl-shimmer 2.4s linear infinite;
 }
 @keyframes cl-shimmer {
   from {
@@ -130,84 +159,335 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 calc(52px * var(--cl-scale)) calc(30px * var(--cl-scale));
+  padding: 0 calc(56px * var(--s)) calc(20px * var(--s));
   transition:
     opacity 0.5s ease,
-    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
-    left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
-    right 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform var(--cl-glide),
+    left var(--cl-glide),
+    right var(--cl-glide);
 }
 .cl-page.is-chat .cl-home {
   opacity: 0;
-  transform: translateY(calc(-12px * var(--cl-scale)));
+  transform: translateY(calc(-12px * var(--s)));
 }
+/* Greeting: the spark beside one line, as Claude's new chat page has it. */
 .cl-hello {
   display: flex;
-  align-items: flex-start;
-  gap: calc(16px * var(--cl-scale));
+  align-items: center;
+  gap: calc(18px * var(--s));
   max-width: 100%;
 }
 .cl-anchor-home {
-  width: calc(38px * var(--cl-scale));
-  height: calc(38px * var(--cl-scale));
-  margin-top: calc(2px * var(--cl-scale));
+  width: calc(40px * var(--s));
+  height: calc(40px * var(--s));
 }
 .cl-lines {
-  display: grid;
+  position: relative;
   min-width: 0;
 }
 .cl-line {
-  grid-area: 1 / 1;
   font-family: var(--cl-serif);
-  font-size: calc(36px * var(--cl-scale));
-  line-height: 1.25;
-  letter-spacing: -0.012em;
+  font-size: calc(42px * var(--s));
+  font-weight: 330;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
   color: var(--cl-ink);
   text-wrap: balance;
   transition:
-    opacity 0.45s ease,
-    transform 0.6s ease,
-    filter 0.45s ease;
+    opacity 0.35s ease,
+    transform 0.5s ease,
+    filter 0.35s ease;
 }
-/* Centred, so the room is kept and only the ink arrives. */
+/* The room is kept and only the ink arrives, so nothing shifts while it is written. */
 .cl-line .cl-u {
   visibility: hidden;
 }
 .cl-line .cl-u.is-on {
   visibility: visible;
-  animation: cl-in 0.4s ease-out both;
+  animation: cl-in 0.45s ease-out both;
 }
+/* The old line is lifted out where it stands (page.ts pins it) and fades up. */
 .cl-line.is-leaving {
-  transition-duration: 0.35s;
+  position: absolute;
   opacity: 0;
-  transform: translateY(calc(-8px * var(--cl-scale)));
+  transform: translateY(calc(-10px * var(--s)));
   filter: blur(2px);
 }
-.cl-sub {
-  min-height: 1.5em;
-  margin-top: calc(16px * var(--cl-scale));
-  font-size: calc(13px * var(--cl-scale));
-  color: var(--cl-dim);
+
+/* Listening: the spark over the line, the line centred in a space two lines
+   tall, so a short line and a long one sit in the same place. */
+.cl-page.is-listening .cl-hello {
+  flex-direction: column;
+  gap: calc(24px * var(--s));
+  width: min(100%, calc(660px * var(--s)));
+}
+.cl-page.is-listening .cl-anchor-home {
+  width: calc(48px * var(--s));
+  height: calc(48px * var(--s));
+}
+.cl-page.is-listening .cl-lines {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: calc(2 * 1.18 * 42px * var(--s));
   text-align: center;
+}
+.cl-line.is-long {
+  font-size: calc(34px * var(--s));
+}
+.cl-line.is-longer {
+  font-size: calc(27px * var(--s));
+  line-height: 1.3;
+}
+.cl-line.is-verb {
+  font-size: calc(24px * var(--s));
+  font-weight: 380;
+  letter-spacing: -0.005em;
+}
+.cl-line.is-verb .cl-u.is-on {
+  animation: none;
+}
+
+/* What plays, as Claude shows an attachment: a raised card, the cover, the name. */
+.cl-playing {
+  display: none;
+  align-items: center;
+  gap: calc(12px * var(--s));
+  box-sizing: border-box;
+  min-width: calc(250px * var(--s));
+  max-width: min(100%, calc(400px * var(--s)));
+  margin-top: calc(30px * var(--s));
+  padding: calc(8px * var(--s)) calc(16px * var(--s)) calc(8px * var(--s)) calc(8px * var(--s));
+  border-radius: calc(14px * var(--s));
+  background: var(--cl-raised);
+  box-shadow: var(--cl-lift);
+}
+.cl-page.is-listening.has-playing .cl-playing {
+  display: flex;
+  animation: cl-rise 0.5s ease-out both;
+}
+.cl-playing-art,
+.cl-status-art {
+  flex: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--cl-chip);
+  color: var(--cl-clay);
+}
+.cl-playing-art {
+  width: calc(42px * var(--s));
+  height: calc(42px * var(--s));
+  border-radius: calc(8px * var(--s));
+  font-size: calc(17px * var(--s));
+}
+.cl-playing-art img,
+.cl-status-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.cl-playing-names {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(2px * var(--s));
+  min-width: 0;
+}
+.cl-playing-names b,
+.cl-playing-names small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cl-playing-names b {
+  font-size: calc(14px * var(--s));
+  font-weight: 500;
+  color: var(--cl-ink);
+}
+.cl-playing-names small {
+  font-size: calc(12.5px * var(--s));
+  color: var(--cl-ink-3);
+}
+.cl-bars {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: calc(2.5px * var(--s));
+  height: calc(14px * var(--s));
+}
+.cl-bars i {
+  width: calc(3px * var(--s));
+  height: 100%;
+  border-radius: 1px;
+  background: var(--cl-clay);
+  transform-origin: bottom;
+  animation: cl-bar 0.95s ease-in-out infinite alternate;
+}
+.cl-bars i:nth-child(2) {
+  animation-duration: 0.7s;
+  animation-delay: -0.35s;
+}
+.cl-bars i:nth-child(3) {
+  animation-duration: 1.15s;
+  animation-delay: -0.6s;
+}
+@keyframes cl-bar {
+  from {
+    transform: scaleY(0.28);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* ---- the day's conversations: Recents ---- */
+.cl-rail-label {
+  padding: 0 calc(10px * var(--s)) calc(8px * var(--s));
+  font-size: calc(12px * var(--s));
+  font-weight: 500;
+  color: var(--cl-ink-3);
+}
+.cl-recents {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cl-recent {
+  display: flex;
+  align-items: baseline;
+  gap: calc(10px * var(--s));
+  padding: calc(7px * var(--s)) calc(10px * var(--s));
+  border-radius: calc(8px * var(--s));
+  font-size: calc(13.5px * var(--s));
+  color: var(--cl-ink-2);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+.cl-recent-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cl-recent-ago {
+  flex: none;
+  font-size: calc(11.5px * var(--s));
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-ink-3);
+}
+.cl-recent.is-active {
+  background: var(--cl-chip);
+  color: var(--cl-ink);
+}
+/* The one being written turns the CLI's spinner. */
+.cl-recent.is-writing .cl-recent-name::before {
+  content: "✻";
+  display: inline-block;
+  width: 1.15em;
+  color: var(--cl-clay);
+  animation: cl-spinner 1.2s linear infinite;
+}
+@keyframes cl-spinner {
+  0% {
+    content: "·";
+  }
+  16% {
+    content: "✢";
+  }
+  33% {
+    content: "✳";
+  }
+  50% {
+    content: "✶";
+  }
+  66% {
+    content: "✻";
+  }
+  83% {
+    content: "✽";
+  }
+}
+
+/* Under the greeting: a quiet list, a hairline between rows. */
+.cl-home-recents {
+  display: none;
+  width: min(100%, calc(400px * var(--s)));
+  margin-top: calc(40px * var(--s));
+}
+.cl-page.is-greeting.has-recents .cl-home-recents {
+  display: block;
+  animation: cl-rise 0.5s ease-out both;
+}
+.cl-home-recents .cl-recent,
+.cl-home-recents .cl-rail-label {
+  border-radius: 0;
+  padding-inline: calc(4px * var(--s));
+}
+.cl-home-recents .cl-recent + .cl-recent {
+  box-shadow: inset 0 0.5px 0 var(--cl-hair-soft);
+}
+.cl-home-recents .cl-recent.is-active {
+  background: none;
+}
+
+/* Down the left of a wide page, as Claude's sidebar: only when there is something to list. */
+.cl-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--cl-rail-w);
+  box-sizing: border-box;
+  display: none;
+  flex-direction: column;
+  padding: calc(16px * var(--s)) calc(10px * var(--s));
+  background: var(--cl-sunk);
+  box-shadow: inset -0.5px 0 0 var(--cl-hair);
+}
+.cl-rail-mark {
+  padding: calc(2px * var(--s)) calc(10px * var(--s)) calc(22px * var(--s));
+  font-family: var(--cl-serif);
+  font-size: calc(21px * var(--s));
+  font-weight: 460;
+  letter-spacing: -0.015em;
+  color: var(--cl-ink);
+}
+@container (min-width: 1000px) {
+  .cl-page.has-recents .cl-rail {
+    display: flex;
+  }
+  .cl-page.has-recents .cl-home,
+  .cl-page.has-recents .cl-head,
+  .cl-page.has-recents .cl-chat,
+  .cl-page.has-recents .cl-status {
+    --cl-left: var(--cl-rail-w);
+  }
+  .cl-page.is-greeting.has-recents .cl-home-recents {
+    display: none;
+  }
 }
 
 /* ---- a conversation ---- */
 .cl-head {
   position: absolute;
   top: 0;
-  height: calc(48px * var(--cl-scale));
+  height: calc(50px * var(--s));
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5em;
-  padding: 0 calc(28px * var(--cl-scale));
-  font-size: calc(13px * var(--cl-scale));
+  padding: 0 calc(28px * var(--s));
+  font-size: calc(13.5px * var(--s));
   white-space: nowrap;
   opacity: 0;
   transition:
     opacity 0.4s ease,
-    left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
-    right 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+    left var(--cl-glide),
+    right var(--cl-glide);
 }
 .cl-page.is-chat .cl-head {
   opacity: 1;
@@ -216,12 +496,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
-  color: var(--cl-muted);
+  color: var(--cl-ink-2);
 }
 .cl-head-by {
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--cl-dim);
+  color: var(--cl-ink-3);
 }
 .cl-head-title:not(:empty) + .cl-head-by:not(:empty)::before {
   content: "·";
@@ -230,20 +510,20 @@
 
 .cl-chat {
   position: absolute;
-  top: calc(48px * var(--cl-scale));
+  top: calc(50px * var(--s));
   bottom: 0;
   opacity: 0;
   transition:
     opacity 0.45s ease,
     bottom 0.4s ease,
-    left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
-    right 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+    left var(--cl-glide),
+    right var(--cl-glide);
 }
 .cl-page.is-chat .cl-chat {
   opacity: 1;
 }
 .cl-page.has-status .cl-chat {
-  bottom: calc(40px * var(--cl-scale));
+  bottom: calc(44px * var(--s));
 }
 /* The reply is laid out whole before a word shows, and set in the middle of the
    page; a long one starts at the top and scrolls. */
@@ -253,54 +533,86 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: calc(18px * var(--cl-scale)) calc(56px * var(--cl-scale)) calc(40px * var(--cl-scale));
+  padding: calc(16px * var(--s)) calc(60px * var(--s)) calc(40px * var(--s));
 }
 .cl-stack {
   flex: none;
   margin: auto 0;
 }
 .cl-page.has-artifact .cl-scroll {
-  padding-inline: calc(36px * var(--cl-scale));
+  padding-inline: calc(40px * var(--s));
 }
 .cl-scroll.is-scrolled {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 calc(48px * var(--cl-scale)));
-  mask-image: linear-gradient(to bottom, transparent 0, #000 calc(48px * var(--cl-scale)));
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 calc(56px * var(--s)));
+  mask-image: linear-gradient(to bottom, transparent 0, #000 calc(56px * var(--s)));
 }
 .cl-col,
 .cl-tail {
-  max-width: calc(560px * var(--cl-scale));
+  max-width: calc(580px * var(--s));
   margin: 0 auto;
 }
+
+/* A reply in the thread; earlier ones settle smaller and paler as the next arrives. */
+.cl-turn + .cl-turn {
+  margin-top: calc(30px * var(--s));
+}
+.cl-stamp {
+  margin-bottom: calc(8px * var(--s));
+  font-size: calc(11.5px * var(--s));
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--cl-ink-3);
+}
+
 .cl-msg {
   font-family: var(--cl-serif);
-  font-size: calc(19px * var(--cl-scale));
-  line-height: 1.6;
+  font-size: calc(19px * var(--s));
+  font-weight: 400;
+  line-height: 1.62;
+  letter-spacing: -0.004em;
   color: var(--cl-ink);
   overflow-wrap: anywhere;
   transition:
-    color 0.4s ease,
-    font-size 0.4s ease;
+    color 0.45s ease,
+    font-size 0.45s ease;
 }
-/* A few words are set large; a page of them at reading size. */
+/* A few words are set large and light; a page of them at reading size. */
 .cl-msg.is-brief {
-  font-size: calc(28px * var(--cl-scale));
-  line-height: 1.45;
+  font-size: calc(31px * var(--s));
+  font-weight: 340;
+  line-height: 1.32;
+  letter-spacing: -0.018em;
 }
 .cl-msg.is-short {
-  font-size: calc(23px * var(--cl-scale));
-  line-height: 1.5;
+  font-size: calc(24px * var(--s));
+  font-weight: 370;
+  line-height: 1.48;
+  letter-spacing: -0.01em;
 }
 .cl-page.is-quiet .cl-msg {
-  font-size: calc(17px * var(--cl-scale));
-  color: var(--cl-muted);
+  font-size: calc(17px * var(--s));
+  color: var(--cl-ink-2);
 }
 .cl-page.is-quiet .cl-msg.is-brief {
-  font-size: calc(22px * var(--cl-scale));
+  font-size: calc(23px * var(--s));
+}
+.cl-turn.is-past .cl-msg {
+  font-size: calc(16px * var(--s));
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: 0;
+  color: var(--cl-ink-2);
+}
+.cl-turn.is-past .cl-h {
+  font-size: 1.3em;
 }
 
 .cl-blk {
-  margin: 0 0 0.8em;
+  margin: 0 0 0.75em;
   visibility: hidden;
+}
+.cl-blk:last-child {
+  margin-bottom: 0;
 }
 .cl-blk.is-on {
   visibility: visible;
@@ -313,49 +625,54 @@
   animation: cl-in 0.35s ease-out both;
 }
 strong.cl-u {
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* A short first line is the heading of the reply. */
 .cl-h {
-  margin-bottom: 0.45em;
-  font-size: 1.9em;
+  margin-bottom: 0.4em;
+  font-size: 1.85em;
+  font-weight: 340;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
 }
 .cl-msg.is-brief .cl-h {
-  font-size: 1.6em;
-  line-height: 1.35;
-  letter-spacing: -0.012em;
+  font-size: 1.5em;
 }
 .cl-h ruby rt,
 .cl-p ruby rt {
   font-family: var(--cl-sans);
-  font-size: 0.36em;
-  letter-spacing: 0.06em;
-  color: var(--cl-muted);
+  font-size: 0.34em;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  color: var(--cl-ink-3);
 }
 .cl-h ruby rt {
-  font-size: 0.3em;
+  font-size: 0.28em;
 }
 .cl-blk:not(.is-on) rt {
   visibility: hidden;
 }
 /* An aside is a quote. */
 .cl-q {
-  padding-left: 0.95em;
-  border-left: 2px solid var(--cl-line-strong);
-  font-size: 0.94em;
-  color: var(--cl-muted);
+  padding-left: 0.9em;
+  box-shadow: inset 2px 0 0 var(--cl-hair);
+  font-size: 0.92em;
+  color: var(--cl-ink-2);
 }
 /* A credit is a citation chip. */
 .cl-chip {
   display: inline-block;
-  padding: 0.38em 0.75em;
-  border-radius: calc(7px * var(--cl-scale));
+  padding: 0.3em 0.7em;
+  border-radius: calc(6px * var(--s));
   background: var(--cl-chip);
+  box-shadow: inset 0 0 0 0.5px var(--cl-hair-soft);
   font-family: var(--cl-sans);
-  font-size: max(calc(12px * var(--cl-scale)), 0.6em);
-  line-height: 1.2;
-  color: var(--cl-muted);
+  font-size: max(calc(12px * var(--s)), 0.55em);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: var(--cl-ink-2);
 }
 .cl-cite.is-on {
   animation: cl-rise 0.4s ease-out both;
@@ -372,50 +689,55 @@ strong.cl-u {
   margin-bottom: 1em;
 }
 .cl-stat-label {
-  margin-bottom: 0.15em;
+  margin-bottom: 0.2em;
   font-family: var(--cl-sans);
-  font-size: 0.68em;
-  color: var(--cl-muted);
+  font-size: max(calc(12.5px * var(--s)), 0.62em);
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--cl-ink-3);
 }
 .cl-stat-n {
   display: flex;
   align-items: baseline;
-  gap: 0.4em;
+  gap: 0.35em;
 }
 .cl-stat-num {
   font-family: var(--cl-serif);
-  font-size: 2.5em;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
+  font-size: 2.6em;
+  font-weight: 330;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   font-variant-numeric: lining-nums;
 }
 .cl-stat-unit {
   font-family: var(--cl-sans);
-  font-size: 0.8em;
-  color: var(--cl-muted);
+  font-size: 0.72em;
+  letter-spacing: 0;
+  color: var(--cl-ink-3);
 }
 .cl-delta {
   align-self: center;
-  padding: 0.2em 0.6em;
+  padding: 0.18em 0.55em;
   border-radius: 999px;
   font-family: var(--cl-sans);
-  font-size: 0.64em;
+  font-size: max(calc(12px * var(--s)), 0.58em);
   font-style: normal;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
-  color: var(--cl-muted);
+  letter-spacing: 0;
+  color: var(--cl-ink-2);
   background: var(--cl-chip);
 }
 .cl-delta.is-up {
   color: var(--cl-up);
-  background: color-mix(in srgb, var(--cl-up) 13%, transparent);
+  background: color-mix(in srgb, var(--cl-up) 12%, transparent);
 }
 .cl-delta.is-down {
   color: var(--cl-down);
-  background: color-mix(in srgb, var(--cl-down) 13%, transparent);
+  background: color-mix(in srgb, var(--cl-down) 12%, transparent);
 }
 .cl-stat.is-changed .cl-stat-num {
-  animation: cl-changed 1.1s ease-out;
+  animation: cl-changed 1.2s ease-out;
 }
 @keyframes cl-changed {
   from {
@@ -424,17 +746,18 @@ strong.cl-u {
 }
 
 .cl-meter {
-  max-width: calc(440px * var(--cl-scale));
+  max-width: calc(440px * var(--s));
   margin: 0.2em 0 1em;
 }
 .cl-meter-head {
   display: flex;
   justify-content: space-between;
   gap: 1em;
-  margin-bottom: 0.6em;
+  margin-bottom: 0.55em;
   font-family: var(--cl-sans);
-  font-size: 0.72em;
-  color: var(--cl-muted);
+  font-size: max(calc(13px * var(--s)), 0.66em);
+  letter-spacing: 0;
+  color: var(--cl-ink-2);
 }
 .cl-meter-pct {
   font-weight: 500;
@@ -442,9 +765,9 @@ strong.cl-u {
   color: var(--cl-ink);
 }
 .cl-meter-bar {
-  height: 0.32em;
+  height: calc(5px * var(--s));
   border-radius: 999px;
-  background: var(--cl-line);
+  background: var(--cl-hair-soft);
   overflow: hidden;
 }
 .cl-meter-bar i {
@@ -459,28 +782,32 @@ strong.cl-u {
 .cl-figure img {
   display: block;
   max-width: 100%;
-  max-height: calc(230px * var(--cl-scale));
-  border-radius: calc(12px * var(--cl-scale));
-  box-shadow: 0 0 0 1px var(--cl-line);
+  max-height: calc(240px * var(--s));
+  border-radius: calc(12px * var(--s));
+  box-shadow: 0 0 0 0.5px var(--cl-hair);
 }
 .cl-caption {
-  margin-top: 0.55em;
+  margin-top: 0.6em;
   font-family: var(--cl-sans);
-  font-size: max(calc(12.5px * var(--cl-scale)), 0.6em);
-  color: var(--cl-muted);
+  font-size: max(calc(12.5px * var(--s)), 0.6em);
+  letter-spacing: 0;
+  color: var(--cl-ink-3);
 }
 
 /* The tail: where the spark rests under the reply once it is written. */
+.cl-tail {
+  margin-top: calc(14px * var(--s));
+}
 .cl-anchor-tail {
-  width: calc(26px * var(--cl-scale));
-  height: calc(26px * var(--cl-scale));
+  width: calc(24px * var(--s));
+  height: calc(24px * var(--s));
 }
 /* The verb rides beside the spark while it thinks. */
 .cl-verb {
   position: absolute;
   left: 0;
   top: 0;
-  font-size: calc(15px * var(--cl-scale));
+  font-size: calc(15px * var(--s));
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
@@ -490,42 +817,43 @@ strong.cl-u {
   opacity: 1;
 }
 
-/* What plays, under a conversation: a status line. */
+/* What plays, under a conversation: a status line, the cover, the line in the serif. */
 .cl-status {
   position: absolute;
   bottom: 0;
-  height: calc(40px * var(--cl-scale));
+  height: calc(44px * var(--s));
   display: flex;
   align-items: center;
-  gap: 1.2em;
-  padding: 0 calc(22px * var(--cl-scale));
-  border-top: 1px solid var(--cl-line);
-  font-size: calc(12px * var(--cl-scale));
-  color: var(--cl-dim);
+  gap: calc(10px * var(--s));
+  padding: 0 calc(18px * var(--s));
+  box-shadow: inset 0 0.5px 0 var(--cl-hair);
   white-space: nowrap;
   opacity: 0;
   transform: translateY(100%);
   transition:
     opacity 0.4s ease,
     transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
-    left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
-    right 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+    left var(--cl-glide),
+    right var(--cl-glide);
 }
 .cl-page.has-status .cl-status {
   opacity: 1;
   transform: none;
+}
+.cl-status-art {
+  width: calc(22px * var(--s));
+  height: calc(22px * var(--s));
+  border-radius: calc(5px * var(--s));
+  font-size: calc(12px * var(--s));
 }
 .cl-status-line {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--cl-muted);
-}
-.cl-status-line::before {
-  content: "♪";
-  margin-right: 0.7em;
-  color: var(--cl-clay);
+  font-family: var(--cl-serif);
+  font-size: calc(14.5px * var(--s));
+  color: var(--cl-ink-2);
 }
 .cl-status-line.is-new {
   animation: cl-in 0.5s ease-out;
@@ -535,6 +863,8 @@ strong.cl-u {
   max-width: 40%;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: calc(12px * var(--s));
+  color: var(--cl-ink-3);
 }
 
 /* Something worth a glance: a clay edge that glows once round the page. */
@@ -545,7 +875,7 @@ strong.cl-u {
   pointer-events: none;
   box-shadow:
     inset 0 0 0 1.5px var(--cl-clay),
-    inset 0 0 36px color-mix(in srgb, var(--cl-clay) 22%, transparent);
+    inset 0 0 40px color-mix(in srgb, var(--cl-clay) 20%, transparent);
   opacity: 0;
 }
 .cl-ring.is-on {
@@ -560,123 +890,6 @@ strong.cl-u {
   }
 }
 
-/* ---- the day's conversations ---- */
-/* A reply in the thread: when it was said, small, over what was said. Earlier
-   replies settle smaller and paler as the next one arrives. */
-.cl-turn + .cl-turn {
-  margin-top: calc(28px * var(--cl-scale));
-}
-.cl-stamp {
-  margin-bottom: 0.55em;
-  font-size: calc(11.5px * var(--cl-scale));
-  letter-spacing: 0.02em;
-  color: var(--cl-dim);
-}
-.cl-turn.is-past .cl-msg {
-  font-size: calc(16px * var(--cl-scale));
-  line-height: 1.6;
-  color: var(--cl-muted);
-}
-.cl-turn.is-past .cl-h {
-  font-size: 1.3em;
-}
-
-/* Recents: under the greeting on an empty page, or down the rail of a wide one. */
-.cl-rail-label {
-  padding: 0 0.85em 0.6em;
-  font-size: calc(12px * var(--cl-scale));
-  font-weight: 500;
-  color: var(--cl-dim);
-}
-.cl-recents {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.cl-recent {
-  display: flex;
-  align-items: baseline;
-  gap: 0.8em;
-  padding: 0.5em 0.85em;
-  border-radius: calc(8px * var(--cl-scale));
-  font-size: calc(13.5px * var(--cl-scale));
-  color: var(--cl-muted);
-  transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
-}
-.cl-recent-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.cl-recent-ago {
-  flex: none;
-  font-size: calc(11.5px * var(--cl-scale));
-  color: var(--cl-dim);
-}
-.cl-recent.is-active {
-  background: var(--cl-chip);
-  color: var(--cl-ink);
-}
-/* The one being written turns the CLI's spinner. */
-.cl-recent.is-writing .cl-recent-name::before {
-  content: "✻";
-  display: inline-block;
-  width: 1.1em;
-  color: var(--cl-clay);
-  animation: cl-spinner 1.2s linear infinite;
-}
-@keyframes cl-spinner {
-  0% { content: "·"; }
-  16% { content: "✢"; }
-  33% { content: "✳"; }
-  50% { content: "✶"; }
-  66% { content: "✻"; }
-  83% { content: "✽"; }
-}
-
-.cl-home-recents {
-  display: none;
-  width: min(100%, calc(380px * var(--cl-scale)));
-  margin-top: calc(36px * var(--cl-scale));
-}
-.cl-page.is-greeting.has-recents .cl-home-recents {
-  display: block;
-  animation: cl-rise 0.5s ease-out both;
-}
-
-.cl-rail {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: var(--cl-rail-w);
-  box-sizing: border-box;
-  display: none;
-  flex-direction: column;
-  padding: calc(18px * var(--cl-scale)) calc(10px * var(--cl-scale));
-  background: var(--cl-sunk);
-  box-shadow: inset -1px 0 0 var(--cl-line);
-}
-/* A page wide enough keeps the Recents in a rail, as Claude's sidebar. */
-@container (min-width: 1000px) {
-  .cl-rail {
-    display: flex;
-  }
-  .cl-home,
-  .cl-head,
-  .cl-chat,
-  .cl-status {
-    --cl-left: var(--cl-rail-w);
-  }
-  .cl-page.is-greeting.has-recents .cl-home-recents {
-    display: none;
-  }
-}
-
 /* ---- an artifact, open beside the conversation ---- */
 .cl-pane {
   position: absolute;
@@ -685,11 +898,11 @@ strong.cl-u {
   bottom: 0;
   width: var(--cl-pane-w);
   box-sizing: border-box;
-  padding: calc(12px * var(--cl-scale)) calc(12px * var(--cl-scale)) calc(12px * var(--cl-scale)) 0;
+  padding: calc(10px * var(--s)) calc(10px * var(--s)) calc(10px * var(--s)) 0;
   opacity: 0;
   transform: translateX(104%);
   transition:
-    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform var(--cl-glide),
     opacity 0.4s ease;
 }
 .cl-page.has-artifact .cl-pane {
@@ -701,11 +914,9 @@ strong.cl-u {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  border-radius: calc(12px * var(--cl-scale));
+  border-radius: calc(14px * var(--s));
   background: var(--cl-raised);
-  box-shadow:
-    0 0 0 1px var(--cl-line-strong),
-    0 8px 28px -14px rgb(0 0 0 / 0.22);
+  box-shadow: var(--cl-lift);
 }
 .cl-art.is-entering .cl-art-body {
   animation: cl-rise 0.5s ease-out both;
@@ -713,19 +924,19 @@ strong.cl-u {
 .cl-art-head {
   display: flex;
   align-items: center;
-  gap: calc(10px * var(--cl-scale));
-  padding: calc(12px * var(--cl-scale)) calc(14px * var(--cl-scale));
-  box-shadow: inset 0 -1px 0 var(--cl-line);
+  gap: calc(10px * var(--s));
+  padding: calc(12px * var(--s)) calc(14px * var(--s));
+  box-shadow: inset 0 -0.5px 0 var(--cl-hair);
 }
 .cl-art-icon {
   flex: none;
   display: grid;
   place-items: center;
-  width: calc(30px * var(--cl-scale));
-  height: calc(30px * var(--cl-scale));
-  border-radius: calc(8px * var(--cl-scale));
+  width: calc(30px * var(--s));
+  height: calc(30px * var(--s));
+  border-radius: calc(8px * var(--s));
   background: var(--cl-chip);
-  color: var(--cl-muted);
+  color: var(--cl-ink-2);
 }
 .cl-art-icon svg {
   width: 55%;
@@ -738,15 +949,16 @@ strong.cl-u {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: calc(14px * var(--cl-scale));
+  font-size: calc(14px * var(--s));
   font-weight: 500;
   color: var(--cl-ink);
 }
 .cl-art-meta {
   display: flex;
   gap: 0.5em;
-  font-size: calc(12px * var(--cl-scale));
-  color: var(--cl-dim);
+  margin-top: calc(1px * var(--s));
+  font-size: calc(12px * var(--s));
+  color: var(--cl-ink-3);
   white-space: nowrap;
 }
 .cl-art-version::after {
@@ -757,7 +969,7 @@ strong.cl-u {
   transition: color 0.4s ease;
 }
 .cl-art.is-fresh .cl-art-when {
-  color: var(--cl-clay);
+  color: var(--cl-clay-ink);
 }
 .cl-art-body {
   flex: 1;
@@ -766,11 +978,13 @@ strong.cl-u {
   justify-content: center;
   min-height: 0;
   overflow: hidden;
-  padding: calc(18px * var(--cl-scale)) calc(22px * var(--cl-scale));
+  padding: calc(20px * var(--s)) calc(24px * var(--s));
 }
 .cl-art .cl-msg,
 .cl-art .cl-msg.is-brief,
 .cl-art .cl-msg.is-short {
-  font-size: calc(18px * var(--cl-scale));
+  font-size: calc(18px * var(--s));
+  font-weight: 400;
   line-height: 1.55;
+  letter-spacing: -0.004em;
 }
