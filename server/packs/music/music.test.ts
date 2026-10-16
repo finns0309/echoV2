@@ -4,6 +4,7 @@ import type { PackContext } from '@server/stage/pack-api'
 import { computeBreaks } from './breaks'
 import { MUSIC_CONTENT_ID, toContent, type NowPlaying } from './model'
 import { createMusicPack } from './pack'
+import { coverUrl } from './present'
 import { createOnsetDetector } from './signals'
 
 const now = (over: Partial<NowPlaying> = {}): NowPlaying => ({
@@ -127,5 +128,19 @@ describe('music pack', () => {
     await h.step()
     h.pack.stop()
     expect(h.removals).toEqual([MUSIC_CONTENT_ID, MUSIC_CONTENT_ID]) // stale cleanup at start, then gone
+  })
+})
+
+describe('the cover', () => {
+  it('is asked for over https, at 500 px from NetEase’s CDN', () => {
+    expect(coverUrl('http://p3.music.126.net/abc==/1.jpg')).toBe('https://p3.music.126.net/abc==/1.jpg?param=500y500')
+    expect(coverUrl('https://p1.music.126.net/x/2.jpg?param=500y500')).toBe('https://p1.music.126.net/x/2.jpg?param=500y500')
+    expect(coverUrl('http://example.com/c.png')).toBe('https://example.com/c.png')
+    expect(coverUrl('data:image/png;base64,AAAA')).toBe('data:image/png;base64,AAAA')
+  })
+
+  it('reaches the presentation in that form', () => {
+    const c = toContent(now({ cover: 'http://p3.music.126.net/abc==/1.jpg' }), [], null, 0)
+    expect(c.presentation.context.art).toBe('https://p3.music.126.net/abc==/1.jpg?param=500y500')
   })
 })

@@ -240,11 +240,14 @@ export function createPage(root: HTMLElement): Page {
       played = key
       page.classList.toggle('has-playing', !!what)
       if (!what) return
+      // A cover that won't load (gone, or a host the screen may not reach) leaves the note, not a broken picture.
+      const note = () => el('span', 'cl-playing-note', '♪')
       const art = () => {
-        if (!what.art) return el('span', 'cl-playing-note', '♪')
+        if (!what.art) return note()
         const img = el('img', '')
-        img.src = what.art
         img.alt = ''
+        img.addEventListener('error', () => img.replaceWith(note()), { once: true })
+        img.src = what.art
         return img
       }
       cardArt.replaceChildren(art())

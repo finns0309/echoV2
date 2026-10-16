@@ -12,8 +12,24 @@ function toBlock(line: LyricLine): Block {
   return block
 }
 
+/** NetEase's picture CDN serves the http links muse hands out over https too, and resizes on request. */
+const NETEASE_PICTURE = /^https?:\/\/p\d+\.music\.126\.net\//
+const COVER_PX = 500
+
+/**
+ * The cover as a screen can load it. Screens take pictures over https only
+ * (their CSP), so an http link is asked for over https; from NetEase's CDN a
+ * 500 px picture is asked for rather than the full scan, unless the link
+ * already says what it wants.
+ */
+export function coverUrl(raw: string): string {
+  const url = raw.replace(/^http:\/\//i, 'https://')
+  return NETEASE_PICTURE.test(url) && !url.includes('?') ? `${url}?param=${COVER_PX}y${COVER_PX}` : url
+}
+
 export function present(now: NowPlaying, lines: readonly LyricLine[], cover: string | null): Presentation {
-  const art = now.cover || cover || undefined
+  const raw = now.cover || cover
+  const art = raw ? coverUrl(raw) : undefined
   return {
     context: {
       title: now.title,
