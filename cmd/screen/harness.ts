@@ -158,16 +158,21 @@ function publish(fresh: boolean, clear = false): void {
   const onAir: OnAir = { contentId: `sample:${state.sample}`, since, salience: state.salience, presentation: SAMPLES[state.sample]!() }
   // A page of slots: the sample leads, the morning fills the rest, and anything that
   // plays along with media gets a song that keeps going round.
+  // As the scheduler would: the sample goes to the first slot that takes its timeline.
   const slots: Record<string, OnAir | null> = {}
-  let n = 0
+  let morning = 0
+  let placed = false
   for (const [name, spec] of Object.entries(manifests[state.theme]?.slots ?? { main: null })) {
     if (spec && !spec.timelines.some((k) => k !== 'media')) {
       if (Date.now() - playedFrom > 30_000) playedFrom = Date.now()
       slots[name] = state.playing ? { contentId: 'sample:verse', since: playedFrom, presentation: playing() } : null
     } else if (cleared) slots[name] = null
-    else if (n++ === 0) slots[name] = onAir
+    else if (!placed && (!spec || spec.timelines.includes(onAir.presentation.timeline.kind))) {
+      slots[name] = onAir
+      placed = true
+    } else if (spec && !spec.timelines.includes('self')) slots[name] = null
     else {
-      const i = (turn + n - 2) % MORNING.length
+      const i = (turn + morning++) % MORNING.length
       slots[name] = { contentId: `morning:${i}`, since, salience: 'normal', presentation: MORNING[i]! }
     }
   }

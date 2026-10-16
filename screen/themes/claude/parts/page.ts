@@ -1,8 +1,9 @@
 // The page: an ivory sheet with nothing on it but words and the spark. At home
 // it is Claude's empty page, the spark beside a serif greeting (or the line of
-// what plays). In a conversation the reply is set in the middle of the page and
-// written in, the spark moving along with the words like a pen; what plays
-// drops to a status line at the foot. There is one spark, and it glides.
+// what plays) and today's conversations under it. In a conversation the newest
+// reply is written below the earlier ones, the spark moving along with the
+// words like a pen. An artifact opens beside the conversation; on a wide page
+// the Recents stand in a rail down the left. There is one spark, and it glides.
 import { detectLang, setLang } from '@screen/primitives/text'
 import { createSpark, type Spark, type Spot } from './spark'
 import { unitsOf, writtenBy, type Unit } from './stream'
@@ -21,8 +22,14 @@ const GLIDE = 7
 const GLIDE_LINE = 45
 /** A home line fades this long before the next is written. */
 const LINE_CLEAR_MS = 380
-/** While writing, the page scrolls to keep the pen this far down the column. */
+/** A new reply is brought up to this far down the page, the earlier ones above it. */
+const REPLY_TOP = 0.26
+/** While writing, the page scrolls to keep the pen at least this far up it. */
 const PEN_KEEP = 0.62
+/** Conversations listed under the greeting (the rail lists them all). */
+const HOME_RECENTS = 4
+/** Replies shown in a conversation, the newest last. */
+const KEEP_TURNS = 5
 
 /** A line on the home page, written in, and faded out when the next one comes. */
 interface HomeLine {
@@ -34,18 +41,37 @@ interface HomeLine {
   shown: number
 }
 
+/** A conversation as the Recents show it. */
+export interface Recent {
+  key: string
+  name: string
+  ago: string
+  active: boolean
+  /** The spark is writing in it now. */
+  writing: boolean
+}
+
 export type Place = 'home' | 'chat'
 
 export interface Page {
   readonly spark: Spark
-  /** The column a reply is set in. */
-  readonly column: HTMLElement
+  /** Where an artifact is drawn. */
+  readonly pane: HTMLElement
   place(next: Place): void
   header(title: string, byline: string): void
-  /** The big line at home; `key` decides whether it is new. */
-  homeLine(key: string, text: string, now: number): void
+  /**
+   * A reply in the conversation. With `past`, the conversation is new to the
+   * page and those are its earlier replies; without, it carries on and the
+   * replies already there settle into the past where they stand.
+   */
+  converse(reply: HTMLElement, past?: readonly HTMLElement[]): void
+  /** The big line at home; `key` decides whether it is new. `greeting`: the page is empty, so the Recents show under it. */
+  homeLine(key: string, text: string, now: number, greeting: boolean): void
   /** The small line under it; `shimmer` for a verb that is still going. */
   homeSub(text: string, shimmer: boolean): void
+  recents(list: readonly Recent[]): void
+  /** An artifact open beside the conversation, or not. */
+  artifact(open: boolean): void
   /** The verb beside the spark while it thinks (empty: none). */
   verb(text: string): void
   /** What plays, at the foot of a conversation (null: nothing). */
@@ -61,8 +87,20 @@ export interface Page {
   remove(): void
 }
 
+function recentRow(r: Recent): HTMLElement {
+  const li = el('li', `cl-recent${r.active ? ' is-active' : ''}${r.writing ? ' is-writing' : ''}`)
+  const name = el('span', 'cl-recent-name', r.name)
+  setLang(name, detectLang(r.name))
+  li.append(name, el('span', 'cl-recent-ago', r.ago))
+  return li
+}
+
 export function createPage(root: HTMLElement): Page {
   const page = el('div', 'cl-page')
+
+  const rail = el('nav', 'cl-rail')
+  const railList = el('ol', 'cl-recents')
+  rail.append(el('div', 'cl-rail-label', 'Recents'), railList)
 
   const head = el('header', 'cl-head')
   const headTitle = el('span', 'cl-head-title')
@@ -75,7 +113,10 @@ export function createPage(root: HTMLElement): Page {
   const lines = el('div', 'cl-lines')
   hello.append(homeAnchor, lines)
   const sub = el('div', 'cl-sub')
-  home.append(hello, sub)
+  const homeRecents = el('div', 'cl-home-recents')
+  const homeList = el('ol', 'cl-recents')
+  homeRecents.append(el('div', 'cl-rail-label', 'Recents'), homeList)
+  home.append(hello, sub, homeRecents)
 
   const chat = el('section', 'cl-chat')
   const scroller = el('div', 'cl-scroll')
@@ -88,6 +129,8 @@ export function createPage(root: HTMLElement): Page {
   scroller.append(stack)
   chat.append(scroller)
 
+  const pane = el('aside', 'cl-pane')
+
   const foot = el('footer', 'cl-status')
   const footLine = el('span', 'cl-status-line')
   const footAbout = el('span', 'cl-status-about')
@@ -96,11 +139,13 @@ export function createPage(root: HTMLElement): Page {
   const verbEl = el('span', 'cl-verb cl-shimmer')
   const ring = el('div', 'cl-ring')
   const spark = createSpark('cl-spark')
-  page.append(head, home, chat, foot, ring, verbEl, spark.el)
+  page.append(rail, head, home, chat, pane, foot, ring, verbEl, spark.el)
   root.append(page)
 
   let where: Place = 'home'
   let current: HomeLine | null = null
+  let reply: HTMLElement | null = null
+  let listed = ''
   const pos = { x: 0, y: 0, s: 0, placed: false }
   let scrollY = 0
 
@@ -111,12 +156,11 @@ export function createPage(root: HTMLElement): Page {
 
   return {
     spark,
-    column,
+    pane,
 
     place(next) {
       where = next
       page.classList.toggle('is-chat', next === 'chat')
-      if (next === 'chat') scrollY = scroller.scrollTop = 0
     },
 
     header(title, byline) {
@@ -125,7 +169,20 @@ export function createPage(root: HTMLElement): Page {
       setLang(head, detectLang(title + byline))
     },
 
-    homeLine(key, text, now) {
+    converse(next, past) {
+      reply = next
+      if (past) {
+        column.replaceChildren(...past, next)
+        scrollY = scroller.scrollTop = 0
+        return
+      }
+      for (const turn of column.children) turn.classList.add('is-past')
+      column.append(next)
+      while (column.children.length > KEEP_TURNS) column.firstElementChild!.remove()
+    },
+
+    homeLine(key, text, now, greeting) {
+      page.classList.toggle('is-greeting', greeting)
       if (current?.key === key) return
       // The old line clears before the new one is written over it.
       const wait = current ? LINE_CLEAR_MS : 0
@@ -147,6 +204,19 @@ export function createPage(root: HTMLElement): Page {
       if (sub.textContent !== text) sub.textContent = text
       sub.classList.toggle('cl-shimmer', shimmer)
       setLang(sub, detectLang(text))
+    },
+
+    recents(list) {
+      const key = JSON.stringify(list)
+      if (key === listed) return
+      listed = key
+      railList.replaceChildren(...list.map(recentRow))
+      homeList.replaceChildren(...list.slice(0, HOME_RECENTS).map(recentRow))
+      page.classList.toggle('has-recents', list.length > 0)
+    },
+
+    artifact(open) {
+      page.classList.toggle('has-artifact', open)
     },
 
     verb(text) {
@@ -187,11 +257,13 @@ export function createPage(root: HTMLElement): Page {
       const p = page.getBoundingClientRect()
       const at = where === 'chat' ? (pen ?? spotOf(tailAnchor)) : spotOf(homeAnchor)
 
-      // A reply longer than the page scrolls up under a fade, keeping the pen in view.
+      // The newest reply is brought up the page, the earlier ones above it fading
+      // under the top edge; a long one scrolls on to keep the pen in view.
       const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
-      if (where === 'chat' && max > 0) {
+      if (where === 'chat' && max > 0 && reply) {
         const s = scroller.getBoundingClientRect()
-        const want = pen ? at.y - s.top + scroller.scrollTop - scroller.clientHeight * PEN_KEEP : max
+        const top = reply.getBoundingClientRect().top - s.top + scroller.scrollTop
+        const want = Math.max(top - scroller.clientHeight * REPLY_TOP, at.y - s.top + scroller.scrollTop - scroller.clientHeight * PEN_KEEP)
         scrollY += (Math.max(0, Math.min(max, want)) - scrollY) * (1 - Math.exp(-dt * 4))
         if (Math.abs(scroller.scrollTop - scrollY) >= 0.5) scroller.scrollTop = scrollY
       }
@@ -211,7 +283,7 @@ export function createPage(root: HTMLElement): Page {
       }
       spark.el.style.transform = `translate(${(pos.x - SPARK_PX / 2).toFixed(2)}px, ${(pos.y - SPARK_PX / 2).toFixed(2)}px) scale(${pos.s.toFixed(4)})`
       // The verb sits just after the spark, on its line.
-      verbEl.style.transform = `translate(${(pos.x + (pos.s * SPARK_PX) * 0.85).toFixed(2)}px, ${pos.y.toFixed(2)}px) translateY(-50%)`
+      verbEl.style.transform = `translate(${(pos.x + pos.s * SPARK_PX * 0.85).toFixed(2)}px, ${pos.y.toFixed(2)}px) translateY(-50%)`
       spark.step(dt)
     },
 

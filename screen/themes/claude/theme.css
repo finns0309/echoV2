@@ -9,6 +9,8 @@
   --cl-line: rgb(31 30 29 / 0.09);
   --cl-line-strong: rgb(31 30 29 / 0.15);
   --cl-chip: #f0eee6;
+  --cl-raised: #ffffff;
+  --cl-sunk: #f4f3ee;
   --cl-clay: #d97757;
   --cl-up: #5e7a3e;
   --cl-down: #bf4d43;
@@ -29,6 +31,8 @@
     --cl-line: rgb(250 249 245 / 0.08);
     --cl-line-strong: rgb(250 249 245 / 0.13);
     --cl-chip: #30302e;
+    --cl-raised: #30302e;
+    --cl-sunk: #1f1e1d;
     --cl-up: #a3bb84;
     --cl-down: #e58a7e;
   }
@@ -43,13 +47,29 @@
   --cl-sans: -apple-system, "PingFang SC", sans-serif;
 }
 
+/* The conversation fills what the rail (on a wide page) and an open artifact leave. */
 .cl-page {
+  --cl-rail-w: calc(212px * var(--cl-scale));
+  --cl-pane-w: min(44%, calc(360px * var(--cl-scale)));
+  --cl-left: 0px;
+  --cl-right: 0px;
   position: absolute;
   inset: 0;
   overflow: hidden;
+  container-type: inline-size;
   border-radius: 12px;
   background: var(--cl-paper);
   box-shadow: inset 0 0 0 1px var(--cl-line-strong);
+}
+.cl-page.has-artifact {
+  --cl-right: var(--cl-pane-w);
+}
+.cl-home,
+.cl-head,
+.cl-chat,
+.cl-status {
+  left: var(--cl-left);
+  right: var(--cl-right);
 }
 
 /* ---- the spark: drawn once, glides between places ---- */
@@ -104,7 +124,8 @@
 /* ---- home: the empty page ---- */
 .cl-home {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -112,7 +133,9 @@
   padding: 0 calc(52px * var(--cl-scale)) calc(30px * var(--cl-scale));
   transition:
     opacity 0.5s ease,
-    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+    left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    right 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .cl-page.is-chat .cl-home {
   opacity: 0;
@@ -172,8 +195,6 @@
 .cl-head {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
   height: calc(48px * var(--cl-scale));
   display: flex;
   align-items: center;
@@ -183,7 +204,10 @@
   font-size: calc(13px * var(--cl-scale));
   white-space: nowrap;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition:
+    opacity 0.4s ease,
+    left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    right 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .cl-page.is-chat .cl-head {
   opacity: 1;
@@ -207,13 +231,13 @@
 .cl-chat {
   position: absolute;
   top: calc(48px * var(--cl-scale));
-  left: 0;
-  right: 0;
   bottom: 0;
   opacity: 0;
   transition:
     opacity 0.45s ease,
-    bottom 0.4s ease;
+    bottom 0.4s ease,
+    left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    right 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .cl-page.is-chat .cl-chat {
   opacity: 1;
@@ -234,6 +258,9 @@
 .cl-stack {
   flex: none;
   margin: auto 0;
+}
+.cl-page.has-artifact .cl-scroll {
+  padding-inline: calc(36px * var(--cl-scale));
 }
 .cl-scroll.is-scrolled {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 calc(48px * var(--cl-scale)));
@@ -466,8 +493,6 @@ strong.cl-u {
 /* What plays, under a conversation: a status line. */
 .cl-status {
   position: absolute;
-  left: 0;
-  right: 0;
   bottom: 0;
   height: calc(40px * var(--cl-scale));
   display: flex;
@@ -482,7 +507,9 @@ strong.cl-u {
   transform: translateY(100%);
   transition:
     opacity 0.4s ease,
-    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    left 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    right 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .cl-page.has-status .cl-status {
   opacity: 1;
@@ -531,4 +558,219 @@ strong.cl-u {
   to {
     opacity: 0;
   }
+}
+
+/* ---- the day's conversations ---- */
+/* A reply in the thread: when it was said, small, over what was said. Earlier
+   replies settle smaller and paler as the next one arrives. */
+.cl-turn + .cl-turn {
+  margin-top: calc(28px * var(--cl-scale));
+}
+.cl-stamp {
+  margin-bottom: 0.55em;
+  font-size: calc(11.5px * var(--cl-scale));
+  letter-spacing: 0.02em;
+  color: var(--cl-dim);
+}
+.cl-turn.is-past .cl-msg {
+  font-size: calc(16px * var(--cl-scale));
+  line-height: 1.6;
+  color: var(--cl-muted);
+}
+.cl-turn.is-past .cl-h {
+  font-size: 1.3em;
+}
+
+/* Recents: under the greeting on an empty page, or down the rail of a wide one. */
+.cl-rail-label {
+  padding: 0 0.85em 0.6em;
+  font-size: calc(12px * var(--cl-scale));
+  font-weight: 500;
+  color: var(--cl-dim);
+}
+.cl-recents {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cl-recent {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+  padding: 0.5em 0.85em;
+  border-radius: calc(8px * var(--cl-scale));
+  font-size: calc(13.5px * var(--cl-scale));
+  color: var(--cl-muted);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+.cl-recent-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cl-recent-ago {
+  flex: none;
+  font-size: calc(11.5px * var(--cl-scale));
+  color: var(--cl-dim);
+}
+.cl-recent.is-active {
+  background: var(--cl-chip);
+  color: var(--cl-ink);
+}
+/* The one being written turns the CLI's spinner. */
+.cl-recent.is-writing .cl-recent-name::before {
+  content: "✻";
+  display: inline-block;
+  width: 1.1em;
+  color: var(--cl-clay);
+  animation: cl-spinner 1.2s linear infinite;
+}
+@keyframes cl-spinner {
+  0% { content: "·"; }
+  16% { content: "✢"; }
+  33% { content: "✳"; }
+  50% { content: "✶"; }
+  66% { content: "✻"; }
+  83% { content: "✽"; }
+}
+
+.cl-home-recents {
+  display: none;
+  width: min(100%, calc(380px * var(--cl-scale)));
+  margin-top: calc(36px * var(--cl-scale));
+}
+.cl-page.is-greeting.has-recents .cl-home-recents {
+  display: block;
+  animation: cl-rise 0.5s ease-out both;
+}
+
+.cl-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--cl-rail-w);
+  box-sizing: border-box;
+  display: none;
+  flex-direction: column;
+  padding: calc(18px * var(--cl-scale)) calc(10px * var(--cl-scale));
+  background: var(--cl-sunk);
+  box-shadow: inset -1px 0 0 var(--cl-line);
+}
+/* A page wide enough keeps the Recents in a rail, as Claude's sidebar. */
+@container (min-width: 1000px) {
+  .cl-rail {
+    display: flex;
+  }
+  .cl-home,
+  .cl-head,
+  .cl-chat,
+  .cl-status {
+    --cl-left: var(--cl-rail-w);
+  }
+  .cl-page.is-greeting.has-recents .cl-home-recents {
+    display: none;
+  }
+}
+
+/* ---- an artifact, open beside the conversation ---- */
+.cl-pane {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--cl-pane-w);
+  box-sizing: border-box;
+  padding: calc(12px * var(--cl-scale)) calc(12px * var(--cl-scale)) calc(12px * var(--cl-scale)) 0;
+  opacity: 0;
+  transform: translateX(104%);
+  transition:
+    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.4s ease;
+}
+.cl-page.has-artifact .cl-pane {
+  opacity: 1;
+  transform: none;
+}
+.cl-art {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  border-radius: calc(12px * var(--cl-scale));
+  background: var(--cl-raised);
+  box-shadow:
+    0 0 0 1px var(--cl-line-strong),
+    0 8px 28px -14px rgb(0 0 0 / 0.22);
+}
+.cl-art.is-entering .cl-art-body {
+  animation: cl-rise 0.5s ease-out both;
+}
+.cl-art-head {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--cl-scale));
+  padding: calc(12px * var(--cl-scale)) calc(14px * var(--cl-scale));
+  box-shadow: inset 0 -1px 0 var(--cl-line);
+}
+.cl-art-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(30px * var(--cl-scale));
+  height: calc(30px * var(--cl-scale));
+  border-radius: calc(8px * var(--cl-scale));
+  background: var(--cl-chip);
+  color: var(--cl-muted);
+}
+.cl-art-icon svg {
+  width: 55%;
+  height: 55%;
+}
+.cl-art-names {
+  min-width: 0;
+}
+.cl-art-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(14px * var(--cl-scale));
+  font-weight: 500;
+  color: var(--cl-ink);
+}
+.cl-art-meta {
+  display: flex;
+  gap: 0.5em;
+  font-size: calc(12px * var(--cl-scale));
+  color: var(--cl-dim);
+  white-space: nowrap;
+}
+.cl-art-version::after {
+  content: "·";
+  margin-left: 0.5em;
+}
+.cl-art-when {
+  transition: color 0.4s ease;
+}
+.cl-art.is-fresh .cl-art-when {
+  color: var(--cl-clay);
+}
+.cl-art-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+  padding: calc(18px * var(--cl-scale)) calc(22px * var(--cl-scale));
+}
+.cl-art .cl-msg,
+.cl-art .cl-msg.is-brief,
+.cl-art .cl-msg.is-short {
+  font-size: calc(18px * var(--cl-scale));
+  line-height: 1.55;
 }

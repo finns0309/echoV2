@@ -1,6 +1,6 @@
 # Claude
 
-An ivory page with a clay spark on it, in Claude's own look: warm paper, a serif voice, and the spark that turns while it thinks. The page draws no app around it: no input box, no buttons, no sidebar. There are only words, and the one spark that writes them.
+An ivory page with a clay spark on it, in Claude's own look and in Claude's own shape. What arrives is a reply in one of the day's conversations, and what stays and changes is an artifact open beside them. The page draws nothing to press: no input box, no buttons. There are only words, the conversations they belong to, and the one spark that writes them.
 
 New in echoV2, not ported. MuseV2's `claude` theme is the reference for the palette and the spinner.
 
@@ -29,11 +29,26 @@ Eleven rays round a hub, uneven in length and spacing, as if cut by hand (`parts
 
 ## What it shows
 
-Two slots: `card` (anything that arrives) and `media` (whatever plays, on a media timeline).
+Three slots, told apart by timeline, as the scheduler places content:
 
-**Nothing on air.** Claude's empty page: the spark beside a serif greeting by the hour (Good morning, Coffee and Claude time?, Happy Friday, Good evening, Hello, night owl), written in as Claude streams.
+| Slot | Timelines | Becomes |
+|---|---|---|
+| `chat` | self, wall | a reply in a conversation |
+| `artifact` | none (a status that stays until removed or changed) | an artifact open beside the conversation |
+| `media` | media | what plays |
 
-**A card.** It is a reply. The conversation's title is the card's title, with the byline (and a speaker who isn't Claude) beside it. Then:
+So a status and a message can be on the page at once, as a conversation goes on beside an open artifact.
+
+**Nothing on air.** Claude's empty page: the spark beside a serif greeting by the hour (Good morning, Coffee and Claude time?, Happy Friday, Good evening, Hello, night owl), written in as Claude streams, and under it the Recents: today's conversations, newest first, with how long ago each was last said.
+
+**Conversations.** Every card belongs to the conversation of its topic: its title, else who said it. An untitled card from no one is a conversation of its own, named by how it starts, as Claude names a new chat (`parts/thread.ts`, tested). The page keeps them for as long as it is on screen, like a chat that was never saved: a restart or another theme starts the day afresh.
+
+- The next card in the conversation on the page is written under the last one, which settles smaller and paler where it stands, its time above it. Up to five replies show; the page brings the newest up to about a quarter of the way down, the earlier ones fading under the top edge.
+- A card from another conversation turns the page to that one: its last few replies already written, the new one written in under them.
+- A card in rotation (said again with the same id) moves down to be the newest rather than repeating.
+- On a page 1000 px wide or more, the Recents stand in a rail down the left, as Claude's sidebar does, the conversation on the page highlighted, the one being written turning the CLI's spinner (`· ✢ ✳ ✶ ✻ ✽`).
+
+**A card.** It is a reply. The header carries the card's title, with the byline (and a speaker who isn't Claude) beside it. Then:
 
 1. The spark moves to where the reply starts and thinks for a moment (1.4 s), a verb from Claude Code's spinner beside it with a clay glint sweeping across: *Pondering…*, *Noodling…*, *Clauding…*. The same card always thinks with the same verb.
 2. It writes. The reply is laid out whole before a word shows and set in the middle of the page, so nothing moves while it is written. Words arrive a CJK character or a latin word at a time, each block no earlier than its `at`, and each after the one above it. The spark goes along with them like a pen: just after the last word, keeping up along a line and gliding back at each new one.
@@ -53,6 +68,8 @@ How the blocks are set (`parts/message.ts`):
 
 A reply of a few words is set large, a longer one smaller, a page of them at reading size. One taller than the page scrolls under a fade at the top, keeping the pen in view.
 
+**An artifact.** A status (`none` timeline: a figure, a bar, a few lines) opens in a pane that slides in from the right, as Claude opens an artifact, and the conversation, or the empty page, makes room for it. A card on a raised sheet: a document icon, the title, the byline, a version, and when it last changed. Each change to it is the next version (v1, v2, v3…), the change time glints clay for a moment, a figure that moved flashes and a bar slides to its new length. When the status is taken down the pane closes. (`parts/artifact.ts`)
+
 **What plays.** With no card on, its line takes the greeting's place, in the same large serif, each line written in as the last fades up and away. The title and byline sit under it. In a break (before the first line, an intro, a long interlude) the title stands there instead and a listening verb glints under it (*Humming…*, *Vibing…*). Under a reply it drops to a status line at the foot of the page: ♪ and the line on the left, the title on the right.
 
 ## Salience
@@ -62,10 +79,12 @@ A reply of a few words is set large, a longer one smaller, a page of them at rea
 
 ## Files
 
-- `manifest.ts`: the two slots, the `device` profile, the energy and onset signals.
+- `manifest.ts`: the three slots, the `device` profile, the energy and onset signals.
 - `parts/spark.ts`: the spark's shape (pure, tested) and how it moves.
 - `parts/stream.ts`: when each word is written (pure, tested).
 - `parts/message.ts`: a card as a reply, and where the pen is.
-- `parts/page.ts`: the page, the home line, the status line, and the spark's glide.
+- `parts/thread.ts`: the day's conversations and the Recents (pure, tested).
+- `parts/artifact.ts`: the artifact pane, and its versions.
+- `parts/page.ts`: the page, its rail and pane, the thread, the home line, the status line, and the spark's glide.
 - `parts/words.ts`: the greeting and the verbs (pure, tested).
-- `theme.ts`: slots, signals, and which place the page is in each frame.
+- `theme.ts`: slots, signals, which conversation is on the page, and which place the page is in each frame.
