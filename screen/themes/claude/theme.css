@@ -1,0 +1,534 @@
+/* Claude · warm ivory, clay, a serif voice, and the spark.
+   Light or dark with the system, as Claude is. Sizes grow with the window (--cl-scale). */
+.cl {
+  --cl-scale: 1;
+  --cl-paper: #faf9f5;
+  --cl-ink: rgb(20 20 19 / 0.92);
+  --cl-muted: rgb(31 30 29 / 0.6);
+  --cl-dim: rgb(31 30 29 / 0.38);
+  --cl-line: rgb(31 30 29 / 0.09);
+  --cl-line-strong: rgb(31 30 29 / 0.15);
+  --cl-chip: #f0eee6;
+  --cl-clay: #d97757;
+  --cl-up: #5e7a3e;
+  --cl-down: #bf4d43;
+  --cl-serif: Charter, "Iowan Old Style", Georgia, "Hiragino Mincho ProN", serif;
+  --cl-sans: -apple-system, "SF Pro Text", "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
+
+  position: absolute;
+  inset: 0;
+  font-family: var(--cl-sans);
+  color: var(--cl-ink);
+}
+@media (prefers-color-scheme: dark) {
+  .cl {
+    --cl-paper: #262624;
+    --cl-ink: rgb(250 249 245 / 0.93);
+    --cl-muted: rgb(250 249 245 / 0.6);
+    --cl-dim: rgb(250 249 245 / 0.36);
+    --cl-line: rgb(250 249 245 / 0.08);
+    --cl-line-strong: rgb(250 249 245 / 0.13);
+    --cl-chip: #30302e;
+    --cl-up: #a3bb84;
+    --cl-down: #e58a7e;
+  }
+}
+/* Latin in Charter; Han and kana in the serif of their own language. */
+.cl [lang|="ja"] {
+  --cl-serif: Charter, "Hiragino Mincho ProN", serif;
+  --cl-sans: -apple-system, "Hiragino Sans", sans-serif;
+}
+.cl [lang|="zh"] {
+  --cl-serif: Charter, "Songti SC", serif;
+  --cl-sans: -apple-system, "PingFang SC", sans-serif;
+}
+
+.cl-page {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--cl-paper);
+  box-shadow: inset 0 0 0 1px var(--cl-line-strong);
+}
+
+/* ---- the spark: drawn once, glides between places ---- */
+.cl-spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 80px;
+  height: 80px;
+  overflow: visible;
+  transform-origin: 50% 50%;
+  fill: var(--cl-clay);
+  pointer-events: none;
+  will-change: transform;
+}
+.cl-anchor {
+  display: block;
+  flex: none;
+}
+
+/* Written in: each unit fades in as it arrives. */
+@keyframes cl-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes cl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(calc(5px * var(--cl-scale)));
+  }
+}
+
+/* A verb still going, as the CLI draws it: a clay glint sweeping across. */
+.cl-shimmer {
+  background: linear-gradient(90deg, var(--cl-muted) 0 38%, var(--cl-clay) 50%, var(--cl-muted) 62% 100%);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: cl-shimmer 2.2s linear infinite;
+}
+@keyframes cl-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* ---- home: the empty page ---- */
+.cl-home {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 calc(52px * var(--cl-scale)) calc(30px * var(--cl-scale));
+  transition:
+    opacity 0.5s ease,
+    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cl-page.is-chat .cl-home {
+  opacity: 0;
+  transform: translateY(calc(-12px * var(--cl-scale)));
+}
+.cl-hello {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(16px * var(--cl-scale));
+  max-width: 100%;
+}
+.cl-anchor-home {
+  width: calc(38px * var(--cl-scale));
+  height: calc(38px * var(--cl-scale));
+  margin-top: calc(2px * var(--cl-scale));
+}
+.cl-lines {
+  display: grid;
+  min-width: 0;
+}
+.cl-line {
+  grid-area: 1 / 1;
+  font-family: var(--cl-serif);
+  font-size: calc(36px * var(--cl-scale));
+  line-height: 1.25;
+  letter-spacing: -0.012em;
+  color: var(--cl-ink);
+  text-wrap: balance;
+  transition:
+    opacity 0.45s ease,
+    transform 0.6s ease,
+    filter 0.45s ease;
+}
+/* Centred, so the room is kept and only the ink arrives. */
+.cl-line .cl-u {
+  visibility: hidden;
+}
+.cl-line .cl-u.is-on {
+  visibility: visible;
+  animation: cl-in 0.4s ease-out both;
+}
+.cl-line.is-leaving {
+  transition-duration: 0.35s;
+  opacity: 0;
+  transform: translateY(calc(-8px * var(--cl-scale)));
+  filter: blur(2px);
+}
+.cl-sub {
+  min-height: 1.5em;
+  margin-top: calc(16px * var(--cl-scale));
+  font-size: calc(13px * var(--cl-scale));
+  color: var(--cl-dim);
+  text-align: center;
+}
+
+/* ---- a conversation ---- */
+.cl-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(48px * var(--cl-scale));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding: 0 calc(28px * var(--cl-scale));
+  font-size: calc(13px * var(--cl-scale));
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.cl-page.is-chat .cl-head {
+  opacity: 1;
+}
+.cl-head-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--cl-muted);
+}
+.cl-head-by {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--cl-dim);
+}
+.cl-head-title:not(:empty) + .cl-head-by:not(:empty)::before {
+  content: "·";
+  margin-right: 0.5em;
+}
+
+.cl-chat {
+  position: absolute;
+  top: calc(48px * var(--cl-scale));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+  transition:
+    opacity 0.45s ease,
+    bottom 0.4s ease;
+}
+.cl-page.is-chat .cl-chat {
+  opacity: 1;
+}
+.cl-page.has-status .cl-chat {
+  bottom: calc(40px * var(--cl-scale));
+}
+/* The reply is laid out whole before a word shows, and set in the middle of the
+   page; a long one starts at the top and scrolls. */
+.cl-scroll {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: calc(18px * var(--cl-scale)) calc(56px * var(--cl-scale)) calc(40px * var(--cl-scale));
+}
+.cl-stack {
+  flex: none;
+  margin: auto 0;
+}
+.cl-scroll.is-scrolled {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 calc(48px * var(--cl-scale)));
+  mask-image: linear-gradient(to bottom, transparent 0, #000 calc(48px * var(--cl-scale)));
+}
+.cl-col,
+.cl-tail {
+  max-width: calc(560px * var(--cl-scale));
+  margin: 0 auto;
+}
+.cl-msg {
+  font-family: var(--cl-serif);
+  font-size: calc(19px * var(--cl-scale));
+  line-height: 1.6;
+  color: var(--cl-ink);
+  overflow-wrap: anywhere;
+  transition:
+    color 0.4s ease,
+    font-size 0.4s ease;
+}
+/* A few words are set large; a page of them at reading size. */
+.cl-msg.is-brief {
+  font-size: calc(28px * var(--cl-scale));
+  line-height: 1.45;
+}
+.cl-msg.is-short {
+  font-size: calc(23px * var(--cl-scale));
+  line-height: 1.5;
+}
+.cl-page.is-quiet .cl-msg {
+  font-size: calc(17px * var(--cl-scale));
+  color: var(--cl-muted);
+}
+.cl-page.is-quiet .cl-msg.is-brief {
+  font-size: calc(22px * var(--cl-scale));
+}
+
+.cl-blk {
+  margin: 0 0 0.8em;
+  visibility: hidden;
+}
+.cl-blk.is-on {
+  visibility: visible;
+}
+.cl-msg .cl-u {
+  visibility: hidden;
+}
+.cl-msg .cl-u.is-on {
+  visibility: visible;
+  animation: cl-in 0.35s ease-out both;
+}
+strong.cl-u {
+  font-weight: 700;
+}
+
+/* A short first line is the heading of the reply. */
+.cl-h {
+  margin-bottom: 0.45em;
+  font-size: 1.9em;
+}
+.cl-msg.is-brief .cl-h {
+  font-size: 1.6em;
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+}
+.cl-h ruby rt,
+.cl-p ruby rt {
+  font-family: var(--cl-sans);
+  font-size: 0.36em;
+  letter-spacing: 0.06em;
+  color: var(--cl-muted);
+}
+.cl-h ruby rt {
+  font-size: 0.3em;
+}
+.cl-blk:not(.is-on) rt {
+  visibility: hidden;
+}
+/* An aside is a quote. */
+.cl-q {
+  padding-left: 0.95em;
+  border-left: 2px solid var(--cl-line-strong);
+  font-size: 0.94em;
+  color: var(--cl-muted);
+}
+/* A credit is a citation chip. */
+.cl-chip {
+  display: inline-block;
+  padding: 0.38em 0.75em;
+  border-radius: calc(7px * var(--cl-scale));
+  background: var(--cl-chip);
+  font-family: var(--cl-sans);
+  font-size: max(calc(12px * var(--cl-scale)), 0.6em);
+  line-height: 1.2;
+  color: var(--cl-muted);
+}
+.cl-cite.is-on {
+  animation: cl-rise 0.4s ease-out both;
+}
+.cl-cite .cl-u.is-on {
+  animation: none;
+}
+
+/* Figures, bars and pictures arrive whole. */
+.cl-whole.is-on {
+  animation: cl-rise 0.45s ease-out both;
+}
+.cl-stat {
+  margin-bottom: 1em;
+}
+.cl-stat-label {
+  margin-bottom: 0.15em;
+  font-family: var(--cl-sans);
+  font-size: 0.68em;
+  color: var(--cl-muted);
+}
+.cl-stat-n {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+}
+.cl-stat-num {
+  font-family: var(--cl-serif);
+  font-size: 2.5em;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: lining-nums;
+}
+.cl-stat-unit {
+  font-family: var(--cl-sans);
+  font-size: 0.8em;
+  color: var(--cl-muted);
+}
+.cl-delta {
+  align-self: center;
+  padding: 0.2em 0.6em;
+  border-radius: 999px;
+  font-family: var(--cl-sans);
+  font-size: 0.64em;
+  font-style: normal;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-muted);
+  background: var(--cl-chip);
+}
+.cl-delta.is-up {
+  color: var(--cl-up);
+  background: color-mix(in srgb, var(--cl-up) 13%, transparent);
+}
+.cl-delta.is-down {
+  color: var(--cl-down);
+  background: color-mix(in srgb, var(--cl-down) 13%, transparent);
+}
+.cl-stat.is-changed .cl-stat-num {
+  animation: cl-changed 1.1s ease-out;
+}
+@keyframes cl-changed {
+  from {
+    color: var(--cl-clay);
+  }
+}
+
+.cl-meter {
+  max-width: calc(440px * var(--cl-scale));
+  margin: 0.2em 0 1em;
+}
+.cl-meter-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  margin-bottom: 0.6em;
+  font-family: var(--cl-sans);
+  font-size: 0.72em;
+  color: var(--cl-muted);
+}
+.cl-meter-pct {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--cl-ink);
+}
+.cl-meter-bar {
+  height: 0.32em;
+  border-radius: 999px;
+  background: var(--cl-line);
+  overflow: hidden;
+}
+.cl-meter-bar i {
+  display: block;
+  width: calc(var(--p, 0) * 100%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--cl-clay);
+  transition: width 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.cl-figure img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(230px * var(--cl-scale));
+  border-radius: calc(12px * var(--cl-scale));
+  box-shadow: 0 0 0 1px var(--cl-line);
+}
+.cl-caption {
+  margin-top: 0.55em;
+  font-family: var(--cl-sans);
+  font-size: max(calc(12.5px * var(--cl-scale)), 0.6em);
+  color: var(--cl-muted);
+}
+
+/* The tail: where the spark rests under the reply once it is written. */
+.cl-anchor-tail {
+  width: calc(26px * var(--cl-scale));
+  height: calc(26px * var(--cl-scale));
+}
+/* The verb rides beside the spark while it thinks. */
+.cl-verb {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: calc(15px * var(--cl-scale));
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.cl-page.is-thinking .cl-verb {
+  opacity: 1;
+}
+
+/* What plays, under a conversation: a status line. */
+.cl-status {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(40px * var(--cl-scale));
+  display: flex;
+  align-items: center;
+  gap: 1.2em;
+  padding: 0 calc(22px * var(--cl-scale));
+  border-top: 1px solid var(--cl-line);
+  font-size: calc(12px * var(--cl-scale));
+  color: var(--cl-dim);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(100%);
+  transition:
+    opacity 0.4s ease,
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.cl-page.has-status .cl-status {
+  opacity: 1;
+  transform: none;
+}
+.cl-status-line {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--cl-muted);
+}
+.cl-status-line::before {
+  content: "♪";
+  margin-right: 0.7em;
+  color: var(--cl-clay);
+}
+.cl-status-line.is-new {
+  animation: cl-in 0.5s ease-out;
+}
+.cl-status-about {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Something worth a glance: a clay edge that glows once round the page. */
+.cl-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1.5px var(--cl-clay),
+    inset 0 0 36px color-mix(in srgb, var(--cl-clay) 22%, transparent);
+  opacity: 0;
+}
+.cl-ring.is-on {
+  animation: cl-ring 2.6s ease-out;
+}
+@keyframes cl-ring {
+  12% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
