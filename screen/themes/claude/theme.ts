@@ -4,6 +4,7 @@
 import type { Block, OnAir } from '@contract'
 import { activeBlockIndex, salienceOf } from '@screen/primitives/blocks'
 import { watchScale } from '@screen/primitives/scale'
+import '@screen/tokens/newsreader.css'
 import type { Theme } from '@screen/runtime/theme-api'
 import { createArtifact, type Artifact } from './parts/artifact'
 import { createMessage, type Message, type Phase } from './parts/message'

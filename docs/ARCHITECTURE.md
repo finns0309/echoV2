@@ -84,8 +84,10 @@ screen/
 │   ├── text/          分词、强调词、合成逐字时间（新世纪和夜潮用）；按假名判断中日文（四个主题都用）
 │   ├── color/         从封面取色；由舞台宿主统一填进 context.palette，主题只读 palette；hexToRgb
 │   ├── gl/            全屏着色器的小框架（流体和夜潮共用）
-│   └── scale/         随窗口对角线放大（风铃和流体共用）
-├── tokens/          全局 token：字体栈、chrome 的颜色
+│   ├── scale/         随窗口对角线放大（风铃和流体共用）
+│   ├── chime/         风铃的物理：三段阻尼摆、风、舌撞铃口（风铃和风铃 V2 共用）
+│   └── spark/         Claude 的火花的形状（Claude 和风铃 V2 共用）
+├── tokens/          全局 token：字体栈、chrome 的颜色；newsreader.css + fonts/：Claude 风格用的衬线（OFL）
 └── themes/          主题：决定"长什么样"；目录本身就是清单
     ├── plasma/        流体
     ├── eva/           新世纪
@@ -95,7 +97,8 @@ screen/
     ├── duo/           Duo：桌上立着的一台折叠屏手机，外屏锁屏、内屏分屏，会开合
     ├── mochi/         もち：住在屏幕底边的桌宠，说卡片、跟歌跳、没事溜达、夜里睡觉
     ├── firefly/       流萤：满屏飞的萤火虫，来卡片就聚成字，放歌时跟着节拍渐渐同步闪光
-    └── claude/        Claude：一张象牙色的纸和一枚火花；卡片按话题写进当天的对话，状态卡在旁边开成 artifact
+    ├── claude/        Claude：一张象牙色的纸和一枚火花；卡片按话题写进当天的对话，状态卡在旁边开成 artifact
+    └── furin-v2/      风铃 V2：按 Claude 的画法画的风铃，毛笔墨线、平涂、火花做舌，象牙卡片逐字写出
 ```
 
 ### 主题的统一形状

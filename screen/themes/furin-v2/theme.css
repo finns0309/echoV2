@@ -1,0 +1,431 @@
+/* 风铃 V2 · the chime as Claude would draw it: brush ink and flat colour for the
+   bell, clay for the spark, an ivory card in Claude's type. All motion is inline
+   transforms written by ./parts/chime.ts. */
+.fv {
+  --fv-glass: #ebdbbc; /* the season's, set by theme.ts */
+  --fv-ink: #141413;
+  --fv-ink-2: #5e5d59;
+  --fv-ink-3: #8a8983;
+  --fv-paper: #faf9f5;
+  --fv-clay: #d97757;
+  --fv-serif: "echo-newsreader", "Hiragino Mincho ProN", "Songti SC", serif;
+  --fv-sans: -apple-system, "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
+  overflow: hidden;
+}
+.fv > * {
+  pointer-events: none;
+}
+.fv [lang|="zh"] {
+  --fv-serif: "echo-newsreader", "Songti SC", serif;
+}
+.fv [lang|="ja"] {
+  --fv-serif: "echo-newsreader", "Hiragino Mincho ProN", serif;
+}
+
+.fv-anchor {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform: scale(var(--fv-scale, 1));
+  transform-origin: 0 0;
+  /* One perspective for the whole chime, the eye between the mouth and the card. */
+  perspective: 600px;
+  perspective-origin: 0px 300px;
+}
+.fv-link {
+  position: absolute;
+  transform-origin: 0 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.fv-l0 {
+  left: 0;
+  top: 0;
+}
+
+/* ---- the bell: ink, a flat colour slipped off its line, clay painting, an ivory light ---- */
+.fv-bell {
+  position: absolute;
+  left: -80px;
+  top: -10px;
+  overflow: visible;
+}
+.fv-ink {
+  fill: var(--fv-ink);
+}
+/* A paper edge behind the ink, as a cut-out has: lost on a light desktop, it
+   keeps the line on a dark one. */
+.fv-halo path {
+  fill: none;
+  stroke: var(--fv-paper);
+  stroke-width: 6;
+  stroke-linejoin: round;
+  opacity: 0.5;
+}
+.fv-halo .fv-halo-cord {
+  stroke-width: 2;
+  opacity: 0.4;
+}
+.fv-glass {
+  fill: var(--fv-glass);
+}
+.fv-mouth {
+  fill: color-mix(in srgb, var(--fv-glass) 64%, var(--fv-ink));
+  opacity: 0.85;
+}
+.fv-paint path {
+  fill: var(--fv-clay);
+}
+.fv-shine {
+  fill: var(--fv-paper);
+  opacity: 0.92;
+}
+.fv-rim-back {
+  opacity: 0.8;
+}
+/* Where the rim is struck: strike() reads these to place the sound marks. */
+.fv-mark {
+  position: absolute;
+  top: 178px;
+  width: 0;
+  height: 0;
+}
+.fv-mark-l {
+  left: -34px;
+}
+.fv-mark-r {
+  left: 34px;
+}
+
+/* ---- the clapper: the spark on a thread, out of the mouth ---- */
+.fv-l1 {
+  left: 0;
+  top: 120px;
+}
+.fv-thread {
+  position: absolute;
+  left: -0.6px;
+  top: 0;
+  width: 1.2px;
+  height: 66px;
+  /* Hidden inside the bell, ink once it leaves the mouth. */
+  background: linear-gradient(180deg, transparent 0 57px, var(--fv-ink) 59px);
+}
+.fv-spark {
+  position: absolute;
+  left: -9px;
+  top: 65px;
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+  fill: var(--fv-clay);
+  transform-origin: 50% 50%;
+}
+.fv-spark.is-struck {
+  animation: fv-pop 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes fv-pop {
+  25% {
+    scale: 1.45;
+  }
+}
+
+/* ---- the card: ivory, a hairline, a soft shadow, Claude's type written down it ---- */
+.fv-l2 {
+  left: 0;
+  top: 74px;
+}
+.fv-tie {
+  position: absolute;
+  left: -0.55px;
+  top: 8px;
+  width: 1.1px;
+  height: 12px;
+  background: var(--fv-ink);
+  transform: translateZ(1.5px);
+}
+.fv-tz {
+  position: absolute;
+  left: -24px;
+  top: 12px;
+  width: 48px;
+  height: 204px;
+  transform-style: preserve-3d;
+}
+.fv-card {
+  position: absolute;
+  inset: 0;
+  /* Pivot at the hole, where the thread holds it. */
+  transform-origin: 50% 8px;
+  border-radius: 5px;
+  background: var(--fv-paper);
+  box-shadow:
+    0 0 0 0.5px rgb(31 30 29 / 0.2),
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 8px 22px -6px rgb(0 0 0 / 0.2);
+  will-change: transform;
+}
+.fv-hole {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 999px;
+  background: rgb(31 30 29 / 0.16);
+  box-shadow: inset 0 0.5px 1px rgb(0 0 0 / 0.3);
+}
+.fv-text {
+  position: absolute;
+  inset: 18px 3px 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.fv-text > span {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  max-height: 100%;
+  font-family: var(--fv-serif);
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
+  color: var(--fv-ink);
+  transition:
+    opacity 0.3s ease,
+    filter 0.3s ease;
+}
+.fv.is-quiet .fv-text > span {
+  color: var(--fv-ink-2);
+}
+.fv-text > span.is-clearing {
+  opacity: 0;
+  filter: blur(1px);
+}
+.fv-text > span.is-whole {
+  animation: fv-in 0.5s ease-out both;
+}
+/* Written in a character at a time, the room kept so nothing moves. */
+.fv-c {
+  visibility: hidden;
+}
+.fv-c.is-on {
+  visibility: visible;
+  animation: fv-in 0.45s ease-out both;
+}
+@keyframes fv-in {
+  from {
+    opacity: 0;
+  }
+}
+/* The reading comes once the word is down. */
+.fv-text rt {
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  font-family: var(--fv-sans);
+  font-size: 0.45em;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: var(--fv-ink-3);
+}
+
+.fv-card.is-writing .fv-text rt {
+  opacity: 0;
+  transition: none;
+}
+
+/* The seal is the spark's glyph: it turns through the CLI's spinner while the card is written. */
+.fv-seal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 7px;
+  font: 11px/1 var(--fv-sans);
+  text-align: center;
+  color: var(--fv-clay);
+}
+.fv-seal::before {
+  content: "✻";
+  display: inline-block;
+}
+.fv-card.is-writing .fv-seal::before {
+  animation: fv-spinner 1.1s linear infinite;
+}
+.fv-card.is-blank .fv-seal {
+  opacity: 0.55;
+}
+@keyframes fv-spinner {
+  0% {
+    content: "·";
+  }
+  16% {
+    content: "✢";
+  }
+  33% {
+    content: "✳";
+  }
+  50% {
+    content: "✶";
+  }
+  66% {
+    content: "✻";
+  }
+  83% {
+    content: "✽";
+  }
+}
+/* Attention: the seal warms for a moment. */
+.fv-card.is-hot .fv-seal {
+  animation: fv-seal 1.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes fv-seal {
+  20% {
+    scale: 1.6;
+    text-shadow: 0 0 8px color-mix(in srgb, var(--fv-clay) 70%, transparent);
+  }
+}
+
+/* — a value: the label small, the figure larger and upright when short — */
+.fv-label {
+  font-family: var(--fv-sans);
+  font-size: 0.6em;
+  letter-spacing: 0.18em;
+  color: var(--fv-ink-3);
+  margin-block-end: 0.6em;
+}
+.fv-num {
+  font-family: var(--fv-serif);
+  font-size: 1.45em;
+  font-weight: 360;
+  letter-spacing: 0;
+  font-variant-numeric: lining-nums;
+}
+.fv .tcy {
+  text-combine-upright: all;
+}
+.fv-unit {
+  font-size: 0.75em;
+  margin-block-start: 0.25em;
+  color: var(--fv-ink-2);
+}
+.fv-delta {
+  font-family: var(--fv-sans);
+  font-size: 0.66em;
+  margin-block-start: 0.6em;
+  color: var(--fv-clay);
+}
+
+/* — progress: a clay line down the card's edge, filling as it goes — */
+.fv-rail {
+  position: absolute;
+  left: 6px;
+  top: 18px;
+  bottom: 26px;
+  width: 2px;
+  border-radius: 1px;
+  background: rgb(31 30 29 / 0.08);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.fv-card[data-kind="progress"] .fv-rail {
+  opacity: 1;
+}
+.fv-rail i {
+  display: block;
+  height: calc(var(--p, 0) * 100%);
+  border-radius: inherit;
+  background: var(--fv-clay);
+  transition: height 1.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* — a picture: a small print at the top, its caption written below — */
+.fv-photo {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 3px;
+  margin-block-end: 8px;
+  box-shadow: 0 0 0 0.5px rgb(31 30 29 / 0.2);
+}
+.fv-caption {
+  font-size: 0.86em;
+}
+
+/* ---- sound: ink marks off the struck rim ---- */
+.fv-ring {
+  position: absolute;
+  --ring: calc(60px * var(--fv-scale, 1));
+  width: var(--ring);
+  height: var(--ring);
+  margin: calc(var(--ring) / -2) 0 0 calc(var(--ring) / -2);
+  fill: var(--fv-ink);
+  opacity: 0;
+  animation: fv-ring 0.75s cubic-bezier(0.17, 0.67, 0.35, 1) forwards;
+  pointer-events: none;
+}
+.fv-ring svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.fv-ring path {
+  stroke: rgb(250 249 245 / 0.5);
+  stroke-width: 1.5;
+  paint-order: stroke;
+}
+.fv-ring.is-echo {
+  --ring: calc(44px * var(--fv-scale, 1));
+  animation-duration: 0.95s;
+}
+@keyframes fv-ring {
+  0% {
+    opacity: calc(0.35 + var(--ri, 0.6) * 0.55);
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(calc(1 + var(--ri, 0.6) * 0.35));
+  }
+}
+
+/* ---- a strong gust, drawn passing behind the chime ---- */
+.fv-gust {
+  position: absolute;
+  left: -50%;
+  width: calc(150px * var(--fv-scale, 1));
+  height: calc(40px * var(--fv-scale, 1));
+  fill: var(--fv-ink);
+  opacity: 0;
+  animation: fv-gust 2.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+  pointer-events: none;
+}
+.fv-gust svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.fv-gust.is-west {
+  animation-direction: reverse;
+}
+.fv-gust.is-west svg {
+  transform: scaleX(-1);
+}
+@keyframes fv-gust {
+  0% {
+    left: -50%;
+    opacity: 0;
+  }
+  20%,
+  70% {
+    opacity: 0.32;
+  }
+  100% {
+    left: 110%;
+    opacity: 0;
+  }
+}

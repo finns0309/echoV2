@@ -17,11 +17,11 @@ The values are Claude's own, read off its pages: ink `#141413` on `#faf9f5`, war
 | raised (artifact, attachment card) | `#ffffff` | `#30302e` |
 | the spark, the progress bar, the glint | clay `#d97757` | clay `#d97757` |
 
-Claude's serif is Anthropic's own and isn't on the Mac, and none of the serifs that are has a light weight, so the theme carries [Newsreader](https://github.com/productiontype/Newsreader) (OFL 1.1, `parts/fonts/`, Latin, variable weight and optical size, 132 KB) to stand in: display lines at weight 330 with tight tracking, as Claude sets its headlines. Han and kana fall to the serif of their own language (Hiragino Mincho for Japanese, Songti Light for Chinese); the small print is the system face.
+Claude's serif is Anthropic's own and isn't on the Mac, and none of the serifs that are has a light weight, so the theme sets [Newsreader](https://github.com/productiontype/Newsreader) (OFL 1.1, `screen/tokens/fonts/`, Latin, variable weight and optical size, 132 KB) in its place: display lines at weight 330 with tight tracking, as Claude sets its headlines. Han and kana fall to the serif of their own language (Hiragino Mincho for Japanese, Songti Light for Chinese); the small print is the system face.
 
 ## The spark
 
-Twelve rays round a small hub, each a long wedge from a narrow root to a square tip with its corners cut, uneven in length and angle and none quite aimed at the middle, as if cut from paper (`parts/spark.ts`, tested). It is one element that glides from place to place and grows or shrinks to fit each one, so the page never jumps. How it moves says what it is doing:
+Twelve rays round a small hub, each a long wedge from a narrow root to a square tip with its corners cut, uneven in length and angle and none quite aimed at the middle, as if cut from paper (the shape is `screen/primitives/spark`, tested; `parts/spark.ts` moves it). It is one element that glides from place to place and grows or shrinks to fit each one, so the page never jumps. How it moves says what it is doing:
 
 | | |
 |---|---|
@@ -83,12 +83,11 @@ A reply of a few words is set large, a longer one smaller, a page of them at rea
 ## Files
 
 - `manifest.ts`: the three slots, the `device` profile, the energy and onset signals.
-- `parts/spark.ts`: the spark's shape (pure, tested) and how it moves.
+- `parts/spark.ts`: how the spark moves (its shape is `screen/primitives/spark`).
 - `parts/stream.ts`: when each word is written (pure, tested).
 - `parts/message.ts`: a card as a reply, and where the pen is.
 - `parts/thread.ts`: the day's conversations and the Recents (pure, tested).
 - `parts/artifact.ts`: the artifact pane, and its versions.
 - `parts/page.ts`: the page, its rail and pane, the thread, the home line, the status line, and the spark's glide.
 - `parts/words.ts`: the greeting and the verbs (pure, tested).
-- `parts/fonts/`: Newsreader, Latin, and its licence.
 - `theme.ts`: slots, signals, which conversation is on the page, and which place the page is in each frame.

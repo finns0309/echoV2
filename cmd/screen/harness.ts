@@ -17,7 +17,7 @@ for (const [path, mod] of Object.entries(import.meta.glob<{ default: ThemeManife
   if (id) manifests[id] = mod.default
 }
 // The size each theme's window profile gives it (hanging 300×470; ambient, a laptop-ish screen).
-const SIZE: Record<string, [number, number]> = { furin: [300, 470], duo: [760, 560], claude: [760, 560] }
+const SIZE: Record<string, [number, number]> = { furin: [300, 470], 'furin-v2': [300, 470], duo: [760, 560], claude: [760, 560] }
 const AMBIENT: [number, number] = [980, 600]
 
 function picture(): string {

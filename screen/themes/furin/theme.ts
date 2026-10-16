@@ -1,12 +1,12 @@
 // 风铃 · a hanging glass wind-chime. Design notes: ./README.md.
 import type { Block, OnAir, Salience } from '@contract'
 import { activeBlockIndex, fitText, progressRatio, salienceOf, valueParts } from '@screen/primitives/blocks'
+import { createChimePhysics, type ChimePhysics } from '@screen/primitives/chime'
 import { watchScale } from '@screen/primitives/scale'
 import { langOf } from '@screen/primitives/text'
 import type { Theme } from '@screen/runtime/theme-api'
 import manifest from './manifest'
 import { buildChime, type PaperContent } from './parts/chime'
-import { createChimePhysics, type ChimePhysics } from './parts/physics'
 import './theme.css'
 
 const MAX_CHARS = manifest.slots.main.maxChars

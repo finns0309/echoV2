@@ -3,17 +3,6 @@
    secondary, hairlines half a pixel wide, shadows you feel more than see.
    Light or dark with the system. Sizes grow with the window (--cl-scale). */
 
-/* Newsreader (OFL, parts/fonts/OFL.txt) stands in for Anthropic's serif: light,
-   compact, with optical sizes. Latin only; Han and kana fall to the system's. */
-@font-face {
-  font-family: "cl-newsreader";
-  src: url("./parts/fonts/newsreader-latin.woff2") format("woff2-variations");
-  font-weight: 200 800;
-  font-style: normal;
-  font-display: block;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
 .cl {
   --cl-scale: 1;
   --s: var(--cl-scale);
@@ -35,7 +24,7 @@
     0 1px 2px rgb(0 0 0 / 0.03),
     0 4px 24px rgb(0 0 0 / 0.035),
     0 16px 32px rgb(0 0 0 / 0.02);
-  --cl-serif: "cl-newsreader", "Hiragino Mincho ProN", "Songti SC", Georgia, serif;
+  --cl-serif: "echo-newsreader", "Hiragino Mincho ProN", "Songti SC", Georgia, serif;
   --cl-sans: -apple-system, "SF Pro Text", "Hiragino Sans", "PingFang SC", system-ui, sans-serif;
 
   position: absolute;
@@ -66,11 +55,11 @@
 }
 /* Latin in Newsreader; Han and kana in the serif of their own language. */
 .cl [lang|="ja"] {
-  --cl-serif: "cl-newsreader", "Hiragino Mincho ProN", serif;
+  --cl-serif: "echo-newsreader", "Hiragino Mincho ProN", serif;
   --cl-sans: -apple-system, "Hiragino Sans", sans-serif;
 }
 .cl [lang|="zh"] {
-  --cl-serif: "cl-newsreader", "Songti SC", serif;
+  --cl-serif: "echo-newsreader", "Songti SC", serif;
   --cl-sans: -apple-system, "PingFang SC", sans-serif;
 }
 

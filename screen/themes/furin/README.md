@@ -27,7 +27,7 @@ Three damped spherical pendulums (cord+bell / clapper / paper), nested as DOM 3D
 
 ## Files
 
-- `parts/physics.ts`: the pendulums, wind, collisions and strikes. No DOM.
+- `screen/primitives/chime`: the pendulums, wind, collisions and strikes. No DOM; shared with 风铃 V2.
 - `parts/chime.ts`: markup, per-frame transforms, strike rings.
 - `theme.ts`: picks the current block, flips the strip, drives the frame.
 - `theme.css`: materials only. All motion is inline transforms.

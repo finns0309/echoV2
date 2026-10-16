@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { RAYS, sparkPath } from './spark'
+import { RAYS, sparkPath } from '.'
 
 /** Each ray's farthest point from the centre. */
 const reach = (d: string) =>

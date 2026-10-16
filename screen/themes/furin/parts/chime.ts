@@ -1,7 +1,7 @@
 // The chime's DOM: a glass bell (SVG), the clapper bead, and the paper strip,
 // nested as 3D-transformed links. Ported from echo's furin.js.
 import { setLang } from '@screen/primitives/text'
-import type { ChimePhysics, StrikeEvent } from './physics'
+import type { ChimePhysics, StrikeEvent } from '@screen/primitives/chime'
 
 /** What a strip can carry. Everything is written vertically, top to bottom. */
 export type PaperContent =

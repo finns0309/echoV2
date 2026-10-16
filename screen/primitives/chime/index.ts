@@ -1,6 +1,8 @@
-// Three damped spherical pendulums (cord+bell / clapper / paper strip), driven
-// by one wandering wind vector. Ported from echo's furin.js; the physics and
-// its tuning are unchanged, only the state now lives per instance.
+// A hanging chime as physics: three damped spherical pendulums (cord+bell /
+// clapper / paper strip), driven by one wandering wind vector, the clapper
+// ringing the rim. No DOM; each chime theme draws it its own way. Ported from
+// echo's furin.js; the physics and its tuning are unchanged, only the state now
+// lives per instance.
 
 const G = 2400 // px/s² — sets the pendulum tempo (~1.7s bell period)
 // Area/mass ratio decides who the wind talks to: the paper is the sail, the
